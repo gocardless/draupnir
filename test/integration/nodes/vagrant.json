@@ -1,0 +1,4 @@
+{
+  "name": "vagrant",
+  "chef_environment": "integration"
+}

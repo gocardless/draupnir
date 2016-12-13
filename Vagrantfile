@@ -1,3 +1,14 @@
+require "fileutils"
+
+# FIXME: This currently runs on every Vagrant command
+# We should move it to a plugin that only runs at appropriate times (`vagrant up`)
+if Dir.exists?("./tmp/cookbooks/draupnir/")
+  `cd ./tmp/cookbooks/draupnir && git pull`
+else
+  FileUtils.mkdir_p("./tmp/cookbooks/")
+  `git clone git@github.com:gocardless/chef-draupnir.git ./tmp/cookbooks/draupnir`
+end
+
 Vagrant.configure("2") do |config|
   # TODO: Fix this when tinycorelinux.net isn't down
   # config.vm.provider "docker" do |d|
@@ -18,11 +29,12 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # config.vm.network "forwarded_port", guest: 80, host: 8080
 
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
+  config.vm.provision "chef_zero" do |chef|
+    chef.cookbooks_path = "./tmp/cookbooks"
+    chef.data_bags_path = "./test/integration/data_bags"
+    chef.nodes_path = "./test/integration/nodes"
+    chef.environments_path = "./test/integration/environments"
+    chef.environment = "integration"
+    chef.node_name = "vagrant"
+  end
 end
