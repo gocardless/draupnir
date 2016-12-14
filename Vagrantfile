@@ -18,6 +18,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "bento/ubuntu-16.04"
   config.vm.provider "virtualbox" do |vb|
+    vb.memory = 512
+
     disk_file = './tmp/disk.vdi'
     vb.customize ['createhd', '--filename', disk_file, '--size', 500 * 1024]
     vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', disk_file]
