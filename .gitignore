@@ -1,3 +1,4 @@
 /tmp
 /.vagrant
 /test/integration/nodes/vagrant.json
+/draupnir
