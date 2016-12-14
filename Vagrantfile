@@ -11,6 +11,7 @@ end
 
 Vagrant.configure("2") do |config|
   # TODO: Fix this when tinycorelinux.net isn't down
+  # config.ssh.insert_key = true
   # config.vm.provider "docker" do |d|
   #   d.image = "ubuntu/16.04"
   #   d.create_args = ["--privileged", "--cap-add=ALL"]
@@ -36,7 +37,8 @@ Vagrant.configure("2") do |config|
     chef.data_bags_path = "./test/integration/data_bags"
     chef.nodes_path = "./test/integration/nodes"
     chef.environments_path = "./test/integration/environments"
-    chef.environment = "integration"
+    chef.environment = "_default"
     chef.node_name = "vagrant"
+    chef.add_recipe "draupnir"
   end
 end
