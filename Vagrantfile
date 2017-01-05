@@ -21,8 +21,8 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 512
 
-    disk_file = './tmp/disk.vdi'
-    FileUtils.rm(disk_file) if File.exists?(disk_file)
+    disk_file = 'tmp/disk.vdi'
+    # FileUtils.rm(disk_file) if File.exists?(disk_file)
     vb.customize ['createhd', '--filename', disk_file, '--size', 500 * 1024]
     vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', disk_file]
     vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
