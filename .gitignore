@@ -2,3 +2,5 @@
 /.vagrant
 /test/integration/nodes/vagrant.json
 /draupnir
+*.linux_amd64
+*.deb

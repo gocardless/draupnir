@@ -7,6 +7,8 @@ import (
   "net/http"
 )
 
+var version string
+
 type Config struct {
   Port int `required:"true"`
 }
