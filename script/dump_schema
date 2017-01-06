@@ -1,0 +1,3 @@
+#! /usr/bin/env bash
+
+pg_dump -sxOf structure.sql draupnir
