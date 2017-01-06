@@ -1,2 +1,2 @@
 gom "github.com/kelseyhightower/envconfig"
-
+gom "github.com/rubenv/sql-migrate"

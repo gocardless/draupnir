@@ -1,1 +1,2 @@
 gom 'github.com/kelseyhightower/envconfig', :commit => '5c008110b20b657eb7e005b83d0a5f6aa6bb5f4b'
+gom 'github.com/rubenv/sql-migrate', :commit => '1ed79968dfca5de79adb13c84523caaa4fc865a9'
