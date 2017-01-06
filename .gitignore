@@ -5,3 +5,4 @@
 *.linux_amd64
 *.deb
 /.bundle
+/vendor
