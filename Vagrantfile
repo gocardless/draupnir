@@ -28,18 +28,22 @@ Vagrant.configure("2") do |config|
     vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
   end
 
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
+  config.vm.network "forwarded_port", guest: 80, host: 8080
 
   config.vm.provision "chef_zero" do |chef|
     chef.cookbooks_path = "./tmp/cookbooks"
-    chef.data_bags_path = "./test/integration/data_bags"
-    chef.nodes_path = "./test/integration/nodes"
-    chef.environments_path = "./test/integration/environments"
+    chef.data_bags_path = "./chef/data_bags"
+    chef.nodes_path = "./chef/nodes"
+    chef.environments_path = "./chef/environments"
     chef.environment = "_default"
     chef.node_name = "vagrant"
     chef.add_recipe "draupnir"
+    chef.json = {
+      "draupnir" => {
+        "port" => 80,
+        "install_from_local_package" => true,
+        "local_package_path" => "/vagrant/draupnir_0.0.1_amd64.deb",
+      }
+    }
   end
 end
