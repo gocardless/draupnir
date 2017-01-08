@@ -9,5 +9,6 @@ RSpec.configure do |r|
     status = `vagrant status --machine-readable`
     state = status.match(/^\d+,default,state,(\w+)$/)[1]
     `vagrant up` unless state == 'running'
+    `vagrant ssh -c 'sudo service draupnir start'`
   end
 end

@@ -13,7 +13,7 @@ build-production: test
 
 deb: build-production
 	bundle install
-	bundle exec fpm -s dir -t $@ -n draupnir -v $(VERSION) \
+	bundle exec fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
 		--description "Databases on demand" \
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \

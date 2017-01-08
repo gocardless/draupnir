@@ -2,9 +2,11 @@ package main
 
 import (
   "github.com/kelseyhightower/envconfig"
+  "github.com/gorilla/mux"
   "log"
   "fmt"
   "net/http"
+  "github.com/gocardless/draupnir/routes"
 )
 
 var version string
@@ -20,10 +22,10 @@ func main() {
     log.Fatal(err.Error())
   }
 
-  http.HandleFunc("/health_check", func (w http.ResponseWriter, r *http.Request) {
-    w.WriteHeader(http.StatusOK)
-    fmt.Fprintf(w, "OK")
-  })
+  router := mux.NewRouter()
+  router.HandleFunc("/health_check", routes.HealthCheck)
+
+  http.Handle("/", router)
 
   err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), nil)
   if err != nil {
