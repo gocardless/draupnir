@@ -1,3 +1,4 @@
 gom "github.com/kelseyhightower/envconfig"
 gom "github.com/rubenv/sql-migrate"
 gom "github.com/gorilla/mux"
+gom "github.com/onsi/gomega"

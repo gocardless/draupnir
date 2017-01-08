@@ -4,9 +4,11 @@ import (
   "net/http/httptest"
   "net/http"
   "testing"
+  . "github.com/onsi/gomega"
 )
 
 func TestHealthCheck(t *testing.T) {
+  RegisterTestingT(t)
   recorder := httptest.NewRecorder()
   req, err := http.NewRequest("GET", "/health_check", nil)
   if err != nil {
@@ -15,17 +17,7 @@ func TestHealthCheck(t *testing.T) {
   handler := http.HandlerFunc(HealthCheck)
   handler.ServeHTTP(recorder, req)
 
-  if recorder.Code != http.StatusOK {
-    t.Errorf(
-      "wrong status code:\n\texpected %v\n\tgot %v",
-      http.StatusCreated,
-      recorder.Code,
-    )
-  }
+  Expect(recorder.Code).To(Equal(http.StatusOK))
 
-  body := string(recorder.Body.Bytes())
-  expected := "OK"
-  if body != expected {
-    t.Errorf("wrong body:\n\texpected %s\n\tgot %s", expected, body)
-  }
+  Expect(string(recorder.Body.Bytes())).To(Equal("OK"))
 }

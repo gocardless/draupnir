@@ -31,3 +31,11 @@ Migrate the database
 ```
 vendor/bin/sql-migrate up
 ```
+
+Tests
+-----
+
+To run the unit tests:
+```
+go test $(go list ./... | grep -v /vendor)
+```

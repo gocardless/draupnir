@@ -1,7 +1,7 @@
 VERSION=0.0.1
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: build clean
+.PHONY: build clean test
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
