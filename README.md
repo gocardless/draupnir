@@ -39,3 +39,10 @@ To run the unit tests:
 ```
 go test $(go list ./... | grep -v /vendor)
 ```
+
+To run the integration tests:
+```
+vagrant up
+bundle
+rspec
+```

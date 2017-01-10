@@ -52,6 +52,7 @@ Vagrant.configure('2') do |config|
     chef.json = {
       'draupnir' => {
         'port' => 80,
+        'database_url' => 'postgres://vagrant:vagrant@localhost/draupnir?sslmode=disable',
         'install_from_local_package' => true,
         'local_package_path' => '/vagrant/draupnir_0.0.1_amd64.deb'
       }
