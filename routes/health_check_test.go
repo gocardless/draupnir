@@ -4,11 +4,10 @@ import (
   "net/http/httptest"
   "net/http"
   "testing"
-  . "github.com/onsi/gomega"
+  "github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheck(t *testing.T) {
-  RegisterTestingT(t)
   recorder := httptest.NewRecorder()
   req, err := http.NewRequest("GET", "/health_check", nil)
   if err != nil {
@@ -17,7 +16,7 @@ func TestHealthCheck(t *testing.T) {
   handler := http.HandlerFunc(HealthCheck)
   handler.ServeHTTP(recorder, req)
 
-  Expect(recorder.Code).To(Equal(http.StatusOK))
+  assert.Equal(t, recorder.Code, http.StatusOK)
 
-  Expect(string(recorder.Body.Bytes())).To(Equal("OK"))
+  assert.Equal(t, string(recorder.Body.Bytes()), "OK")
 }
