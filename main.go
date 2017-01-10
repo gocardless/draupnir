@@ -3,10 +3,10 @@ package main
 import (
   "github.com/kelseyhightower/envconfig"
   "github.com/gorilla/mux"
+  "github.com/gocardless/draupnir/routes"
   "log"
   "fmt"
   "net/http"
-  "github.com/gocardless/draupnir/routes"
 )
 
 var version string
@@ -24,6 +24,7 @@ func main() {
 
   router := mux.NewRouter()
   router.HandleFunc("/health_check", routes.HealthCheck)
+  router.HandleFunc("/images", routes.ListImages)
 
   http.Handle("/", router)
 
