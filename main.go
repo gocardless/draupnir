@@ -1,47 +1,51 @@
 package main
 
 import (
-  "github.com/kelseyhightower/envconfig"
-  "github.com/gorilla/mux"
-  "github.com/gocardless/draupnir/routes"
-  "github.com/gocardless/draupnir/store"
-  "log"
-  "fmt"
-  "net/http"
-  "database/sql"
+	"database/sql"
+	"fmt"
+	"github.com/gocardless/draupnir/routes"
+	"github.com/gocardless/draupnir/store"
+	"github.com/gorilla/mux"
+	"github.com/kelseyhightower/envconfig"
+	"log"
+	"net/http"
 )
 
 var version string
 
 type Config struct {
-  Port int `required:"true"`
-  DatabaseURL string `require:"true"`
+	Port        int    `required:"true"`
+	DatabaseUrl string `required:"true" split_words:"true"`
 }
 
 func main() {
-  var c Config
-  err := envconfig.Process("draupnir", &c)
-  if err != nil {
-    log.Fatal(err.Error())
-  }
+	var c Config
+	err := envconfig.Process("draupnir", &c)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
-  db, err := sql.Open("postgres", c.DatabaseURL)
-  if err != nil {
-    log.Fatalf("Cannot connect to database: %s", err.Error())
-  }
+	log.Printf("PORT: %d", c.Port)
+	log.Printf("DATABASE_URL: %s", c.DatabaseUrl)
 
-  imageStore := store.DBImageStore{DB: db}
+	db, err := sql.Open("postgres", c.DatabaseUrl)
+	if err != nil {
+		log.Fatalf("Cannot connect to database: %s", err.Error())
+	}
 
-  imageRouteSet := routes.Images{Store: imageStore}
+	imageStore := store.DBImageStore{DB: db}
 
-  router := mux.NewRouter()
-  router.HandleFunc("/health_check", routes.HealthCheck)
-  router.HandleFunc("/images", imageRouteSet.List)
+	imageRouteSet := routes.Images{Store: imageStore}
 
-  http.Handle("/", router)
+	router := mux.NewRouter()
+	router.HandleFunc("/health_check", routes.HealthCheck)
+	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
+	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
 
-  err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), nil)
-  if err != nil {
-    log.Fatal(err.Error())
-  }
+	http.Handle("/", router)
+
+	err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), nil)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }

@@ -46,7 +46,7 @@ Vagrant.configure('2') do |config|
     chef.data_bags_path = './chef/data_bags'
     chef.nodes_path = './chef/nodes'
     chef.environments_path = './chef/environments'
-    chef.environment = '_default'
+    chef.environment = 'development'
     chef.node_name = 'vagrant'
     chef.add_recipe 'draupnir'
     chef.json = {
@@ -58,5 +58,8 @@ Vagrant.configure('2') do |config|
       }
     }
   end
+  config.vm.provision 'shell', inline: <<SHELL
+  cat /vagrant/structure.sql | sudo -u vagrant psql draupnir
+SHELL
 end
 # rubocop:enable Metrics/BlockLength
