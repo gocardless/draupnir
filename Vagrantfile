@@ -39,7 +39,7 @@ Vagrant.configure('2') do |config|
                   '--cableconnected1', 'on']
   end
 
-  config.vm.network 'forwarded_port', guest: 80, host: 8080
+  config.vm.network 'forwarded_port', guest: 8080, host: 8080
 
   config.vm.provision 'chef_zero' do |chef|
     chef.cookbooks_path = './tmp/cookbooks'
@@ -51,15 +51,15 @@ Vagrant.configure('2') do |config|
     chef.add_recipe 'draupnir'
     chef.json = {
       'draupnir' => {
-        'port' => 80,
-        'database_url' => 'postgres://vagrant:vagrant@localhost/draupnir?sslmode=disable',
+        'port' => 8080,
+        'database_url' => 'postgres://draupnir:draupnir@localhost/draupnir?sslmode=disable',
         'install_from_local_package' => true,
         'local_package_path' => '/vagrant/draupnir_0.0.1_amd64.deb'
       }
     }
   end
   config.vm.provision 'shell', inline: <<SHELL
-  cat /vagrant/structure.sql | sudo -u vagrant psql draupnir
+  cat /vagrant/structure.sql | sudo -u draupnir psql draupnir
 SHELL
 end
 # rubocop:enable Metrics/BlockLength
