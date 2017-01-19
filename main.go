@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/store"
 	"github.com/gorilla/mux"
@@ -35,12 +36,16 @@ func main() {
 
 	imageStore := store.DBImageStore{DB: db}
 
-	imageRouteSet := routes.Images{Store: imageStore}
+	imageRouteSet := routes.Images{
+		Store:    imageStore,
+		Executor: exec.OSExecutor{},
+	}
 
 	router := mux.NewRouter()
 	router.HandleFunc("/health_check", routes.HealthCheck)
 	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
 	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
+	router.HandleFunc("/images/{id}/done", imageRouteSet.Done).Methods("POST")
 
 	http.Handle("/", router)
 

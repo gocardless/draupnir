@@ -13,6 +13,13 @@ test-integration:
 	vagrant ssh -c "sudo service draupnir start"
 	be rspec
 
+setup-cookbook:
+	mkdir -p tmp/cookbooks/
+	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
+
+update-cookbook:
+	cd tmp/cookbooks/draupnir && git pull
+
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
 

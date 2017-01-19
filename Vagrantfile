@@ -1,17 +1,6 @@
 # frozen_string_literal: true
 require 'fileutils'
 
-# FIXME: This currently runs on every Vagrant command
-# We should move it to a plugin that only runs at
-# appropriate times (`vagrant up`)
-if Dir.exist?('./tmp/cookbooks/draupnir/')
-  `cd ./tmp/cookbooks/draupnir && git pull`
-else
-  FileUtils.mkdir_p('./tmp/cookbooks/')
-  `#{'git clone git@github.com:gocardless/chef-draupnir.git ' \
-     './tmp/cookbooks/draupnir'}`
-end
-
 # rubocop:disable Metrics/BlockLength
 Vagrant.configure('2') do |config|
   # TODO: Fix this when tinycorelinux.net isn't down
@@ -40,6 +29,7 @@ Vagrant.configure('2') do |config|
   end
 
   config.vm.network 'forwarded_port', guest: 8080, host: 8080
+  config.vm.network 'forwarded_port', guest: 22, host: 8022
 
   config.vm.provision 'chef_zero' do |chef|
     chef.cookbooks_path = './tmp/cookbooks'
@@ -54,7 +44,9 @@ Vagrant.configure('2') do |config|
         'port' => 8080,
         'database_url' => 'postgres://draupnir:draupnir@localhost/draupnir?sslmode=disable',
         'install_from_local_package' => true,
-        'local_package_path' => '/vagrant/draupnir_0.0.1_amd64.deb'
+        'local_package_path' => '/vagrant/draupnir_0.0.1_amd64.deb',
+        'upload_user_public_key' => 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjKB/Bwg6U0QKcudDl7gWKPrtNag6Z55UHFUSuD82xsseULEwq+Mb+hTNaQ48etceSdZYX+KVsJfvv3q26MWkD1chBUUgCscM+pVMI8Y07ZNep/xp7vr5yic8doF1KtlIbhRqn2rESw8z9/UYro9N8YkAjotWwDF3DjnzOC6fzIBXi3qyiswjNDD8Cil9WseJ5lRVutJb7ncAFJtsCOPu83rYHVwBnXsuXNpjTKa0UEjRlwF0VTkG3uVYjanWz1PBjD01xiDigGT/jWSa+rcOFr+5B6Au7ZFSWEMYPEjcGWkarG1kQ94XBLG7t7s1UnkmZbfwPjSD/X2j+Azcy3IEp upload@foo.local
+        '
       }
     }
   end

@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"errors"
+	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -23,13 +25,22 @@ func (s FakeImageStore) List() ([]models.Image, error) {
 	}, nil
 }
 
-func (s FakeImageStore) Create(models.Image) (models.Image, error) {
+func (s FakeImageStore) Create(_ models.Image) (models.Image, error) {
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
 		panic(err.Error())
 	}
 	timestamp := time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
 	return models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp}, nil
+}
+
+type FakeExecutor struct {
+	exec.Executor
+	_CreateBtrfsSubvolume func(name string) error
+}
+
+func (e FakeExecutor) CreateBtrfsSubvolume(name string) error {
+	return e._CreateBtrfsSubvolume(name)
 }
 
 func TestListImages(t *testing.T) {
@@ -57,11 +68,39 @@ func TestCreateImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := http.HandlerFunc(Images{Store: FakeImageStore{}}.Create)
+	executor := FakeExecutor{
+		_CreateBtrfsSubvolume: func(name string) error {
+			return nil
+		},
+	}
+	routeSet := Images{Store: FakeImageStore{}, Executor: executor}
+	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
 	expected := `{"id":1,"backed_up_at":"2016-01-01T12:33:44.567Z","ready":false,"created_at":"2016-01-01T12:33:44.567Z","updated_at":"2016-01-01T12:33:44.567Z"}
 `
 	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+}
+
+func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	body := `{"backed_up_at": "2016-01-01T12:33:44.567Z"}`
+	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	executor := FakeExecutor{
+		_CreateBtrfsSubvolume: func(name string) error {
+			return errors.New("some btrfs error")
+		},
+	}
+	routeSet := Images{Store: FakeImageStore{}, Executor: executor}
+	handler := http.HandlerFunc(routeSet.Create)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	expected := "error creating btrfs subvolume: some btrfs error\n"
 	assert.Equal(t, expected, string(recorder.Body.Bytes()))
 }

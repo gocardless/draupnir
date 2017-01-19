@@ -2,3 +2,4 @@ gom 'github.com/kelseyhightower/envconfig', :commit => '5c008110b20b657eb7e005b8
 gom 'github.com/rubenv/sql-migrate', :commit => '1ed79968dfca5de79adb13c84523caaa4fc865a9'
 gom 'github.com/gorilla/mux', :commit => '757bef944d0f21880861c2dd9c871ca543023cba'
 gom 'github.com/stretchr/testify', :commit => '2402e8e7a02fc811447d11f881aa9746cdc57983'
+gom 'github.com/willdonnelly/passwd', :commit => '7935dab3074ca1d47c8805e0230f8685116b6019'

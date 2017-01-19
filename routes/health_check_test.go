@@ -18,5 +18,5 @@ func TestHealthCheck(t *testing.T) {
 
 	assert.Equal(t, recorder.Code, http.StatusOK)
 
-	assert.Equal(t, string(recorder.Body.Bytes()), "OK")
+	assert.Equal(t, string(recorder.Body.Bytes()), "OK\n")
 }
