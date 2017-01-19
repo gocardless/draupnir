@@ -1,12 +1,19 @@
 VERSION=0.0.1
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: build clean test test-integration
+.PHONY: build clean test test-integration dump-schema
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
 
+migrate:
+	vendor/bin/sql-migrate up
+
+dump-schema:
+	pg_dump -sxOf structure.sql draupnir
+
 test:
+	go test ./routes ./models ./store
 
 test-integration:
 	vagrant destroy -f && vagrant up

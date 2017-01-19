@@ -2,14 +2,15 @@ package routes
 
 import (
 	"errors"
-	"github.com/gocardless/draupnir/exec"
-	"github.com/gocardless/draupnir/models"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gocardless/draupnir/exec"
+	"github.com/gocardless/draupnir/models"
+	"github.com/stretchr/testify/assert"
 )
 
 type FakeImageStore struct{}
@@ -25,6 +26,15 @@ func (s FakeImageStore) List() ([]models.Image, error) {
 	}, nil
 }
 
+func (s FakeImageStore) Get(id int) (models.Image, error) {
+	loc, err := time.LoadLocation("UTC")
+	if err != nil {
+		panic(err.Error())
+	}
+	timestamp := time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
+	return models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp}, nil
+}
+
 func (s FakeImageStore) Create(_ models.Image) (models.Image, error) {
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
@@ -34,13 +44,18 @@ func (s FakeImageStore) Create(_ models.Image) (models.Image, error) {
 	return models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp}, nil
 }
 
-type FakeExecutor struct {
-	exec.Executor
-	_CreateBtrfsSubvolume func(name string) error
+func (s FakeImageStore) MarkAsReady(image models.Image) (models.Image, error) {
+	image.Ready = true
+	return image, nil
 }
 
-func (e FakeExecutor) CreateBtrfsSubvolume(name string) error {
-	return e._CreateBtrfsSubvolume(name)
+type FakeExecutor struct {
+	exec.Executor
+	_CreateBtrfsSubvolume func(id int) error
+}
+
+func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
+	return e._CreateBtrfsSubvolume(id)
 }
 
 func TestListImages(t *testing.T) {
@@ -69,7 +84,7 @@ func TestCreateImage(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(name string) error {
+		_CreateBtrfsSubvolume: func(id int) error {
 			return nil
 		},
 	}
@@ -92,7 +107,7 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(name string) error {
+		_CreateBtrfsSubvolume: func(id int) error {
 			return errors.New("some btrfs error")
 		},
 	}

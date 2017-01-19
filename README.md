@@ -29,7 +29,7 @@ createdb draupnir
 
 Migrate the database
 ```
-vendor/bin/sql-migrate up
+make migrate
 ```
 
 Tests
@@ -37,12 +37,13 @@ Tests
 
 To run the unit tests:
 ```
-go test $(go list ./... | grep -v /vendor)
+make test
 ```
 
 To run the integration tests:
 ```
 vagrant up
+vagrant ssh -c "sudo service draupnir start"
 bundle
 rspec
 ```
