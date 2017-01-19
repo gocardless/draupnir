@@ -8,54 +8,44 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/stretchr/testify/assert"
 )
 
-type FakeImageStore struct{}
+type FakeImageStore struct {
+	_List        func() ([]models.Image, error)
+	_Get         func(int) (models.Image, error)
+	_Create      func(models.Image) (models.Image, error)
+	_MarkAsReady func(models.Image) (models.Image, error)
+}
 
 func (s FakeImageStore) List() ([]models.Image, error) {
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		panic(err.Error())
-	}
-	timestamp := time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
-	return []models.Image{
-		models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp},
-	}, nil
+	return s._List()
 }
 
 func (s FakeImageStore) Get(id int) (models.Image, error) {
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		panic(err.Error())
-	}
-	timestamp := time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
-	return models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp}, nil
+	return s._Get(id)
 }
 
-func (s FakeImageStore) Create(_ models.Image) (models.Image, error) {
-	loc, err := time.LoadLocation("UTC")
-	if err != nil {
-		panic(err.Error())
-	}
-	timestamp := time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
-	return models.Image{ID: 1, BackedUpAt: timestamp, Ready: false, CreatedAt: timestamp, UpdatedAt: timestamp}, nil
+func (s FakeImageStore) Create(image models.Image) (models.Image, error) {
+	return s._Create(image)
 }
 
 func (s FakeImageStore) MarkAsReady(image models.Image) (models.Image, error) {
-	image.Ready = true
-	return image, nil
+	return s._MarkAsReady(image)
 }
 
 type FakeExecutor struct {
-	exec.Executor
 	_CreateBtrfsSubvolume func(id int) error
+	_FinaliseImage        func(id int) error
 }
 
 func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
 	return e._CreateBtrfsSubvolume(id)
+}
+
+func (e FakeExecutor) FinaliseImage(id int) error {
+	return e._FinaliseImage(id)
 }
 
 func TestListImages(t *testing.T) {
@@ -65,7 +55,21 @@ func TestListImages(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := http.HandlerFunc(Images{Store: FakeImageStore{}}.List)
+	store := FakeImageStore{
+		_List: func() ([]models.Image, error) {
+			return []models.Image{
+				models.Image{
+					ID:         1,
+					BackedUpAt: timestamp(),
+					Ready:      false,
+					CreatedAt:  timestamp(),
+					UpdatedAt:  timestamp(),
+				},
+			}, nil
+		},
+	}
+
+	handler := http.HandlerFunc(Images{Store: store}.List)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -88,7 +92,20 @@ func TestCreateImage(t *testing.T) {
 			return nil
 		},
 	}
-	routeSet := Images{Store: FakeImageStore{}, Executor: executor}
+
+	store := FakeImageStore{
+		_Create: func(image models.Image) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+	}
+
+	routeSet := Images{Store: store, Executor: executor}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -106,16 +123,36 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	store := FakeImageStore{
+		_Create: func(image models.Image) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+	}
+
 	executor := FakeExecutor{
 		_CreateBtrfsSubvolume: func(id int) error {
 			return errors.New("some btrfs error")
 		},
 	}
-	routeSet := Images{Store: FakeImageStore{}, Executor: executor}
+	routeSet := Images{Store: store, Executor: executor}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	expected := "error creating btrfs subvolume: some btrfs error\n"
 	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+}
+
+func timestamp() time.Time {
+	loc, err := time.LoadLocation("UTC")
+	if err != nil {
+		panic(err.Error())
+	}
+	return time.Date(2016, 1, 1, 12, 33, 44, 567000000, loc)
 }
