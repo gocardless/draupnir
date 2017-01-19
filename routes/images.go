@@ -33,12 +33,12 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type createRequest struct {
+type createImageRequest struct {
 	BackedUpAt time.Time `json:"backed_up_at"`
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
-	var req createRequest
+	var req createImageRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json decoding failed: %s", err.Error()), http.StatusInternalServerError)
@@ -46,7 +46,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	image := models.NewImage(req.BackedUpAt)
-	image, err = i.Store.Create(models.NewImage(req.BackedUpAt))
+	image, err = i.Store.Create(image)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error creating image: %s", err.Error()), http.StatusInternalServerError)
 		return

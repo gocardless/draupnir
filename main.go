@@ -41,11 +41,19 @@ func main() {
 		Executor: exec.OSExecutor{},
 	}
 
+	instanceStore := store.DBInstanceStore{DB: db}
+
+	instanceRouteSet := routes.Instances{
+		Store:    instanceStore,
+		Executor: exec.OSExecutor{},
+	}
+
 	router := mux.NewRouter()
 	router.HandleFunc("/health_check", routes.HealthCheck)
 	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
 	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
 	router.HandleFunc("/images/{id}/done", imageRouteSet.Done).Methods("POST")
+	router.HandleFunc("/instances", instanceRouteSet.Create).Methods("POST")
 
 	http.Handle("/", router)
 
