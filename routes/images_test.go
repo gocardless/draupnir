@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -74,9 +75,12 @@ func TestListImages(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	expected := `[{"id":1,"backed_up_at":"2016-01-01T12:33:44.567Z","ready":false,"created_at":"2016-01-01T12:33:44.567Z","updated_at":"2016-01-01T12:33:44.567Z"}]
-`
-	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+	expected, err := json.Marshal(listFixture)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
 func TestCreateImage(t *testing.T) {
@@ -109,10 +113,13 @@ func TestCreateImage(t *testing.T) {
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
-	expected := `{"id":1,"backed_up_at":"2016-01-01T12:33:44.567Z","ready":false,"created_at":"2016-01-01T12:33:44.567Z","updated_at":"2016-01-01T12:33:44.567Z"}
-`
+	expected, err := json.Marshal(createFixture)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	assert.Equal(t, http.StatusCreated, recorder.Code)
-	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
 func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {

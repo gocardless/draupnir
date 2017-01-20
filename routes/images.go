@@ -11,6 +11,7 @@ import (
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
+	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 )
 
@@ -26,7 +27,11 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(images)
+	var _images []*models.Image
+	for _, i := range images {
+		_images = append(_images, &i)
+	}
+	err = jsonapi.MarshalManyPayload(w, _images)
 	if err != nil {
 		http.Error(w, "json encoding failed", http.StatusInternalServerError)
 		return
@@ -62,7 +67,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(image)
+	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
 		http.Error(w, "json encoding failed", http.StatusInternalServerError)
 		return

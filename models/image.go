@@ -5,11 +5,11 @@ import (
 )
 
 type Image struct {
-	ID         int       `json:"id"`
-	BackedUpAt time.Time `json:"backed_up_at"`
-	Ready      bool      `json:"ready"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         int       `jsonapi:"primary,images"`
+	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
+	Ready      bool      `jsonapi:"attr,ready"`
+	CreatedAt  time.Time `jsonapi:"attr,created_at,iso8601"`
+	UpdatedAt  time.Time `jsonapi:"attr,updated_at,iso8601"`
 }
 
 func NewImage(backedUpAt time.Time) Image {
