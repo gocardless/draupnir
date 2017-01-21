@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -113,9 +114,9 @@ func TestCreateImage(t *testing.T) {
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
-	expected, err := json.Marshal(createFixture)
+	expected, err := json.Marshal(createImageFixture)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
@@ -154,6 +155,70 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	expected := "error creating btrfs subvolume: some btrfs error\n"
 	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+}
+
+func TestDone(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("POST", "/images/1/done", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeImageStore{
+		_Get: func(id int) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+		_MarkAsReady: func(image models.Image) (models.Image, error) {
+			image.Ready = true
+			return image, nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_FinaliseImage: func(id int) error {
+			return nil
+		},
+	}
+
+	routeSet := Images{Store: store, Executor: executor}
+	router := mux.NewRouter()
+	router.HandleFunc("/images/{id}/done", routeSet.Done)
+	router.ServeHTTP(recorder, req)
+
+	expected, err := json.Marshal(doneImageFixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestDoneWithNonNumericID(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("POST", "/images/bad_id/done", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routeSet := Images{Store: nil, Executor: nil}
+	router := mux.NewRouter()
+	router.HandleFunc("/images/{id}/done", routeSet.Done)
+	router.ServeHTTP(recorder, req)
+
+	expected, err := json.Marshal(notFoundError)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
 func timestamp() time.Time {

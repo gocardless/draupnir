@@ -32,7 +32,7 @@ var listFixture = jsonAPIFixture{
 	},
 }
 
-var createFixture = jsonAPIFixture{
+var createImageFixture = jsonAPIFixture{
 	Data: jsonAPIPayload{
 		Type: "images",
 		ID:   "1",
@@ -40,6 +40,19 @@ var createFixture = jsonAPIFixture{
 			BackedUpAt: "2016-01-01T12:33:44Z",
 			CreatedAt:  "2016-01-01T12:33:44Z",
 			Ready:      false,
+			UpdatedAt:  "2016-01-01T12:33:44Z",
+		},
+	},
+}
+
+var doneImageFixture = jsonAPIFixture{
+	Data: jsonAPIPayload{
+		Type: "images",
+		ID:   "1",
+		Attributes: imageFixture{
+			BackedUpAt: "2016-01-01T12:33:44Z",
+			CreatedAt:  "2016-01-01T12:33:44Z",
+			Ready:      true,
 			UpdatedAt:  "2016-01-01T12:33:44Z",
 		},
 	},

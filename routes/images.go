@@ -23,10 +23,11 @@ type Images struct {
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	images, err := i.Store.List()
 	if err != nil {
-		http.Error(w, "routes error: "+err.Error(), http.StatusInternalServerError)
+		RenderError(w, 500, internalServerError)
 		return
 	}
 
+	// Build a slice of pointers to our images, because this is what json api wants
 	var _images []*models.Image
 	for _, i := range images {
 		_images = append(_images, &i)
@@ -77,7 +78,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		RenderError(w, 404, notFoundError)
 		return
 	}
 
@@ -107,7 +108,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(image)
+	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
 		http.Error(w, "json encoding failed", http.StatusInternalServerError)
 		return
