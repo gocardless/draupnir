@@ -153,8 +153,11 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	expected := "error creating btrfs subvolume: some btrfs error\n"
-	assert.Equal(t, expected, string(recorder.Body.Bytes()))
+	expected, err := json.Marshal(internalServerError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
 func TestDone(t *testing.T) {

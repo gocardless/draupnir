@@ -12,9 +12,9 @@ type APIError struct {
 	Title  string `json:"title"`
 	Detail string `json:"detail"`
 	Source struct {
-		Pointer   string `json:"pointer"`
-		Parameter string `json:"parameter"`
-	} `json:"source"`
+		Pointer   string `json:"pointer,omitempty"`
+		Parameter string `json:"parameter,omitempty"`
+	} `json:"source,omitempty"`
 }
 
 func RenderError(w http.ResponseWriter, statuscode int, err APIError) {
