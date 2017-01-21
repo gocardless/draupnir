@@ -50,6 +50,36 @@ func (e FakeExecutor) FinaliseImage(id int) error {
 	return e._FinaliseImage(id)
 }
 
+func TestGetImage(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/images/1", nil)
+
+	store := FakeImageStore{
+		_Get: func(id int) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+	}
+
+	routeSet := Images{Store: store}
+	router := mux.NewRouter()
+	router.HandleFunc("/images/{id}", routeSet.Get)
+	router.ServeHTTP(recorder, req)
+
+	expected, err := json.Marshal(getImageFixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
 func TestListImages(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/images", nil)
@@ -86,7 +116,7 @@ func TestListImages(t *testing.T) {
 
 func TestCreateImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	body := `{"backed_up_at": "2016-01-01T12:33:44.567Z"}`
+	body := `{"data":{"type":"image","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z"}}}`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)

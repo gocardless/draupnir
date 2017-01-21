@@ -3,13 +3,14 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/store"
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
-	"log"
-	"net/http"
 )
 
 var version string
@@ -25,9 +26,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
-	log.Printf("PORT: %d", c.Port)
-	log.Printf("DATABASE_URL: %s", c.DatabaseUrl)
 
 	db, err := sql.Open("postgres", c.DatabaseUrl)
 	if err != nil {

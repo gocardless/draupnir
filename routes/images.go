@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,7 +18,33 @@ type Images struct {
 	Executor exec.Executor
 }
 
+const mediaType = "application/vnd.api+json"
+
+func (i Images) Get(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", mediaType)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		RenderError(w, 404, notFoundError)
+		return
+	}
+
+	image, err := i.Store.Get(id)
+	if err != nil {
+		RenderError(w, 404, notFoundError)
+		return
+	}
+
+	err = jsonapi.MarshalOnePayload(w, &image)
+	if err != nil {
+		RenderError(w, 500, internalServerError)
+		return
+	}
+}
+
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", mediaType)
+
 	images, err := i.Store.List()
 	if err != nil {
 		RenderError(w, 500, internalServerError)
@@ -39,39 +64,44 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 }
 
 type createImageRequest struct {
-	BackedUpAt time.Time `json:"backed_up_at"`
+	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
-	var req createImageRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	w.Header().Set("Content-Type", mediaType)
+
+	req := createImageRequest{}
+	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
+		log.Print(err.Error())
 		RenderError(w, 500, internalServerError)
 		return
 	}
 
 	image := models.NewImage(req.BackedUpAt)
-	image, err = i.Store.Create(image)
+	image, err := i.Store.Create(image)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, 500, internalServerError)
 		return
 	}
 
-	err = i.Executor.CreateBtrfsSubvolume(image.ID)
-	if err != nil {
+	if err := i.Executor.CreateBtrfsSubvolume(image.ID); err != nil {
+		log.Print(err.Error())
 		RenderError(w, 500, internalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	err = jsonapi.MarshalOnePayload(w, &image)
-	if err != nil {
+	if err := jsonapi.MarshalOnePayload(w, &image); err != nil {
+		log.Print(err.Error())
 		RenderError(w, 500, internalServerError)
 		return
 	}
 }
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", mediaType)
+
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		RenderError(w, 404, notFoundError)

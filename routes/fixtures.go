@@ -57,3 +57,16 @@ var doneImageFixture = jsonAPIFixture{
 		},
 	},
 }
+
+var getImageFixture = jsonAPIFixture{
+	Data: jsonAPIPayload{
+		Type: "images",
+		ID:   "1",
+		Attributes: imageFixture{
+			BackedUpAt: "2016-01-01T12:33:44Z",
+			CreatedAt:  "2016-01-01T12:33:44Z",
+			Ready:      false,
+			UpdatedAt:  "2016-01-01T12:33:44Z",
+		},
+	},
+}
