@@ -106,7 +106,7 @@ func TestListImages(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	expected, err := json.Marshal(listFixture)
+	expected, err := json.Marshal(listImagesFixture)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

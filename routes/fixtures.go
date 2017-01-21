@@ -1,72 +1,57 @@
 package routes
 
-type jsonAPIFixture struct {
-	Data interface{} `json:"data"`
-}
+import "github.com/google/jsonapi"
 
-type jsonAPIPayload struct {
-	Type       string      `json:"type"`
-	ID         string      `json:"id"`
-	Attributes interface{} `json:"attributes"`
-}
-
-type imageFixture struct {
-	BackedUpAt string `json:"backed_up_at"`
-	CreatedAt  string `json:"created_at"`
-	Ready      bool   `json:"ready"`
-	UpdatedAt  string `json:"updated_at"`
-}
-
-var listFixture = jsonAPIFixture{
-	Data: []jsonAPIPayload{
+var listImagesFixture = jsonapi.ManyPayload{
+	Data: []*jsonapi.Node{
 		{
 			Type: "images",
 			ID:   "1",
-			Attributes: imageFixture{
-				BackedUpAt: "2016-01-01T12:33:44Z",
-				CreatedAt:  "2016-01-01T12:33:44Z",
-				Ready:      false,
-				UpdatedAt:  "2016-01-01T12:33:44Z",
+			Attributes: map[string]interface{}{
+				"backed_up_at": "2016-01-01T12:33:44Z",
+				"created_at":   "2016-01-01T12:33:44Z",
+				"ready":        false,
+				"updated_at":   "2016-01-01T12:33:44Z",
 			},
 		},
 	},
 }
 
-var createImageFixture = jsonAPIFixture{
-	Data: jsonAPIPayload{
+var createImageFixture = jsonapi.OnePayload{
+	Data: &jsonapi.Node{
 		Type: "images",
 		ID:   "1",
-		Attributes: imageFixture{
-			BackedUpAt: "2016-01-01T12:33:44Z",
-			CreatedAt:  "2016-01-01T12:33:44Z",
-			Ready:      false,
-			UpdatedAt:  "2016-01-01T12:33:44Z",
+		Attributes: map[string]interface{}{
+			"backed_up_at": "2016-01-01T12:33:44Z",
+			"created_at":   "2016-01-01T12:33:44Z",
+			"ready":        false,
+			"updated_at":   "2016-01-01T12:33:44Z",
 		},
 	},
 }
 
-var doneImageFixture = jsonAPIFixture{
-	Data: jsonAPIPayload{
+var doneImageFixture = jsonapi.OnePayload{
+	Data: &jsonapi.Node{
 		Type: "images",
 		ID:   "1",
-		Attributes: imageFixture{
-			BackedUpAt: "2016-01-01T12:33:44Z",
-			CreatedAt:  "2016-01-01T12:33:44Z",
-			Ready:      true,
-			UpdatedAt:  "2016-01-01T12:33:44Z",
+		Attributes: map[string]interface{}{
+			"backed_up_at": "2016-01-01T12:33:44Z",
+			"created_at":   "2016-01-01T12:33:44Z",
+			"ready":        true,
+			"updated_at":   "2016-01-01T12:33:44Z",
 		},
 	},
 }
 
-var getImageFixture = jsonAPIFixture{
-	Data: jsonAPIPayload{
+var getImageFixture = jsonapi.OnePayload{
+	Data: &jsonapi.Node{
 		Type: "images",
 		ID:   "1",
-		Attributes: imageFixture{
-			BackedUpAt: "2016-01-01T12:33:44Z",
-			CreatedAt:  "2016-01-01T12:33:44Z",
-			Ready:      false,
-			UpdatedAt:  "2016-01-01T12:33:44Z",
+		Attributes: map[string]interface{}{
+			"backed_up_at": "2016-01-01T12:33:44Z",
+			"created_at":   "2016-01-01T12:33:44Z",
+			"ready":        false,
+			"updated_at":   "2016-01-01T12:33:44Z",
 		},
 	},
 }
