@@ -42,7 +42,7 @@ make test
 
 To run the integration tests:
 ```
-vagrant up
+vagrant destroy -f && vagrant up
 vagrant ssh -c "sudo service draupnir start"
 bundle
 rspec

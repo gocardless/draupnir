@@ -40,6 +40,9 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: check if the image id corresponds to a real image,
+	//       and that image is ready
+
 	instance := models.NewInstance(imageID)
 	instance, err = i.Store.Create(instance)
 	if err != nil {

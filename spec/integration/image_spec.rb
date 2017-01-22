@@ -3,7 +3,7 @@ require 'spec_helper'
 
 RSpec.describe 'GET /images' do
   it "responds with 'OK'" do
-    response = RestClient.get('localhost:8080/images')
+    response = RestClient.get('localhost:8080/images', accept: JSONAPI_CONTENT_TYPE)
     expect(response.code).to eq(200)
     expect(JSON.parse(response.body)).to be_a(Array)
   end
@@ -16,7 +16,7 @@ RSpec.describe 'POST /images' do
       'localhost:8080/images',
       { backed_up_at: timestamp.iso8601 }.to_json,
       content_type: :json,
-      accept: :json
+      accept: JSONAPI_CONTENT_TYPE
     )
 
     expect(response.code).to eq(201)
