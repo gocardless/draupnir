@@ -6,15 +6,17 @@ import (
 )
 
 type APIError struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
-	Code   string `json:"code"`
-	Title  string `json:"title"`
-	Detail string `json:"detail"`
-	Source struct {
-		Pointer   string `json:"pointer,omitempty"`
-		Parameter string `json:"parameter,omitempty"`
-	} `json:"source,omitempty"`
+	ID     string      `json:"id"`
+	Status string      `json:"status"`
+	Code   string      `json:"code"`
+	Title  string      `json:"title"`
+	Detail string      `json:"detail"`
+	Source ErrorSource `json:"source,omitempty"`
+}
+
+type ErrorSource struct {
+	Pointer   string `json:"pointer,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
 }
 
 func RenderError(w http.ResponseWriter, statuscode int, err APIError) {
@@ -36,6 +38,17 @@ var notFoundError = APIError{
 	Status: "404",
 	Title:  "Resource Not Found",
 	Detail: "The resource your requested could not be found",
+}
+
+var badImageIDError = APIError{
+	ID:     "bad_request",
+	Code:   "bad_request",
+	Status: "400",
+	Title:  "Bad Request",
+	Detail: "The image ID provided is not valid",
+	Source: ErrorSource{
+		Parameter: "image_id",
+	},
 }
 
 // func RenderInvalidParameterError(w http.ResponseWriter, param string) {

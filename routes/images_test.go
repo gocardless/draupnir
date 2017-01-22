@@ -53,6 +53,7 @@ func (e FakeExecutor) FinaliseImage(id int) error {
 func TestGetImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/images/1", nil)
+	req.Header.Set("Content-Type", mediaType)
 
 	store := FakeImageStore{
 		_Get: func(id int) (models.Image, error) {
@@ -80,9 +81,26 @@ func TestGetImage(t *testing.T) {
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
+func TestGetWithIncorrectContentType(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/images/1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routeSet := Images{}
+	router := mux.NewRouter()
+	router.HandleFunc("/images/{id}", routeSet.Get)
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNotAcceptable, recorder.Code)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+}
+
 func TestListImages(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/images", nil)
+	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,8 +134,9 @@ func TestListImages(t *testing.T) {
 
 func TestCreateImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	body := `{"data":{"type":"image","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z"}}}`
+	body := `{"data":{"type":"images","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z"}}}`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
+	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,6 +176,7 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	body := `{"backed_up_at": "2016-01-01T12:33:44.567Z"}`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
+	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,6 +213,7 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 func TestDone(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/images/1/done", nil)
+	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,6 +257,7 @@ func TestDone(t *testing.T) {
 func TestDoneWithNonNumericID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/images/bad_id/done", nil)
+	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}

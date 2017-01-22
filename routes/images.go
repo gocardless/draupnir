@@ -21,33 +21,41 @@ type Images struct {
 const mediaType = "application/vnd.api+json"
 
 func (i Images) Get(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
 	w.Header().Set("Content-Type", mediaType)
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		RenderError(w, 404, notFoundError)
+		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	image, err := i.Store.Get(id)
 	if err != nil {
-		RenderError(w, 404, notFoundError)
+		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }
 
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
 	w.Header().Set("Content-Type", mediaType)
 
 	images, err := i.Store.List()
 	if err != nil {
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
@@ -58,7 +66,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	}
 	err = jsonapi.MarshalManyPayload(w, _images)
 	if err != nil {
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }
@@ -68,12 +76,16 @@ type createImageRequest struct {
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
 	w.Header().Set("Content-Type", mediaType)
 
 	req := createImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		log.Print(err.Error())
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
@@ -81,36 +93,40 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	image, err := i.Store.Create(image)
 	if err != nil {
 		log.Print(err.Error())
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
 	if err := i.Executor.CreateBtrfsSubvolume(image.ID); err != nil {
 		log.Print(err.Error())
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	if err := jsonapi.MarshalOnePayload(w, &image); err != nil {
 		log.Print(err.Error())
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
 	w.Header().Set("Content-Type", mediaType)
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		RenderError(w, 404, notFoundError)
+		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	image, err := i.Store.Get(id)
 	if err != nil {
-		RenderError(w, 404, notFoundError)
+		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
@@ -118,14 +134,14 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 		err = i.Executor.FinaliseImage(image.ID)
 		if err != nil {
 			log.Print(err.Error())
-			RenderError(w, 500, internalServerError)
+			RenderError(w, http.StatusInternalServerError, internalServerError)
 			return
 		}
 
 		image, err = i.Store.MarkAsReady(image)
 		if err != nil {
 			log.Print(err.Error())
-			RenderError(w, 500, internalServerError)
+			RenderError(w, http.StatusInternalServerError, internalServerError)
 			return
 		}
 	}
@@ -133,7 +149,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
-		RenderError(w, 500, internalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }

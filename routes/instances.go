@@ -1,13 +1,14 @@
 package routes
 
 import (
-	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
+	"github.com/google/jsonapi"
 )
 
 type Instances struct {
@@ -16,30 +17,42 @@ type Instances struct {
 }
 
 type createInstanceRequest struct {
-	ImageID int `json:"id"`
+	ImageID string `jsonapi:"attr,image_id"`
 }
 
 func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
-	var req createInstanceRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("json decoding failed: %s", err.Error()), http.StatusInternalServerError)
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+
+	req := createInstanceRequest{}
+	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusBadRequest, badImageIDError)
 		return
 	}
 
-	instance := models.NewInstance(req.ImageID)
+	imageID, err := strconv.Atoi(req.ImageID)
+	if err != nil {
+		RenderError(w, http.StatusBadRequest, badImageIDError)
+		return
+	}
+
+	instance := models.NewInstance(imageID)
 	instance, err = i.Store.Create(instance)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("error creating instance: %s", err.Error()), http.StatusInternalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
 	// Do some actual shit to create the instance
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(instance)
+	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
-		http.Error(w, "json encoding failed", http.StatusInternalServerError)
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }

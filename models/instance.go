@@ -5,10 +5,10 @@ import (
 )
 
 type Instance struct {
-	ID        int       `json:"id"`
-	ImageID   int       `json:"image_id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int       `jsonapi:"primary,instances"`
+	ImageID   int       `jsonapi:"attr,image_id"`
+	CreatedAt time.Time `jsonapi:"attr,created_at,iso8601"`
+	UpdatedAt time.Time `jsonapi:"attr,updated_at,iso8601"`
 }
 
 func NewInstance(imageID int) Instance {
