@@ -25,7 +25,7 @@ setup-cookbook:
 	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
 
 update-cookbook:
-	cd tmp/cookbooks/draupnir && git pull
+	cd tmp/cookbooks/draupnir && git pull && bundle && bundle exec berks
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
@@ -36,6 +36,7 @@ deb: build-production
 		--description "Databases on demand" \
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \
+		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image
 
 clean:
 	-rm -f draupnir draupnir.linux_amd64

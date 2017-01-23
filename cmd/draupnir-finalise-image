@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# USAGE:
+#   draupnir-finalise-image IMAGE_ID PORT
+#
+# draupnir-finalise-image does the following things:
+# 1. Removes old pid files and sets the correct permissions to boot postgres
+# 2. Boots postgres
+# 3. Runs the anonymisation function(s)
+# 4. Stops postgres
+# 5. Takes a BTRFS snapshot of the directory
+
+set -e
+set -u
+set -o pipefail
+
+ROOT=/var/btrfs
+PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
+
+ID=$1
+PORT=$2
+
+# TODO: validate input
+
+UPLOAD_PATH="${ROOT}/image_uploads/${ID}"
+SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
+
+chown -R postgres "$UPLOAD_PATH"
+chmod 700 "$UPLOAD_PATH"
+rm -f "${UPLOAD_PATH}/postmaster.*"
+sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -o "$PORT" -l /dev/null start
+
+# TODO: run anonymisation function
+
+sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" stop
+btrfs subvolume snapshot "$UPLOAD_PATH" "$SNAPSHOT_PATH"
