@@ -18,7 +18,7 @@ test:
 test-integration:
 	vagrant destroy -f && vagrant up
 	vagrant ssh -c "sudo service draupnir start"
-	be rspec
+	bundle exec rspec
 
 setup-cookbook:
 	mkdir -p tmp/cookbooks/
