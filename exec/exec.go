@@ -36,7 +36,7 @@ func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
 	return nil
 }
 
-// FinaliseImage runs draupnir-baker against the image
+// FinaliseImage runs draupnir-finalise_image against the image
 // This does the following things:
 // - Gives ownership of the image directory to postgres
 // - Sets the permissions to 700 so postgres will start
@@ -47,14 +47,13 @@ func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
 // - Creates a snapshot of the image directory
 // This snapshot is the finalised image
 //
-// draupnir-baker is a separate executable because it has to run as root.
+// draupnir-finalise-image is a separate script because it has to run with sudo.
 func (e OSExecutor) FinaliseImage(id int) error {
 	output, err := exec.Command(
-		"draupnir-baker",
-		"--root", "/var/btrfs",
-		"--id", fmt.Sprintf("%d", id),
-		"--pgctl", "/usr/lib/postgresql/9.4/bin/pg_ctl",
-		"--action", "finalise-image",
+		"sudo",
+		"draupnir-finalise-image",
+		fmt.Sprintf("%d", id),
+		fmt.Sprintf("%d", 5432+id),
 	).Output()
 
 	log.Print(output)

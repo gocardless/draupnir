@@ -25,12 +25,14 @@ PORT=$2
 UPLOAD_PATH="${ROOT}/image_uploads/${ID}"
 SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
 
+sudo rm -f "${UPLOAD_PATH}/postmaster.*"
 chown -R postgres "$UPLOAD_PATH"
 chmod 700 "$UPLOAD_PATH"
-rm -f "${UPLOAD_PATH}/postmaster.*"
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -o "$PORT" -l /dev/null start
 
 # TODO: run anonymisation function
 
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" stop
+rm -f "${UPLOAD_PATH}/postmaster.*"
+
 btrfs subvolume snapshot "$UPLOAD_PATH" "$SNAPSHOT_PATH"
