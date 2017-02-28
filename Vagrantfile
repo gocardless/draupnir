@@ -32,7 +32,7 @@ Vagrant.configure('2') do |config|
   config.vm.network 'forwarded_port', guest: 22, host: 8022
 
   config.vm.provision 'chef_zero' do |chef|
-    chef.cookbooks_path = './tmp/cookbooks'
+    chef.cookbooks_path = './tmp/cookbooks/draupnir/berks-cookbooks'
     chef.data_bags_path = './chef/data_bags'
     chef.nodes_path = './chef/nodes'
     chef.environments_path = './chef/environments'
