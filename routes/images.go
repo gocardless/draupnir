@@ -60,10 +60,11 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build a slice of pointers to our images, because this is what jsonapi wants
-	var _images []*models.Image
-	for _, i := range images {
-		_images = append(_images, &i)
+	_images := make([]*models.Image, 0)
+	for i := range images {
+		_images = append(_images, &images[i])
 	}
+
 	err = jsonapi.MarshalManyPayload(w, _images)
 	if err != nil {
 		RenderError(w, http.StatusInternalServerError, internalServerError)
