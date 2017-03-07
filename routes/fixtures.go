@@ -64,6 +64,7 @@ var createInstanceFixture = jsonapi.OnePayload{
 			"image_id":   1,
 			"created_at": "2016-01-01T12:33:44Z",
 			"updated_at": "2016-01-01T12:33:44Z",
+			"port":       0,
 		},
 	},
 }
