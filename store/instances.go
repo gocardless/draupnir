@@ -14,20 +14,18 @@ type DBInstanceStore struct {
 	DB *sql.DB
 }
 
-func (s DBInstanceStore) Create(image models.Instance) (models.Instance, error) {
+func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, error) {
 	row := s.DB.QueryRow(
-		"INSERT INTO instances (image_id, created_at, updated_at) VALUES ($1, $2, $3) RETURNING *",
-		image.ImageID,
-		image.CreatedAt,
-		image.UpdatedAt,
+		`INSERT INTO instances (image_id, port, created_at, updated_at)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id`,
+		instance.ImageID,
+		instance.Port,
+		instance.CreatedAt,
+		instance.UpdatedAt,
 	)
 
-	err := row.Scan(
-		&image.ID,
-		&image.ImageID,
-		&image.CreatedAt,
-		&image.UpdatedAt,
-	)
+	err := row.Scan(&instance.ID)
 
-	return image, err
+	return instance, err
 }
