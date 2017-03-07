@@ -50,17 +50,3 @@ var badImageIDError = APIError{
 		Parameter: "image_id",
 	},
 }
-
-// func RenderInvalidParameterError(w http.ResponseWriter, param string) {
-// 	w.WriteHeader(400)
-// 	json.NewEncoder(w).Encode(APIError{
-// 		ID:     "invalid_parameter",
-// 		Code:   "invalid_parameter",
-// 		Status: "400",
-// 		Title:  "Invalid Parameter",
-// 		Detail: "One of your parameters is invalid",
-// 		Source: {
-// 			Parameter: param,
-// 		},
-// 	})
-// }
