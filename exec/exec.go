@@ -57,7 +57,7 @@ func (e OSExecutor) FinaliseImage(id int) error {
 		fmt.Sprintf("%d", 5432+id),
 	).Output()
 
-	log.Print(output)
+	log.Printf("%s", output)
 	if err != nil {
 		return err
 	}
