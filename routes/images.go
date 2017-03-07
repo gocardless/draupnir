@@ -91,7 +91,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	req := createImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		log.Print(err.Error())
-		RenderError(w, http.StatusInternalServerError, internalServerError)
+		RenderError(w, http.StatusBadRequest, invalidJSONError)
 		return
 	}
 

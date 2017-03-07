@@ -19,7 +19,7 @@ func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error
 	return s._Create(image)
 }
 
-func TestCreateInstance(t *testing.T) {
+func TestInstanceCreate(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	body := `{"data":{"type":"instances","attributes":{"image_id":"1"}}}`
 
@@ -55,6 +55,26 @@ func TestCreateInstance(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	body := `{"this is": "not a valid JSON API request payload"}`
+	req, err := http.NewRequest("POST", "/instances", strings.NewReader(body))
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handler := http.HandlerFunc(Instances{}.Create)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	expected, err := json.Marshal(invalidJSONError)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 

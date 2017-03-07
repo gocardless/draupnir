@@ -50,3 +50,11 @@ var badImageIDError = APIError{
 		Parameter: "image_id",
 	},
 }
+
+var invalidJSONError = APIError{
+	ID:     "bad_request",
+	Code:   "bad_request",
+	Status: "400",
+	Title:  "Invalid JSON",
+	Detail: "Your JSON is malformed",
+}

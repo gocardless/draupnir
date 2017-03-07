@@ -137,7 +137,7 @@ func TestListImages(t *testing.T) {
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
-func TestCreateImage(t *testing.T) {
+func TestImageCreate(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	body := `{"data":{"type":"images","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z"}}}`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
@@ -177,9 +177,30 @@ func TestCreateImage(t *testing.T) {
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
-func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
+func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	body := `{"backed_up_at": "2016-01-01T12:33:44.567Z"}`
+	body := `{"this is": "not a valid JSON API request payload"}`
+	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routeSet := Images{}
+	handler := http.HandlerFunc(routeSet.Create)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	expected, err := json.Marshal(invalidJSONError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	body := `{"data": { "type": "images", "attributes": { "backed_up_at": "2016-01-01T12:33:44.567Z"} } }`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
 	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
@@ -215,7 +236,7 @@ func TestCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
-func TestDone(t *testing.T) {
+func TestImageDone(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/images/1/done", nil)
 	req.Header.Set("Content-Type", mediaType)
@@ -259,7 +280,7 @@ func TestDone(t *testing.T) {
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
-func TestDoneWithNonNumericID(t *testing.T) {
+func TestImageDoneWithNonNumericID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/images/bad_id/done", nil)
 	req.Header.Set("Content-Type", mediaType)

@@ -32,7 +32,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	req := createInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		log.Print(err.Error())
-		RenderError(w, http.StatusBadRequest, badImageIDError)
+		RenderError(w, http.StatusBadRequest, invalidJSONError)
 		return
 	}
 
