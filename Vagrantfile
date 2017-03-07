@@ -28,8 +28,7 @@ Vagrant.configure('2') do |config|
                   '--cableconnected1', 'on']
   end
 
-  config.vm.network 'forwarded_port', guest: 8080, host: 8080
-  config.vm.network 'forwarded_port', guest: 22, host: 8022
+  config.vm.network 'private_network', ip: '192.168.2.3'
 
   config.vm.provision 'chef_zero' do |chef|
     chef.cookbooks_path = './tmp/cookbooks/draupnir/berks-cookbooks'
