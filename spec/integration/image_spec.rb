@@ -26,14 +26,29 @@ RSpec.describe '/images' do
     )
 
     expect(response.code).to eq(201)
-    image = JSON.parse(response.body)["data"]
-    attrs = image["attributes"]
-    expect(image["id"]).to be_a(String)
-    expect(Time.parse(attrs["backed_up_at"])).to eq(timestamp)
-    expect(attrs["ready"]).to eq(false)
-    expect(Time.parse(attrs["created_at"])).to be_a(Time)
-    expect(Time.parse(attrs["updated_at"])).to be_a(Time)
+    image = JSON.parse(response.body)['data']
+    attrs = image['attributes']
+    id = image['id']
 
-    # TODO: push a sample postgres data dir up, then hit /images/1/done
+    expect(id).to be_a(String)
+    expect(Time.parse(attrs['backed_up_at'])).to eq(timestamp)
+    expect(attrs['ready']).to eq(false)
+    expect(Time.parse(attrs['created_at'])).to be_a(Time)
+    expect(Time.parse(attrs['updated_at'])).to be_a(Time)
+
+    `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:/var/btrfs/image_uploads/#{id}`
+
+    response = RestClient.post(
+      "#{SERVER_ADDR}/images/#{id}/done",
+      nil,
+      content_type: JSONAPI_CONTENT_TYPE
+    )
+
+    image = JSON.parse(response.body)['data']
+    attrs = image['attributes']
+    expect(response.code).to eq(200)
+    image = JSON.parse(response.body)['data']
+    expect(image['id']).to be_a(String)
+    expect(attrs['ready']).to eq(true)
   end
 end
