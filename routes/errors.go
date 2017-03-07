@@ -37,7 +37,15 @@ var notFoundError = APIError{
 	Code:   "resource_not_found",
 	Status: "404",
 	Title:  "Resource Not Found",
-	Detail: "The resource your requested could not be found",
+	Detail: "The resource you requested could not be found",
+}
+
+var imageNotFoundError = APIError{
+	ID:     "resource_not_found",
+	Code:   "resource_not_found",
+	Status: "404",
+	Title:  "Image Not Found",
+	Detail: "The image you specified could not be found",
 }
 
 var badImageIDError = APIError{

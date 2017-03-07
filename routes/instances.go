@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -51,6 +52,13 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	instance, err = i.Store.Create(instance)
 	if err != nil {
 		log.Print(err.Error())
+
+		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
+		if err == nil && match == true {
+			RenderError(w, http.StatusNotFound, imageNotFoundError)
+			return
+		}
+
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
