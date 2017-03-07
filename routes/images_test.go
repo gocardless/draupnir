@@ -40,6 +40,7 @@ func (s FakeImageStore) MarkAsReady(image models.Image) (models.Image, error) {
 type FakeExecutor struct {
 	_CreateBtrfsSubvolume func(id int) error
 	_FinaliseImage        func(id int) error
+	_CreateInstance       func(imageID int, instanceID int, port int) error
 }
 
 func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
@@ -48,6 +49,10 @@ func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
 
 func (e FakeExecutor) FinaliseImage(id int) error {
 	return e._FinaliseImage(id)
+}
+
+func (e FakeExecutor) CreateInstance(imageID int, instanceID int, port int) error {
+	return e._CreateInstance(imageID, instanceID, port)
 }
 
 func TestGetImage(t *testing.T) {

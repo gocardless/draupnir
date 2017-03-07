@@ -2,8 +2,10 @@ package routes
 
 import (
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
@@ -36,6 +38,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 
 	imageID, err := strconv.Atoi(req.ImageID)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusBadRequest, badImageIDError)
 		return
 	}
@@ -44,18 +47,33 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	//       and that image is ready
 
 	instance := models.NewInstance(imageID)
+	instance.Port = generateRandomPort()
 	instance, err = i.Store.Create(instance)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
-	// Do some actual shit to create the instance
+	if err := i.Executor.CreateInstance(imageID, instance.ID, instance.Port); err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
+}
+
+func generateRandomPort() int {
+	const minPort = 1025
+	const maxPort = 49152
+
+	rand.Seed(time.Now().Unix())
+	return minPort + rand.Intn(maxPort-minPort)
 }

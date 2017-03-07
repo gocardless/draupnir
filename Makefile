@@ -36,7 +36,8 @@ deb: build-production
 		--description "Databases on demand" \
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \
-		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image
+		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image \
+		cmd/draupnir-create-instance=/usr/local/bin/draupnir-create-instance
 
 clean:
 	-rm -f draupnir draupnir.linux_amd64

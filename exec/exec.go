@@ -11,6 +11,7 @@ import (
 type Executor interface {
 	CreateBtrfsSubvolume(id int) error
 	FinaliseImage(id int) error
+	CreateInstance(imageID int, instanceID int, port int) error
 }
 
 type OSExecutor struct{}
@@ -62,5 +63,23 @@ func (e OSExecutor) FinaliseImage(id int) error {
 	}
 
 	log.Printf("Finalised image %d", id)
+	return nil
+}
+
+func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error {
+	output, err := exec.Command(
+		"sudo",
+		"draupnir-create-instance",
+		fmt.Sprintf("%d", imageID),
+		fmt.Sprintf("%d", instanceID),
+		fmt.Sprintf("%d", port),
+	).Output()
+
+	log.Printf("%s", output)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Created instance %d", instanceID)
 	return nil
 }

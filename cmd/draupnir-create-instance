@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# USAGE:
+#   draupnir-create-instance IMAGE_ID INSTANCE_ID PORT
+
+set -e
+set -u
+set -o pipefail
+
+ROOT=/var/btrfs
+PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
+
+IMAGE_ID=$1
+INSTANCE_ID=$2
+PORT=$3
+
+# TODO: validate input
+
+SNAPSHOT_PATH="${ROOT}/image_snapshots/${IMAGE_ID}"
+INSTANCE_PATH="${ROOT}/instances/${INSTANCE_ID}"
+
+set -x
+
+btrfs subvolume snapshot "$SNAPSHOT_PATH" "$INSTANCE_PATH"
+# TODO: where do we send logs?
+sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l /dev/null start
+
+set +x

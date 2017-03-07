@@ -40,7 +40,12 @@ func TestCreateInstance(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{Store: store}
+	executor := FakeExecutor{
+		_CreateInstance: func(instanceID int, imageID int, port int) error {
+			return nil
+		},
+	}
+	routeSet := Instances{Store: store, Executor: executor}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -63,7 +68,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routeSet := Instances{}
+	routeSet := Instances{Executor: FakeExecutor{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
