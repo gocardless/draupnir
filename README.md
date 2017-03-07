@@ -42,8 +42,5 @@ make test
 
 To run the integration tests:
 ```
-vagrant destroy -f && vagrant up
-vagrant ssh -c "sudo service draupnir start"
-bundle
-rspec
+make deb && test-integration
 ```
