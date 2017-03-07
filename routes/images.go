@@ -29,18 +29,21 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	image, err := i.Store.Get(id)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -55,6 +58,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 
 	images, err := i.Store.List()
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -68,6 +72,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	err = jsonapi.MarshalManyPayload(w, _images)
 	if err != nil {
 		RenderError(w, http.StatusInternalServerError, internalServerError)
+		log.Print(err.Error())
 		return
 	}
 }
@@ -121,12 +126,14 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
 	image, err := i.Store.Get(id)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
@@ -150,6 +157,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
+		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
