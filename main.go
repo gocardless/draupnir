@@ -42,8 +42,9 @@ func main() {
 	instanceStore := store.DBInstanceStore{DB: db}
 
 	instanceRouteSet := routes.Instances{
-		Store:    instanceStore,
-		Executor: exec.OSExecutor{},
+		InstanceStore: instanceStore,
+		ImageStore:    imageStore,
+		Executor:      exec.OSExecutor{},
 	}
 
 	router := mux.NewRouter()

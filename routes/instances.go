@@ -15,8 +15,9 @@ import (
 )
 
 type Instances struct {
-	Store    store.InstanceStore
-	Executor exec.Executor
+	InstanceStore store.InstanceStore
+	ImageStore    store.ImageStore
+	Executor      exec.Executor
 }
 
 type createInstanceRequest struct {
@@ -46,10 +47,20 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: check if the image id corresponds to a real image,
 	//       and that image is ready
+	image, err := i.ImageStore.Get(imageID)
+	if err != nil {
+		RenderError(w, http.StatusNotFound, imageNotFoundError)
+		return
+	}
+
+	if !image.Ready {
+		RenderError(w, http.StatusUnprocessableEntity, unreadyImageError)
+		return
+	}
 
 	instance := models.NewInstance(imageID)
 	instance.Port = generateRandomPort()
-	instance, err = i.Store.Create(instance)
+	instance, err = i.InstanceStore.Create(instance)
 	if err != nil {
 		log.Print(err.Error())
 

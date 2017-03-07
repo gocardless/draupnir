@@ -59,6 +59,17 @@ var badImageIDError = APIError{
 	},
 }
 
+var unreadyImageError = APIError{
+	ID:     "unprocessable_entity",
+	Code:   "unprocessable_entity",
+	Status: "422",
+	Title:  "Image Not Ready",
+	Detail: "The specified image is not ready to be used",
+	Source: ErrorSource{
+		Parameter: "image_id",
+	},
+}
+
 var invalidJSONError = APIError{
 	ID:     "bad_request",
 	Code:   "bad_request",
