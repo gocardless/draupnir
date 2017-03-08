@@ -89,6 +89,34 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (i Instances) List(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+
+	instances, err := i.InstanceStore.List()
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
+
+	// Build a slice of pointers to our images, because this is what jsonapi wants
+	_instances := make([]*models.Instance, 0)
+	for i := range instances {
+		_instances = append(_instances, &instances[i])
+	}
+
+	err = jsonapi.MarshalManyPayload(w, _instances)
+	if err != nil {
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		log.Print(err.Error())
+		return
+	}
+}
+
 func generateRandomPort() int {
 	const minPort = 1025
 	const maxPort = 49152

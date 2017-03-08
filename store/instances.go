@@ -8,6 +8,7 @@ import (
 
 type InstanceStore interface {
 	Create(models.Instance) (models.Instance, error)
+	List() ([]models.Instance, error)
 }
 
 type DBInstanceStore struct {
@@ -28,4 +29,34 @@ func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, erro
 	err := row.Scan(&instance.ID)
 
 	return instance, err
+}
+
+func (s DBInstanceStore) List() ([]models.Instance, error) {
+	instances := make([]models.Instance, 0)
+
+	rows, err := s.DB.Query(`SELECT id, image_id, port, created_at, updated_at FROM instances`)
+	if err != nil {
+		return instances, err
+	}
+
+	defer rows.Close()
+
+	var instance models.Instance
+	for rows.Next() {
+		err = rows.Scan(
+			&instance.ID,
+			&instance.ImageID,
+			&instance.Port,
+			&instance.CreatedAt,
+			&instance.UpdatedAt,
+		)
+
+		if err != nil {
+			return instances, err
+		}
+
+		instances = append(instances, instance)
+	}
+
+	return instances, nil
 }

@@ -52,6 +52,7 @@ func main() {
 	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
 	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
 	router.HandleFunc("/images/{id}/done", imageRouteSet.Done).Methods("POST")
+	router.HandleFunc("/instances", instanceRouteSet.List).Methods("GET")
 	router.HandleFunc("/instances", instanceRouteSet.Create).Methods("POST")
 
 	http.Handle("/", router)

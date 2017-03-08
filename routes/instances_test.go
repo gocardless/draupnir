@@ -13,10 +13,15 @@ import (
 
 type FakeInstanceStore struct {
 	_Create func(models.Instance) (models.Instance, error)
+	_List   func() ([]models.Instance, error)
 }
 
 func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error) {
 	return s._Create(image)
+}
+
+func (s FakeInstanceStore) List() ([]models.Instance, error) {
+	return s._List()
 }
 
 func TestInstanceCreate(t *testing.T) {
@@ -158,5 +163,40 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestInstanceList(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/instances", nil)
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeInstanceStore{
+		_List: func() ([]models.Instance, error) {
+			return []models.Instance{
+				models.Instance{
+					ID:        1,
+					ImageID:   1,
+					Port:      5432,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+				},
+			}, nil
+		},
+	}
+
+	handler := http.HandlerFunc(Instances{InstanceStore: store}.List)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	expected, err := json.Marshal(listInstancesFixture)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
