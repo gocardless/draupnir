@@ -90,7 +90,7 @@ func (s DBImageStore) Create(image models.Image) (models.Image, error) {
 
 func (s DBImageStore) MarkAsReady(image models.Image) (models.Image, error) {
 	row := s.DB.QueryRow(
-		"UPDATE images SET ready = TRUE WHERE id = $1 AND ready = $2 RETURNING *",
+		"UPDATE images SET ready = TRUE, updated_at = now() WHERE id = $1 AND ready = $2 RETURNING *",
 		image.ID,
 		image.Ready,
 	)
