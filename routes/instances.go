@@ -12,6 +12,7 @@ import (
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
 	"github.com/google/jsonapi"
+	"github.com/gorilla/mux"
 )
 
 type Instances struct {
@@ -113,6 +114,35 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		log.Print(err.Error())
+		return
+	}
+}
+
+func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	instance, err := i.InstanceStore.Get(id)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	err = jsonapi.MarshalOnePayload(w, &instance)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 }

@@ -38,6 +38,17 @@ RSpec.describe 'happy path' do
     expect(Time.parse(attrs['created_at'])).to be_a(Time)
     updated_at = Time.parse(attrs['updated_at'])
 
+    # GET /images/:id
+    response = RestClient.get(
+      "#{SERVER_ADDR}/images/#{id}",
+      content_type: JSONAPI_CONTENT_TYPE
+    )
+    expect(response.code).to eq(200)
+    data = JSON.parse(response.body)['data']
+    expect(data['type']).to eq('images')
+    expect(data['id']).to eq(id)
+
+
     `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:/var/btrfs/image_uploads/#{id}`
 
     # POST /images/:id/done

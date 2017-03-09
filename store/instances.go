@@ -9,6 +9,7 @@ import (
 type InstanceStore interface {
 	Create(models.Instance) (models.Instance, error)
 	List() ([]models.Instance, error)
+	Get(id int) (models.Instance, error)
 }
 
 type DBInstanceStore struct {
@@ -59,4 +60,22 @@ func (s DBInstanceStore) List() ([]models.Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func (s DBInstanceStore) Get(id int) (models.Instance, error) {
+	instance := models.Instance{}
+
+	row := s.DB.QueryRow("SELECT id, image_id, port, created_at, updated_at FROM instances WHERE id = $1", id)
+	err := row.Scan(
+		&instance.ID,
+		&instance.ImageID,
+		&instance.Port,
+		&instance.CreatedAt,
+		&instance.UpdatedAt,
+	)
+	if err != nil {
+		return instance, err
+	}
+
+	return instance, nil
 }

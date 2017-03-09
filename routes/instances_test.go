@@ -8,12 +8,14 @@ import (
 	"testing"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
 type FakeInstanceStore struct {
 	_Create func(models.Instance) (models.Instance, error)
 	_List   func() ([]models.Instance, error)
+	_Get    func(id int) (models.Instance, error)
 }
 
 func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error) {
@@ -22,6 +24,10 @@ func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error
 
 func (s FakeInstanceStore) List() ([]models.Instance, error) {
 	return s._List()
+}
+
+func (s FakeInstanceStore) Get(id int) (models.Instance, error) {
+	return s._Get(id)
 }
 
 func TestInstanceCreate(t *testing.T) {
@@ -194,6 +200,40 @@ func TestInstanceList(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	expected, err := json.Marshal(listInstancesFixture)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestInstanceGet(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/instances/1", nil)
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeInstanceStore{
+		_Get: func(id int) (models.Instance, error) {
+			return models.Instance{
+				ID:        1,
+				ImageID:   1,
+				Port:      5432,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+			}, nil
+		},
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc("/instances/{id}", Instances{InstanceStore: store}.Get)
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	expected, err := json.Marshal(getInstanceFixture)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

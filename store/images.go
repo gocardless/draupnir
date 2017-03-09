@@ -51,7 +51,7 @@ func (s DBImageStore) List() ([]models.Image, error) {
 func (s DBImageStore) Get(id int) (models.Image, error) {
 	image := models.Image{}
 
-	row := s.DB.QueryRow("SELECT * FROM images WHERE id = $1", id)
+	row := s.DB.QueryRow("SELECT id, backed_up_at, ready, created_at, updated_at FROM images WHERE id = $1", id)
 	err := row.Scan(
 		&image.ID,
 		&image.BackedUpAt,
