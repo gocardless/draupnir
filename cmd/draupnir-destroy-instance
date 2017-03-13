@@ -10,6 +10,7 @@ set -u
 set -o pipefail
 
 ROOT=/var/btrfs
+PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
 
 ID=$1
 
@@ -22,6 +23,7 @@ INSTANCE_PATH="${ROOT}/instances/${ID}"
 
 set -x
 
+sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" stop
 sudo btrfs subvolume delete "$INSTANCE_PATH"
 
 set +x
