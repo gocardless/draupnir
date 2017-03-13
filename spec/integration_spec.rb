@@ -30,9 +30,9 @@ RSpec.describe 'happy path' do
     expect(response.code).to eq(201)
     image = JSON.parse(response.body)['data']
     attrs = image['attributes']
-    id = image['id']
+    image_id = image['id']
 
-    expect(id).to be_a(String)
+    expect(image_id).to be_a(String)
     expect(Time.parse(attrs['backed_up_at'])).to eq(timestamp)
     expect(attrs['ready']).to eq(false)
     expect(Time.parse(attrs['created_at'])).to be_a(Time)
@@ -40,20 +40,20 @@ RSpec.describe 'happy path' do
 
     # GET /images/:id
     response = RestClient.get(
-      "#{SERVER_ADDR}/images/#{id}",
+      "#{SERVER_ADDR}/images/#{image_id}",
       content_type: JSONAPI_CONTENT_TYPE
     )
     expect(response.code).to eq(200)
     data = JSON.parse(response.body)['data']
     expect(data['type']).to eq('images')
-    expect(data['id']).to eq(id)
+    expect(data['id']).to eq(image_id)
 
 
-    `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:/var/btrfs/image_uploads/#{id}`
+    `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:/var/btrfs/image_uploads/#{image_id}`
 
     # POST /images/:id/done
     response = RestClient.post(
-      "#{SERVER_ADDR}/images/#{id}/done",
+      "#{SERVER_ADDR}/images/#{image_id}/done",
       nil,
       content_type: JSONAPI_CONTENT_TYPE
     )
@@ -73,7 +73,7 @@ RSpec.describe 'happy path' do
         data: {
           type: 'instances',
           attributes: {
-            image_id: id
+            image_id: image_id
           }
         }
       }.to_json,
@@ -84,9 +84,10 @@ RSpec.describe 'happy path' do
 
     instance = JSON.parse(response.body)['data']
     attrs = instance['attributes']
+    instance_id = instance['id']
 
     expect(instance['type']).to eq('instances')
-    expect(attrs['image_id'].to_s).to eq(id)
+    expect(attrs['image_id'].to_s).to eq(image_id)
     expect(attrs['port']).to be_a(Numeric)
 
     # GET /instances
@@ -100,5 +101,21 @@ RSpec.describe 'happy path' do
 
     expect(instances).to be_a(Array)
     expect(instances.last).to eq(instance)
+
+    # DELETE /instances/:id
+    response = RestClient.delete(
+      "#{SERVER_ADDR}/instances/#{instance_id}",
+      content_type: JSONAPI_CONTENT_TYPE
+    )
+
+    expect(response.code).to eq(204)
+
+    # DELETE /images/:id
+    response = RestClient.delete(
+      "#{SERVER_ADDR}/images/#{image_id}",
+      content_type: JSONAPI_CONTENT_TYPE
+    )
+
+    expect(response.code).to eq(204)
   end
 end

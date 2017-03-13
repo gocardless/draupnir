@@ -10,6 +10,7 @@ type InstanceStore interface {
 	Create(models.Instance) (models.Instance, error)
 	List() ([]models.Instance, error)
 	Get(id int) (models.Instance, error)
+	Destroy(instance models.Instance) error
 }
 
 type DBInstanceStore struct {
@@ -78,4 +79,9 @@ func (s DBInstanceStore) Get(id int) (models.Instance, error) {
 	}
 
 	return instance, nil
+}
+
+func (s DBInstanceStore) Destroy(instance models.Instance) error {
+	_, err := s.DB.Exec("DELETE FROM instances WHERE id = $1", instance.ID)
+	return err
 }

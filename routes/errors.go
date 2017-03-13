@@ -70,6 +70,14 @@ var unreadyImageError = APIError{
 	},
 }
 
+var cannotDeleteImageWithInstancesError = APIError{
+	ID:     "unprocessable_entity",
+	Code:   "unprocessable_entity",
+	Status: "422",
+	Title:  "Image Not Ready",
+	Detail: "Cannot delete an image that has instances",
+}
+
 var invalidJSONError = APIError{
 	ID:     "bad_request",
 	Code:   "bad_request",

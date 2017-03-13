@@ -12,6 +12,8 @@ type Executor interface {
 	CreateBtrfsSubvolume(id int) error
 	FinaliseImage(id int) error
 	CreateInstance(imageID int, instanceID int, port int) error
+	DestroyImage(id int) error
+	DestroyInstance(id int) error
 }
 
 type OSExecutor struct{}
@@ -81,5 +83,37 @@ func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error 
 	}
 
 	log.Printf("Created instance %d", instanceID)
+	return nil
+}
+
+func (e OSExecutor) DestroyImage(id int) error {
+	output, err := exec.Command(
+		"sudo",
+		"draupnir-destroy-image",
+		fmt.Sprintf("%d", id),
+	).Output()
+
+	log.Printf("%s", output)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Destroyed image %d", id)
+	return nil
+}
+
+func (e OSExecutor) DestroyInstance(id int) error {
+	output, err := exec.Command(
+		"sudo",
+		"draupnir-destroy-instance",
+		fmt.Sprintf("%d", id),
+	).Output()
+
+	log.Printf("%s", output)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Destroyed instance %d", id)
 	return nil
 }

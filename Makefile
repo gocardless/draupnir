@@ -37,7 +37,9 @@ deb: build-production
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \
 		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image \
-		cmd/draupnir-create-instance=/usr/local/bin/draupnir-create-instance
+		cmd/draupnir-create-instance=/usr/local/bin/draupnir-create-instance \
+		cmd/draupnir-destroy-image=/usr/local/bin/draupnir-destroy-image \
+		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance
 
 clean:
 	-rm -f draupnir draupnir.linux_amd64

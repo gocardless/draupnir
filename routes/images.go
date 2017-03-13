@@ -3,6 +3,7 @@ package routes
 import (
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -161,4 +162,59 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
+}
+
+func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	image, err := i.Store.Get(id)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	err = i.Store.Destroy(image)
+	if err != nil {
+		log.Print(err.Error())
+
+		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
+		if err != nil {
+			log.Print(err.Error())
+			RenderError(w, http.StatusInternalServerError, internalServerError)
+			return
+		}
+
+		if match == true {
+			RenderError(
+				w,
+				http.StatusUnprocessableEntity,
+				cannotDeleteImageWithInstancesError,
+			)
+			return
+		}
+
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
+
+	err = i.Executor.DestroyImage(id)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

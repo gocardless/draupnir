@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# USAGE:
+#   draupnir-destroy-instance INSTANCE_ID
+#
+# draupnir-destroy-instance deletes the instance's data directory
+
+set -e
+set -u
+set -o pipefail
+
+ROOT=/var/btrfs
+
+ID=$1
+
+if [[  -z  $ID ]]
+then
+  exit 1
+fi
+
+INSTANCE_PATH="${ROOT}/instances/${ID}"
+
+set -x
+
+sudo btrfs subvolume delete "$INSTANCE_PATH"
+
+set +x

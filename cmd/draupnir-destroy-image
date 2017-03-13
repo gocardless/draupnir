@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# USAGE:
+#   draupnir-destroy-image IMAGE_ID
+#
+# draupnir-destroy-image deletes the image's upload and snapshot directories
+
+set -e
+set -u
+set -o pipefail
+
+ROOT=/var/btrfs
+
+ID=$1
+
+if [[  -z  $ID ]]
+then
+  exit 1
+fi
+
+UPLOAD_PATH="${ROOT}/image_uploads/${ID}"
+SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
+
+set -x
+
+sudo btrfs subvolume delete "$SNAPSHOT_PATH"
+sudo btrfs subvolume delete "$UPLOAD_PATH"
+
+set +x

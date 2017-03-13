@@ -18,6 +18,7 @@ type FakeImageStore struct {
 	_List        func() ([]models.Image, error)
 	_Get         func(int) (models.Image, error)
 	_Create      func(models.Image) (models.Image, error)
+	_Destroy     func(models.Image) error
 	_MarkAsReady func(models.Image) (models.Image, error)
 }
 
@@ -33,6 +34,10 @@ func (s FakeImageStore) Create(image models.Image) (models.Image, error) {
 	return s._Create(image)
 }
 
+func (s FakeImageStore) Destroy(image models.Image) error {
+	return s._Destroy(image)
+}
+
 func (s FakeImageStore) MarkAsReady(image models.Image) (models.Image, error) {
 	return s._MarkAsReady(image)
 }
@@ -41,6 +46,8 @@ type FakeExecutor struct {
 	_CreateBtrfsSubvolume func(id int) error
 	_FinaliseImage        func(id int) error
 	_CreateInstance       func(imageID int, instanceID int, port int) error
+	_DestroyImage         func(id int) error
+	_DestroyInstance      func(id int) error
 }
 
 func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
@@ -53,6 +60,14 @@ func (e FakeExecutor) FinaliseImage(id int) error {
 
 func (e FakeExecutor) CreateInstance(imageID int, instanceID int, port int) error {
 	return e._CreateInstance(imageID, instanceID, port)
+}
+
+func (e FakeExecutor) DestroyImage(id int) error {
+	return e._DestroyImage(id)
+}
+
+func (e FakeExecutor) DestroyInstance(id int) error {
+	return e._DestroyInstance(id)
 }
 
 func TestGetImage(t *testing.T) {
@@ -300,6 +315,43 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestImageDestroy(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("DELETE", "/images/1", nil)
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeImageStore{
+		_Get: func(id int) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+		_Destroy: func(image models.Image) error {
+			return nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_DestroyImage: func(imageID int) error {
+			return nil
+		},
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc("/images/{id}", Images{Store: store, Executor: executor}.Destroy).Methods("DELETE")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }
 
 func timestamp() time.Time {

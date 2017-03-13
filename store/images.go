@@ -11,6 +11,7 @@ type ImageStore interface {
 	List() ([]models.Image, error)
 	Create(models.Image) (models.Image, error)
 	Get(id int) (models.Image, error)
+	Destroy(image models.Image) error
 	MarkAsReady(models.Image) (models.Image, error)
 }
 
@@ -106,4 +107,9 @@ func (s DBImageStore) MarkAsReady(image models.Image) (models.Image, error) {
 		return image, err
 	}
 	return image, nil
+}
+
+func (s DBImageStore) Destroy(image models.Image) error {
+	_, err := s.DB.Exec("DELETE FROM images WHERE id = $1", image.ID)
+	return err
 }

@@ -13,9 +13,10 @@ import (
 )
 
 type FakeInstanceStore struct {
-	_Create func(models.Instance) (models.Instance, error)
-	_List   func() ([]models.Instance, error)
-	_Get    func(id int) (models.Instance, error)
+	_Create  func(models.Instance) (models.Instance, error)
+	_List    func() ([]models.Instance, error)
+	_Get     func(id int) (models.Instance, error)
+	_Destroy func(instance models.Instance) error
 }
 
 func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error) {
@@ -28,6 +29,10 @@ func (s FakeInstanceStore) List() ([]models.Instance, error) {
 
 func (s FakeInstanceStore) Get(id int) (models.Instance, error) {
 	return s._Get(id)
+}
+
+func (s FakeInstanceStore) Destroy(instance models.Instance) error {
+	return s._Destroy(instance)
 }
 
 func TestInstanceCreate(t *testing.T) {
@@ -239,4 +244,44 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestInstanceDestroy(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("DELETE", "/instances/1", nil)
+	req.Header.Set("Content-Type", mediaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeInstanceStore{
+		_Get: func(id int) (models.Instance, error) {
+			return models.Instance{
+				ID:        1,
+				ImageID:   1,
+				Port:      5432,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+			}, nil
+		},
+		_Destroy: func(instance models.Instance) error {
+			return nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_DestroyInstance: func(instanceID int) error {
+			return nil
+		},
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc(
+		"/instances/{id}",
+		Instances{InstanceStore: store, Executor: executor}.Destroy,
+	).Methods("DELETE")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }

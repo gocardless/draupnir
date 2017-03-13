@@ -147,6 +147,44 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != mediaType {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	instance, err := i.InstanceStore.Get(id)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	err = i.InstanceStore.Destroy(instance)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
+
+	err = i.Executor.DestroyInstance(instance.ID)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusInternalServerError, internalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func generateRandomPort() int {
 	const minPort = 1025
 	const maxPort = 49152
