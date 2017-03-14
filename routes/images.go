@@ -192,8 +192,6 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err != nil {
 			log.Print(err.Error())
-			RenderError(w, http.StatusInternalServerError, internalServerError)
-			return
 		}
 
 		if match == true {
