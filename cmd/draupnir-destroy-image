@@ -23,7 +23,11 @@ SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
 
 set -x
 
-sudo btrfs subvolume delete "$SNAPSHOT_PATH"
+if [ -d "$SNAPSHOT_PATH" ]
+then
+  sudo btrfs subvolume delete "$SNAPSHOT_PATH"
+fi
+
 sudo btrfs subvolume delete "$UPLOAD_PATH"
 
 set +x
