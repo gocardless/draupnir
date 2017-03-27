@@ -8,6 +8,7 @@ RSpec.describe '/images' do
         type: 'images',
         attributes: {
           backed_up_at: timestamp.iso8601,
+          anonymisation_script: "UPDATE bank_accounts SET iban = 'fake_iban';",
         }
       }
     }

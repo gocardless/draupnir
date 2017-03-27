@@ -13,11 +13,11 @@ type Image struct {
 	UpdatedAt  time.Time `jsonapi:"attr,updated_at,iso8601"`
 }
 
-func NewImage(backedUpAt time.Time) Image {
+func NewImage(backedUpAt time.Time, anon string) Image {
 	return Image{
 		BackedUpAt: backedUpAt,
 		Ready:      false,
-		Anon:       "",
+		Anon:       anon,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}

@@ -80,6 +80,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 
 type createImageRequest struct {
 	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
+	Anon       string    `jsonapi:"attr,anonymisation_script"`
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +97,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image := models.NewImage(req.BackedUpAt)
+	image := models.NewImage(req.BackedUpAt, req.Anon)
 	image, err := i.Store.Create(image)
 	if err != nil {
 		log.Print(err.Error())

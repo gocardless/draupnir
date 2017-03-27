@@ -154,7 +154,7 @@ func TestListImages(t *testing.T) {
 
 func TestImageCreate(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	body := `{"data":{"type":"images","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z"}}}`
+	body := `{"data":{"type":"images","attributes":{"backed_up_at": "2016-01-01T12:33:44.567Z","anonymisation_script":"SELECT * FROM foo;"}}}`
 	req, err := http.NewRequest("POST", "/images", strings.NewReader(body))
 	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
