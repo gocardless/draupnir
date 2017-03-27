@@ -48,7 +48,8 @@ CREATE TABLE images (
     backed_up_at timestamp with time zone NOT NULL,
     ready boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone NOT NULL,
+    anon text
 );
 
 

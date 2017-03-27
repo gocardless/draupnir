@@ -20,8 +20,8 @@ type DBInstanceStore struct {
 func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, error) {
 	row := s.DB.QueryRow(
 		`INSERT INTO instances (image_id, port, created_at, updated_at)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id`,
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id`,
 		instance.ImageID,
 		instance.Port,
 		instance.CreatedAt,
@@ -36,7 +36,9 @@ func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, erro
 func (s DBInstanceStore) List() ([]models.Instance, error) {
 	instances := make([]models.Instance, 0)
 
-	rows, err := s.DB.Query(`SELECT id, image_id, port, created_at, updated_at FROM instances`)
+	rows, err := s.DB.Query(
+		`SELECT id, image_id, port, created_at, updated_at FROM instances`,
+	)
 	if err != nil {
 		return instances, err
 	}
@@ -66,7 +68,12 @@ func (s DBInstanceStore) List() ([]models.Instance, error) {
 func (s DBInstanceStore) Get(id int) (models.Instance, error) {
 	instance := models.Instance{}
 
-	row := s.DB.QueryRow("SELECT id, image_id, port, created_at, updated_at FROM instances WHERE id = $1", id)
+	row := s.DB.QueryRow(
+		`SELECT id, image_id, port, created_at, updated_at
+		 FROM instances
+		 WHERE id = $1`,
+		id,
+	)
 	err := row.Scan(
 		&instance.ID,
 		&instance.ImageID,

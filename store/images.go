@@ -22,7 +22,9 @@ type DBImageStore struct {
 func (s DBImageStore) List() ([]models.Image, error) {
 	images := make([]models.Image, 0)
 
-	rows, err := s.DB.Query("SELECT id, backed_up_at, ready, created_at, updated_at FROM images")
+	rows, err := s.DB.Query(
+		`SELECT id, backed_up_at, ready, created_at, updated_at FROM images`,
+	)
 	if err != nil {
 		return images, err
 	}
@@ -52,7 +54,12 @@ func (s DBImageStore) List() ([]models.Image, error) {
 func (s DBImageStore) Get(id int) (models.Image, error) {
 	image := models.Image{}
 
-	row := s.DB.QueryRow("SELECT id, backed_up_at, ready, created_at, updated_at FROM images WHERE id = $1", id)
+	row := s.DB.QueryRow(
+		`SELECT id, backed_up_at, ready, created_at, updated_at
+		FROM images
+		WHERE id = $1`,
+		id,
+	)
 	err := row.Scan(
 		&image.ID,
 		&image.BackedUpAt,
@@ -69,9 +76,12 @@ func (s DBImageStore) Get(id int) (models.Image, error) {
 
 func (s DBImageStore) Create(image models.Image) (models.Image, error) {
 	row := s.DB.QueryRow(
-		"INSERT INTO images (backed_up_at, ready, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING *",
+		`INSERT INTO images (backed_up_at, ready, anon, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, backed_up_at, ready, created_at, updated_at`,
 		image.BackedUpAt,
 		image.Ready,
+		image.Anon,
 		image.CreatedAt,
 		image.UpdatedAt,
 	)
@@ -91,7 +101,12 @@ func (s DBImageStore) Create(image models.Image) (models.Image, error) {
 
 func (s DBImageStore) MarkAsReady(image models.Image) (models.Image, error) {
 	row := s.DB.QueryRow(
-		"UPDATE images SET ready = TRUE, updated_at = now() WHERE id = $1 AND ready = $2 RETURNING *",
+		`UPDATE images
+		 SET ready = TRUE,
+				 updated_at = now()
+		 WHERE id = $1
+		 AND ready = $2
+		 RETURNING id, backed_up_at, ready, created_at, updated_at`,
 		image.ID,
 		image.Ready,
 	)
