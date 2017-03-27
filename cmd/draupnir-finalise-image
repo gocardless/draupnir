@@ -16,9 +16,11 @@ set -o pipefail
 
 ROOT=/var/btrfs
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
+PSQL=/usr/bin/psql
 
 ID=$1
 PORT=$2
+ANON_FILE=$3
 
 # TODO: validate input
 
@@ -37,7 +39,11 @@ sudo chown -R postgres "$UPLOAD_PATH"
 sudo chmod 700 "$UPLOAD_PATH"
 sudo -u postgres $PG_CTL -w -D "$UPLOAD_PATH" -o "-p $PORT" -l /dev/null start
 
-# TODO: run anonymisation function
+# Create a user
+sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
+
+# Anonymise
+cat "$ANON_FILE" | $PSQL -p $PORT --username=draupnir postgres
 
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.*"

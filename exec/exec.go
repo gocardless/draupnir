@@ -2,15 +2,19 @@ package exec
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/gocardless/draupnir/models"
 )
 
 type Executor interface {
 	CreateBtrfsSubvolume(id int) error
-	FinaliseImage(id int) error
+	FinaliseImage(image models.Image) error
 	CreateInstance(imageID int, instanceID int, port int) error
 	DestroyImage(id int) error
 	DestroyInstance(id int) error
@@ -51,12 +55,28 @@ func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
 // This snapshot is the finalised image
 //
 // draupnir-finalise-image is a separate script because it has to run with sudo.
-func (e OSExecutor) FinaliseImage(id int) error {
+func (e OSExecutor) FinaliseImage(image models.Image) error {
+	anonFile, err := ioutil.TempFile("/tmp", "draupnir")
+	if err != nil {
+		return err
+	}
+
+	_, err = io.WriteString(anonFile, image.Anon)
+	if err != nil {
+		return err
+	}
+
+	err = anonFile.Sync()
+	if err != nil {
+		return err
+	}
+
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-finalise-image",
-		fmt.Sprintf("%d", id),
-		fmt.Sprintf("%d", 5432+id),
+		fmt.Sprintf("%d", image.ID),
+		fmt.Sprintf("%d", 5432+image.ID),
+		anonFile.Name(),
 	).Output()
 
 	log.Printf("%s", output)
@@ -64,7 +84,12 @@ func (e OSExecutor) FinaliseImage(id int) error {
 		return err
 	}
 
-	log.Printf("Finalised image %d", id)
+	err = os.Remove(anonFile.Name())
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Finalised image %d", image.ID)
 	return nil
 }
 

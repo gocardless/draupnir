@@ -55,7 +55,7 @@ func (s DBImageStore) Get(id int) (models.Image, error) {
 	image := models.Image{}
 
 	row := s.DB.QueryRow(
-		`SELECT id, backed_up_at, ready, created_at, updated_at
+		`SELECT id, backed_up_at, ready, anon, created_at, updated_at
 		FROM images
 		WHERE id = $1`,
 		id,
@@ -64,6 +64,7 @@ func (s DBImageStore) Get(id int) (models.Image, error) {
 		&image.ID,
 		&image.BackedUpAt,
 		&image.Ready,
+		&image.Anon,
 		&image.CreatedAt,
 		&image.UpdatedAt,
 	)

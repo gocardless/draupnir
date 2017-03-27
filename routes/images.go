@@ -141,7 +141,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !image.Ready {
-		err = i.Executor.FinaliseImage(image.ID)
+		err = i.Executor.FinaliseImage(image)
 		if err != nil {
 			log.Print(err.Error())
 			RenderError(w, http.StatusInternalServerError, internalServerError)
