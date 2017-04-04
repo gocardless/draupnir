@@ -9,9 +9,8 @@ set -e
 set -u
 set -o pipefail
 
-ROOT=/var/btrfs
-
-ID=$1
+ROOT=$1
+ID=$2
 
 if [[  -z  $ID ]]
 then

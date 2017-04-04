@@ -74,6 +74,7 @@ func (e OSExecutor) FinaliseImage(image models.Image) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-finalise-image",
+		"/var/btrfs",
 		fmt.Sprintf("%d", image.ID),
 		fmt.Sprintf("%d", 5432+image.ID),
 		anonFile.Name(),
@@ -97,6 +98,7 @@ func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error 
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-create-instance",
+		"/var/btrfs",
 		fmt.Sprintf("%d", imageID),
 		fmt.Sprintf("%d", instanceID),
 		fmt.Sprintf("%d", port),
@@ -115,6 +117,7 @@ func (e OSExecutor) DestroyImage(id int) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-destroy-image",
+		"/var/btrfs",
 		fmt.Sprintf("%d", id),
 	).Output()
 
@@ -131,6 +134,7 @@ func (e OSExecutor) DestroyInstance(id int) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-destroy-instance",
+		"/var/btrfs",
 		fmt.Sprintf("%d", id),
 	).Output()
 

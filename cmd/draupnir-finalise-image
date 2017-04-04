@@ -14,13 +14,13 @@ set -e
 set -u
 set -o pipefail
 
-ROOT=/var/btrfs
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
 PSQL=/usr/bin/psql
 
-ID=$1
-PORT=$2
-ANON_FILE=$3
+ROOT=$1
+ID=$2
+PORT=$3
+ANON_FILE=$4
 
 # TODO: validate input
 
