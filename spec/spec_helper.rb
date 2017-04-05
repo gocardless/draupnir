@@ -6,6 +6,7 @@ require 'rspec'
 JSONAPI_CONTENT_TYPE = "application/vnd.api+json"
 SERVER_IP = "192.168.2.3"
 SERVER_ADDR = "#{SERVER_IP}:8080"
+ROOT_DIR = "/var/btrfs"
 
 RSpec.configure do |config|
   def post(path, payload)

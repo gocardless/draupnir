@@ -45,7 +45,8 @@ Vagrant.configure('2') do |config|
         'install_from_local_package' => true,
         'local_package_path' => '/vagrant/draupnir_0.0.1_amd64.deb',
         'upload_user_public_key' => 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCjKB/Bwg6U0QKcudDl7gWKPrtNag6Z55UHFUSuD82xsseULEwq+Mb+hTNaQ48etceSdZYX+KVsJfvv3q26MWkD1chBUUgCscM+pVMI8Y07ZNep/xp7vr5yic8doF1KtlIbhRqn2rESw8z9/UYro9N8YkAjotWwDF3DjnzOC6fzIBXi3qyiswjNDD8Cil9WseJ5lRVutJb7ncAFJtsCOPu83rYHVwBnXsuXNpjTKa0UEjRlwF0VTkG3uVYjanWz1PBjD01xiDigGT/jWSa+rcOFr+5B6Au7ZFSWEMYPEjcGWkarG1kQ94XBLG7t7s1UnkmZbfwPjSD/X2j+Azcy3IEp upload@foo.local
-        '
+        ',
+        'root_dir' => '/var/btrfs'
       }
     }
   end

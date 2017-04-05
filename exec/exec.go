@@ -20,13 +20,15 @@ type Executor interface {
 	DestroyInstance(id int) error
 }
 
-type OSExecutor struct{}
+type OSExecutor struct {
+	RootDir string
+}
 
-// CreateBtrfsSubvolume creates a BTRFS subvolume in /var/btrfs/image_uploads
+// CreateBtrfsSubvolume creates a BTRFS subvolume in $(RootDir)/image_uploads
 // and sets its permissions to 775 so that 'upload' can write to it.
 func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
 	name := fmt.Sprintf("%d", id)
-	path := filepath.Join("/var/btrfs/image_uploads", name)
+	path := filepath.Join(e.RootDir, "image_uploads", name)
 	output, err := exec.Command("btrfs", "subvolume", "create", path).Output()
 	if err != nil {
 		return err
@@ -74,7 +76,7 @@ func (e OSExecutor) FinaliseImage(image models.Image) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-finalise-image",
-		"/var/btrfs",
+		e.RootDir,
 		fmt.Sprintf("%d", image.ID),
 		fmt.Sprintf("%d", 5432+image.ID),
 		anonFile.Name(),
@@ -98,7 +100,7 @@ func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error 
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-create-instance",
-		"/var/btrfs",
+		e.RootDir,
 		fmt.Sprintf("%d", imageID),
 		fmt.Sprintf("%d", instanceID),
 		fmt.Sprintf("%d", port),
@@ -117,7 +119,7 @@ func (e OSExecutor) DestroyImage(id int) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-destroy-image",
-		"/var/btrfs",
+		e.RootDir,
 		fmt.Sprintf("%d", id),
 	).Output()
 
@@ -134,7 +136,7 @@ func (e OSExecutor) DestroyInstance(id int) error {
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-destroy-instance",
-		"/var/btrfs",
+		e.RootDir,
 		fmt.Sprintf("%d", id),
 	).Output()
 

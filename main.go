@@ -18,6 +18,7 @@ var version string
 type Config struct {
 	Port        int    `required:"true"`
 	DatabaseUrl string `required:"true" split_words:"true"`
+	RootDir     string `required:"true" split_words:"true"`
 }
 
 func main() {
@@ -34,9 +35,10 @@ func main() {
 
 	imageStore := store.DBImageStore{DB: db}
 
+	executor := exec.OSExecutor{RootDir: c.RootDir}
 	imageRouteSet := routes.Images{
 		Store:    imageStore,
-		Executor: exec.OSExecutor{},
+		Executor: executor,
 	}
 
 	instanceStore := store.DBInstanceStore{DB: db}
@@ -44,7 +46,7 @@ func main() {
 	instanceRouteSet := routes.Instances{
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
-		Executor:      exec.OSExecutor{},
+		Executor:      executor,
 	}
 
 	router := mux.NewRouter()
