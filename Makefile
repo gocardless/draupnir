@@ -16,7 +16,6 @@ test:
 	go test ./routes ./models ./store
 
 test-integration:
-	(cd tmp/cookbooks/draupnir && bundle exec berks vendor)
 	vagrant destroy -f && vagrant up
 	vagrant ssh -c "sudo service draupnir start"
 	bundle exec rspec
@@ -26,7 +25,8 @@ setup-cookbook:
 	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
 
 update-cookbook:
-	cd tmp/cookbooks/draupnir && git pull && bundle && bundle exec berks
+	cd tmp/cookbooks/draupnir && git pull && bundle && bundle exec berks vendor
+
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
