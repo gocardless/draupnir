@@ -25,7 +25,7 @@ setup-cookbook:
 	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
 
 update-cookbook:
-	cd tmp/cookbooks/draupnir && git pull && bundle && bundle exec berks vendor
+	cd tmp/cookbooks/draupnir && git pull && rm -rf berks-cookbooks && bundle && bundle exec berks vendor
 
 
 build-production: test
