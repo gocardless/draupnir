@@ -18,7 +18,7 @@ var version string
 type Config struct {
 	Port        int    `required:"true"`
 	DatabaseUrl string `required:"true" split_words:"true"`
-	RootDir     string `required:"true" split_words:"true"`
+	DataPath    string `required:"true" split_words:"true"`
 }
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 
 	imageStore := store.DBImageStore{DB: db}
 
-	executor := exec.OSExecutor{RootDir: c.RootDir}
+	executor := exec.OSExecutor{DataPath: c.DataPath}
 	imageRouteSet := routes.Images{
 		Store:    imageStore,
 		Executor: executor,
