@@ -46,8 +46,6 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: check if the image id corresponds to a real image,
-	//       and that image is ready
 	image, err := i.ImageStore.Get(imageID)
 	if err != nil {
 		RenderError(w, http.StatusNotFound, imageNotFoundError)
@@ -186,8 +184,8 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateRandomPort() int {
-	const minPort = 1025
-	const maxPort = 49152
+	const minPort = 5433
+	const maxPort = 6000
 
 	rand.Seed(time.Now().Unix())
 	return minPort + rand.Intn(maxPort-minPort)
