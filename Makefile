@@ -16,8 +16,12 @@ test:
 	go test ./routes ./models ./store
 
 test-integration:
-	vagrant destroy -f && vagrant up
-	vagrant ssh -c "sudo service draupnir start"
+	bundle exec kitchen destroy && bundle exec kitchen converge
+	bundle exec kitchen exec -c "sudo -u postgres createdb draupnir"
+	bundle exec kitchen exec -c "sudo -u postgres createuser draupnir"
+	bundle exec kitchen exec -c "echo \"alter role draupnir password 'draupnir'\" | sudo -u postgres psql"
+	bundle exec kitchen exec -c "cat /vagrant/structure.sql | sudo -u draupnir psql draupnir"
+	bundle exec kitchen exec -c "sudo service draupnir start"
 	bundle exec rspec
 
 setup-cookbook:

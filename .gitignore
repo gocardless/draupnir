@@ -2,9 +2,8 @@
 /.vagrant
 /chef/nodes/vagrant.json
 /draupnir
-/baker
-/butler
 *.linux_amd64
 *.deb
 /.bundle
 /vendor
+/.kitchen

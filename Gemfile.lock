@@ -6,6 +6,7 @@ GEM
     archive-tar-minitar (0.5.2)
     arr-pm (0.0.10)
       cabin (> 0)
+    artifactory (2.8.1)
     ast (2.3.0)
     backports (3.6.8)
     berkshelf (5.2.0)
@@ -36,17 +37,53 @@ GEM
     buff-ruby_engine (1.0.0)
     buff-shell_out (1.1.0)
       buff-ruby_engine (~> 1.0)
+    builder (3.2.3)
     cabin (0.9.0)
     celluloid (0.16.0)
       timers (~> 4.0.0)
     celluloid-io (0.16.2)
       celluloid (>= 0.16.0)
       nio4r (>= 1.1.0)
+    chef (12.17.44)
+      addressable
+      bundler (>= 1.10)
+      chef-config (= 12.17.44)
+      chef-zero (>= 4.8)
+      diff-lcs (~> 1.2, >= 1.2.4)
+      erubis (~> 2.7)
+      ffi-yajl (~> 2.2)
+      highline (~> 1.6, >= 1.6.9)
+      iniparse (~> 1.4)
+      mixlib-archive (>= 0.2.0)
+      mixlib-authentication (~> 1.4)
+      mixlib-cli (~> 1.7)
+      mixlib-log (~> 1.3)
+      mixlib-shellout (~> 2.0)
+      net-sftp (~> 2.1, >= 2.1.2)
+      net-ssh (>= 2.9, < 4.0)
+      net-ssh-multi (~> 1.1)
+      ohai (>= 8.6.0.alpha.1, < 9)
+      plist (~> 3.2)
+      proxifier (~> 1.0)
+      rspec-core (~> 3.5)
+      rspec-expectations (~> 3.5)
+      rspec-mocks (~> 3.5)
+      rspec_junit_formatter (~> 0.2.0)
+      serverspec (~> 2.7)
+      specinfra (~> 2.10)
+      syslog-logger (~> 1.6)
+      uuidtools (~> 2.1.5)
     chef-config (12.17.44)
       addressable
       fuzzyurl
       mixlib-config (~> 2.0)
       mixlib-shellout (~> 2.0)
+    chef-zero (13.0.0)
+      ffi-yajl (~> 2.2)
+      hashie (>= 2.0, < 4.0)
+      mixlib-log (~> 1.3)
+      rack (~> 2.0)
+      uuidtools (~> 2.1)
     childprocess (0.5.9)
       ffi (~> 1.0, >= 1.0.11)
     clamp (1.0.1)
@@ -59,6 +96,8 @@ GEM
     faraday (0.9.2)
       multipart-post (>= 1.2, < 3)
     ffi (1.9.14)
+    ffi-yajl (2.3.0)
+      libyajl2 (~> 1.2)
     fpm (1.8.0)
       archive-tar-minitar
       arr-pm (~> 0.0.10)
@@ -72,13 +111,22 @@ GEM
       ruby-xz
     fuzzyurl (0.9.0)
     hashie (3.5.5)
+    highline (1.7.8)
     hitimes (1.2.4)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
     httpclient (2.8.3)
+    iniparse (1.4.2)
     insist (1.0.0)
     io-like (0.3.0)
+    ipaddress (0.8.3)
     json (1.8.3)
+    kitchen-encrypt-databags (0.1.1)
+      chef (>= 12.10)
+      test-kitchen (~> 1.13)
+    kitchen-vagrant (1.1.0)
+      test-kitchen (~> 1.4)
+    libyajl2 (1.2.0)
     mime-types (3.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2016.0521)
@@ -87,16 +135,47 @@ GEM
       mixlib-log
     mixlib-authentication (1.4.1)
       mixlib-log
+    mixlib-cli (1.7.0)
     mixlib-config (2.2.4)
+    mixlib-install (2.1.12)
+      artifactory
+      mixlib-shellout
+      mixlib-versioning
+      thor
     mixlib-log (1.7.1)
     mixlib-shellout (2.2.7)
+    mixlib-versioning (1.1.0)
     molinillo (0.5.5)
+    multi_json (1.12.1)
     multipart-post (2.0.0)
     mustache (0.99.8)
+    net-scp (1.2.1)
+      net-ssh (>= 2.6.5)
+    net-sftp (2.1.2)
+      net-ssh (>= 2.6.5)
+    net-ssh (3.2.0)
+    net-ssh-gateway (1.3.0)
+      net-ssh (>= 2.6.5)
+    net-ssh-multi (1.2.1)
+      net-ssh (>= 2.6.5)
+      net-ssh-gateway (>= 1.2.0)
+    net-telnet (0.1.1)
     netrc (0.11.0)
     nio4r (2.0.0)
     octokit (4.6.2)
       sawyer (~> 0.8.0, >= 0.5.3)
+    ohai (8.23.0)
+      chef-config (>= 12.5.0.alpha.1, < 13)
+      ffi (~> 1.9)
+      ffi-yajl (~> 2.2)
+      ipaddress
+      mixlib-cli
+      mixlib-config (~> 2.0)
+      mixlib-log (>= 1.7.1, < 2.0)
+      mixlib-shellout (~> 2.0)
+      plist (~> 3.1)
+      systemu (~> 2.6.4)
+      wmi-lite (~> 1.0)
     parser (2.3.3.1)
       ast (~> 2.2)
     pleaserun (0.0.27)
@@ -106,8 +185,11 @@ GEM
       insist
       mustache (= 0.99.8)
       stud
+    plist (3.2.0)
     powerpack (0.1.1)
+    proxifier (1.0.3)
     public_suffix (2.0.5)
+    rack (2.0.1)
     rainbow (2.1.0)
     rest-client (2.0.0)
       http-cookie (>= 1.0.2, < 2.0)
@@ -141,10 +223,16 @@ GEM
     rspec-expectations (3.5.0)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.5.0)
+    rspec-its (1.2.0)
+      rspec-core (>= 3.0.0)
+      rspec-expectations (>= 3.0.0)
     rspec-mocks (3.5.0)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.5.0)
     rspec-support (3.5.0)
+    rspec_junit_formatter (0.2.3)
+      builder (< 4)
+      rspec-core (>= 2, < 4, != 2.12.0)
     rubocop (0.46.0)
       parser (>= 2.3.1.1, < 3.0)
       powerpack (~> 0.1)
@@ -155,14 +243,36 @@ GEM
     ruby-xz (0.2.3)
       ffi (~> 1.9)
       io-like (~> 0.3)
+    safe_yaml (1.0.4)
     sawyer (0.8.1)
       addressable (>= 2.3.5, < 2.6)
       faraday (~> 0.8, < 1.0)
     semverse (2.0.0)
+    serverspec (2.38.0)
+      multi_json
+      rspec (~> 3.0)
+      rspec-its
+      specinfra (~> 2.53)
+    sfl (2.3)
     solve (3.1.0)
       molinillo (>= 0.5)
       semverse (>= 1.1, < 3.0)
+    specinfra (2.67.7)
+      net-scp
+      net-ssh (>= 2.7, < 5.0)
+      net-telnet
+      sfl
     stud (0.0.22)
+    syslog-logger (1.6.8)
+    systemu (2.6.5)
+    test-kitchen (1.15.0)
+      mixlib-install (>= 1.2, < 3.0)
+      mixlib-shellout (>= 1.2, < 3.0)
+      net-scp (~> 1.1)
+      net-ssh (>= 2.9, < 5.0)
+      net-ssh-gateway (~> 1.2)
+      safe_yaml (~> 1.0)
+      thor (~> 0.18)
     thor (0.19.4)
     timers (4.0.4)
       hitimes
@@ -170,9 +280,11 @@ GEM
       unf_ext
     unf_ext (0.0.7.2)
     unicode-display_width (1.1.2)
+    uuidtools (2.1.5)
     varia_model (0.6.0)
       buff-extensions (~> 2.0)
       hashie (>= 2.0.2, < 4.0.0)
+    wmi-lite (1.0.0)
 
 PLATFORMS
   ruby
@@ -180,9 +292,12 @@ PLATFORMS
 DEPENDENCIES
   berkshelf
   fpm
+  kitchen-encrypt-databags
+  kitchen-vagrant
   rest-client
   rspec
   rubocop
+  test-kitchen
 
 BUNDLED WITH
    1.14.6

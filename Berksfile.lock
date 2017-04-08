@@ -1,0 +1,14 @@
+DEPENDENCIES
+  draupnir
+    path: tmp/cookbooks/draupnir/berks-cookbooks/draupnir
+  iptables-ng
+    path: tmp/cookbooks/draupnir/berks-cookbooks/iptables-ng
+  sudo
+    path: tmp/cookbooks/draupnir/berks-cookbooks/sudo
+
+GRAPH
+  draupnir (0.1.0)
+    iptables-ng (~> 2.2.8)
+    sudo (~> 2.2.2)
+  iptables-ng (2.2.11)
+  sudo (2.2.2)
