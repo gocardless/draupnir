@@ -43,7 +43,9 @@ sudo -u postgres $PG_CTL -w -D "$UPLOAD_PATH" -o "-p $PORT" -l /dev/null start
 sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
 
 # Anonymise
-cat "$ANON_FILE" | $PSQL -p $PORT --username=draupnir postgres
+echo "Executing anonymisation script $ANON_FILE"
+sudo cat "$ANON_FILE"
+sudo cat "$ANON_FILE" | "$PSQL" -p "$PORT" --username=draupnir postgres
 
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.*"

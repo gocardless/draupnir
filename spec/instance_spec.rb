@@ -10,7 +10,8 @@ RSpec.describe '/instances' do
           data: {
             type: 'images',
             attributes: {
-              backed_up_at: Time.utc(2016, 1, 2, 3, 4, 5).iso8601
+              backed_up_at: Time.utc(2016, 1, 2, 3, 4, 5).iso8601,
+              anonymisation_script: "CREATE TABLE foo (id serial);"
             }
           }
         }
@@ -20,7 +21,7 @@ RSpec.describe '/instances' do
 
   def create_ready_image
     image_id = create_unready_image
-    `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:/var/btrfs/image_uploads/#{image_id}`
+    `scp -i key spec/fixtures/db.tar upload@#{SERVER_IP}:#{DATA_PATH}/image_uploads/#{image_id}`
     post("/images/#{image_id}/done", {})
     image_id
   end
