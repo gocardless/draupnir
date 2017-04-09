@@ -39,12 +39,12 @@ sudo chown -R postgres "$UPLOAD_PATH"
 sudo chmod 700 "$UPLOAD_PATH"
 
 # Install our own postgresql.conf
-echo > "${UPLOAD_PATH}/postgresql.conf" <<- EOF
-data_directory = '$UPLOAD_PATH'
+cat > "${UPLOAD_PATH}/postgresql.conf" <<- EOF
+data_directory = '.'
 datestyle = 'iso, mdy'
 default_text_search_config = 'pg_catalog.english'
-hba_file = '${UPLOAD_PATH}/pg_hba.conf'
-ident_file = '${UPLOAD_PATH}/pg_ident.conf'
+hba_file = 'pg_hba.conf'
+ident_file = 'pg_ident.conf'
 lc_messages = 'C'
 listen_addresses = '*'
 log_autovacuum_min_duration = 0
@@ -75,9 +75,9 @@ sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
 # Anonymise
 echo "Executing anonymisation script $ANON_FILE"
 sudo cat "$ANON_FILE"
-sudo cat "$ANON_FILE" | "$PSQL" -p "$PORT" --username=draupnir postgres
+sudo cat "$ANON_FILE" | sudo -u draupnir "$PSQL" -p "$PORT" --username=draupnir postgres
 
-sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" stop
+sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -w stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.*"
 
 # Install our own pg_hba.conf
