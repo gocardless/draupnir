@@ -23,6 +23,6 @@ set -x
 
 btrfs subvolume snapshot "$SNAPSHOT_PATH" "$INSTANCE_PATH"
 # TODO: where do we send logs?
-sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l /dev/null start
+sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l "/var/log/postgresql/instance_$INSTANCE_ID" start
 
 set +x
