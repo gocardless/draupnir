@@ -40,7 +40,6 @@ func TestInstanceCreate(t *testing.T) {
 	body := `{"data":{"type":"instances","attributes":{"image_id":"1"}}}`
 
 	req, err := http.NewRequest("POST", "/instances", strings.NewReader(body))
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +89,6 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	body := `{"data":{"type":"instances","attributes":{"image_id":"1"}}}`
 
 	req, err := http.NewRequest("POST", "/instances", strings.NewReader(body))
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +136,6 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	body := `{"this is": "not a valid JSON API request payload"}`
 	req, err := http.NewRequest("POST", "/instances", strings.NewReader(body))
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +156,6 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	body := `{"data":{"type":"instances","attributes":{"image_id":"garbage"}}}`
 
 	req, err := http.NewRequest("POST", "/instances", strings.NewReader(body))
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +176,6 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 func TestInstanceList(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/instances", nil)
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +210,6 @@ func TestInstanceList(t *testing.T) {
 func TestInstanceGet(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/instances/1", nil)
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +243,6 @@ func TestInstanceGet(t *testing.T) {
 func TestInstanceDestroy(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("DELETE", "/instances/1", nil)
-	req.Header.Set("Content-Type", mediaType)
 	if err != nil {
 		t.Fatal(err)
 	}

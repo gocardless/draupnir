@@ -19,15 +19,7 @@ type Images struct {
 	Executor exec.Executor
 }
 
-const mediaType = "application/vnd.api+json"
-
 func (i Images) Get(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != mediaType {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
-	w.Header().Set("Content-Type", mediaType)
-
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Print(err.Error())
@@ -51,12 +43,6 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != mediaType {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
-	w.Header().Set("Content-Type", mediaType)
-
 	images, err := i.Store.List()
 	if err != nil {
 		log.Print(err.Error())
@@ -84,12 +70,6 @@ type createImageRequest struct {
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != mediaType {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
-	w.Header().Set("Content-Type", mediaType)
-
 	req := createImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		log.Print(err.Error())
@@ -120,12 +100,6 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != mediaType {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
-	w.Header().Set("Content-Type", mediaType)
-
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Print(err.Error())
@@ -166,12 +140,6 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != mediaType {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
-	w.Header().Set("Content-Type", mediaType)
-
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Print(err.Error())
