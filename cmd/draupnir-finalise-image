@@ -30,7 +30,7 @@ SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
 set -x
 
 sudo mkdir "${UPLOAD_PATH}/tmp"
-sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar -C ${UPLOAD_PATH}/tmp"
+sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar* -C ${UPLOAD_PATH}/tmp"
 sudo sh -c "mv ${UPLOAD_PATH}/tmp/* ${UPLOAD_PATH}/"
 sudo rmdir "${UPLOAD_PATH}/tmp"
 
