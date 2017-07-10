@@ -3,7 +3,7 @@ require 'rest_client'
 require 'json'
 require 'rspec'
 
-JSONAPI_CONTENT_TYPE = "application/vnd.api+json"
+JSON_CONTENT_TYPE = "application/json"
 SERVER_IP = "192.168.2.3"
 SERVER_ADDR = "#{SERVER_IP}:8080"
 DATA_PATH = "/draupnir"
@@ -13,18 +13,18 @@ RSpec.configure do |config|
     RestClient.post(
       "#{SERVER_ADDR}#{path}",
       payload.to_json,
-      content_type: JSONAPI_CONTENT_TYPE
+      content_type: JSON_CONTENT_TYPE
     )
   end
 
   def get(path)
-    RestClient.get("#{SERVER_ADDR}#{path}", content_type: JSONAPI_CONTENT_TYPE)
+    RestClient.get("#{SERVER_ADDR}#{path}", content_type: JSON_CONTENT_TYPE)
   end
 
   def delete(path)
     RestClient.delete(
       "#{SERVER_ADDR}#{path}",
-      content_type: JSONAPI_CONTENT_TYPE
+      content_type: JSON_CONTENT_TYPE
     )
   end
 

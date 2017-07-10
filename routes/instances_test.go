@@ -81,6 +81,7 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -129,6 +130,8 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -148,6 +151,8 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -170,6 +175,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -204,6 +210,7 @@ func TestInstanceList(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -237,6 +244,7 @@ func TestInstanceGet(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -276,5 +284,6 @@ func TestInstanceDestroy(t *testing.T) {
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }

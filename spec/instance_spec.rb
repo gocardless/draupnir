@@ -50,7 +50,10 @@ RSpec.describe '/instances' do
         create_instance(image_id)
       rescue RestClient::UnprocessableEntity => e
         # TODO: fixture
-        expect(JSON.parse(e.http_body)).to match(
+        response = e.response
+        expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
+        expect(response.code).to eq(422)
+        expect(JSON.parse(response.body)).to match(
           "id" => "unprocessable_entity",
           "status" => "422",
           "code" => "unprocessable_entity",
@@ -74,6 +77,7 @@ RSpec.describe '/instances' do
         }
       )
       expect(response.code).to eq(201)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => {
           "id" => String,
@@ -96,6 +100,7 @@ RSpec.describe '/instances' do
 
       response = get("/instances")
       expect(response.code).to eq(200)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => [
           {
@@ -120,6 +125,7 @@ RSpec.describe '/instances' do
 
       response = get("/instances/#{instance_id}")
       expect(response.code).to eq(200)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => {
           "id" => String,
@@ -142,6 +148,7 @@ RSpec.describe '/instances' do
 
       response = delete("/instances/#{instance_id}")
       expect(response.code).to eq(204)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(response.body).to eq("")
 
       expect(JSON.parse(get("/instances").body)["data"]).to eq([])

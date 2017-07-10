@@ -22,10 +22,11 @@ RSpec.describe '/images' do
       response = RestClient.post(
         "#{SERVER_ADDR}/images",
         post_payload.to_json,
-        content_type: JSONAPI_CONTENT_TYPE
+        content_type: JSON_CONTENT_TYPE
       )
 
       expect(response.code).to eq(201)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => {
           "type" => "images",
@@ -46,17 +47,18 @@ RSpec.describe '/images' do
       RestClient.post(
         "#{SERVER_ADDR}/images",
         post_payload.to_json,
-        content_type: JSONAPI_CONTENT_TYPE
+        content_type: JSON_CONTENT_TYPE
       )
     end
 
     it 'returns a JSON payload listing all the images' do
       response = RestClient.get(
         "#{SERVER_ADDR}/images",
-        content_type: JSONAPI_CONTENT_TYPE
+        content_type: JSON_CONTENT_TYPE
       )
 
       expect(response.code).to eq(200)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => [
           {
@@ -80,7 +82,7 @@ RSpec.describe '/images' do
         RestClient.post(
           "#{SERVER_ADDR}/images",
           post_payload.to_json,
-          content_type: JSONAPI_CONTENT_TYPE
+          content_type: JSON_CONTENT_TYPE
         )
       )['data']['id']
     end
@@ -88,10 +90,11 @@ RSpec.describe '/images' do
     it 'returns a JSON payload showing the image' do
       response = RestClient.get(
         "#{SERVER_ADDR}/images/#{image_id}",
-        content_type: JSONAPI_CONTENT_TYPE
+        content_type: JSON_CONTENT_TYPE
       )
 
       expect(response.code).to eq(200)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(JSON.parse(response.body)).to match(
         "data" => {
           "type" => "images",
@@ -113,7 +116,7 @@ RSpec.describe '/images' do
         RestClient.post(
           "#{SERVER_ADDR}/images",
           post_payload.to_json,
-          content_type: JSONAPI_CONTENT_TYPE
+          content_type: JSON_CONTENT_TYPE
         )
       )['data']['id']
     end
@@ -121,10 +124,11 @@ RSpec.describe '/images' do
     it 'deletes the image and returns a 204' do
       response = RestClient.delete(
         "#{SERVER_ADDR}/images/#{image_id}",
-        content_type: JSONAPI_CONTENT_TYPE
+        content_type: JSON_CONTENT_TYPE
       )
 
       expect(response.code).to eq(204)
+      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
       expect(response.body).to eq("")
     end
   end

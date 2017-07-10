@@ -97,6 +97,7 @@ func TestGetImage(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -131,6 +132,8 @@ func TestListImages(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -170,6 +173,7 @@ func TestCreateImage(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
