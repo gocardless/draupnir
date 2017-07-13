@@ -11,7 +11,12 @@ import (
 )
 
 func main() {
-	client := client.Client{URL: "http://db-cloner01.staging.gocardless.com"}
+	url := os.Getenv("DRAUPNIR_URL")
+	if url == "" {
+		fmt.Println("You must set DRAUPNIR_URL")
+		return
+	}
+	client := client.Client{URL: url}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
