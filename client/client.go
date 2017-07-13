@@ -37,6 +37,10 @@ func (c Client) GetImage(id string) (models.Image, error) {
 		return image, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return image, ErrorFromReader(resp.Body)
+	}
+
 	err = jsonapi.UnmarshalPayload(resp.Body, &image)
 	return image, err
 }
@@ -46,6 +50,10 @@ func (c Client) GetInstance(id string) (models.Instance, error) {
 	resp, err := http.Get(c.URL + "/instances/" + id)
 	if err != nil {
 		return instance, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return instance, ErrorFromReader(resp.Body)
 	}
 
 	err = jsonapi.UnmarshalPayload(resp.Body, &instance)
@@ -164,9 +172,7 @@ func (c Client) DestroyImage(image models.Image) error {
 
 	// If we don't get a 204 back, return the response as an error
 	if resp.StatusCode != http.StatusNoContent {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		return errors.New(buf.String())
+		return ErrorFromReader(resp.Body)
 	}
 
 	return nil
