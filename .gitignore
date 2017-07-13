@@ -2,6 +2,7 @@
 /.vagrant
 /chef/nodes/vagrant.json
 /draupnir
+/draupnir-client
 *.linux_amd64
 *.deb
 /.bundle
