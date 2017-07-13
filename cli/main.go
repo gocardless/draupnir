@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
-	url := os.Getenv("DRAUPNIR_URL")
-	if url == "" {
-		fmt.Println("You must set DRAUPNIR_URL")
+	DOMAIN := os.Getenv("DRAUPNIR_DOMAIN")
+	if DOMAIN == "" {
+		fmt.Println("You must set DRAUPNIR_DOMAIN")
 		return
 	}
-	client := client.Client{URL: url}
+	client := client.Client{URL: "http://" + DOMAIN}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
@@ -134,6 +134,28 @@ func main() {
 				}
 
 				fmt.Printf("Destroyed %d\n", image.ID)
+				return nil
+			},
+		},
+		{
+			Name:    "env",
+			Aliases: []string{"e"},
+			Usage:   "show the environment variables to connect to an instance",
+			Action: func(c *cli.Context) error {
+				id := c.Args().First()
+				if id == "" {
+					fmt.Println("error: must supply an instance id")
+					return nil
+				}
+
+				instance, err := client.GetInstance(id)
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					return err
+				}
+
+				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres\n", DOMAIN, instance.Port)
+
 				return nil
 			},
 		},
