@@ -35,6 +35,9 @@ update-cookbook:
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
 
+build-client: test
+	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client cli/*.go
+
 deb: build-production
 	bundle exec fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
 		--description "Databases on demand" \
