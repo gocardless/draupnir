@@ -1,8 +1,0 @@
-gom 'github.com/kelseyhightower/envconfig', :commit => '5c008110b20b657eb7e005b83d0a5f6aa6bb5f4b'
-gom 'github.com/rubenv/sql-migrate', :commit => '1ed79968dfca5de79adb13c84523caaa4fc865a9'
-gom 'github.com/gorilla/mux', :commit => '757bef944d0f21880861c2dd9c871ca543023cba'
-gom 'github.com/stretchr/testify', :commit => '2402e8e7a02fc811447d11f881aa9746cdc57983'
-gom 'github.com/willdonnelly/passwd', :commit => '7935dab3074ca1d47c8805e0230f8685116b6019'
-gom 'github.com/google/jsonapi', :commit => '925ebf2136461bb9d121340ec95a719bf9073d1c'
-gom 'github.com/coreos/go-iptables', :commit => '5463fbac3bcc6b990663941c2e12660d19f6b36d'
-gom 'github.com/urfave/cli', :commit => '4b90d79a682b4bf685762c7452db20f2a676ecb2'

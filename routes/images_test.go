@@ -70,6 +70,20 @@ func (e FakeExecutor) DestroyInstance(id int) error {
 	return e._DestroyInstance(id)
 }
 
+type FakeAuthenticator struct {
+	_AuthenticateRequest func(r *http.Request) (string, error)
+}
+
+func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
+	return f._AuthenticateRequest(r)
+}
+
+type AllowAll struct{}
+
+func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
+	return "hmac@gocardless.com", nil
+}
+
 func TestGetImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/images/1", nil)
@@ -86,7 +100,7 @@ func TestGetImage(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store}
+	routeSet := Images{Store: store, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}", routeSet.Get)
 	router.ServeHTTP(recorder, req)
@@ -99,6 +113,26 @@ func TestGetImage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestGetImageWhenAuthenticationFails(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/images/1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authenticator := FakeAuthenticator{
+		_AuthenticateRequest: func(r *http.Request) (string, error) {
+			return "", errors.New("Invalid email address")
+		},
+	}
+
+	handler := http.HandlerFunc(Images{Authenticator: authenticator}.Get)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 }
 
 func TestListImages(t *testing.T) {
@@ -122,10 +156,8 @@ func TestListImages(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(Images{Store: store}.List)
+	handler := http.HandlerFunc(Images{Store: store, Authenticator: AllowAll{}}.List)
 	handler.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusOK, recorder.Code)
 
 	expected, err := json.Marshal(listImagesFixture)
 	if err != nil {
@@ -163,7 +195,7 @@ func TestCreateImage(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store, Executor: executor}
+	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -185,7 +217,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routeSet := Images{}
+	routeSet := Images{Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -222,7 +254,7 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 			return errors.New("some btrfs error")
 		},
 	}
-	routeSet := Images{Store: store, Executor: executor}
+	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -263,7 +295,7 @@ func TestImageDone(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store, Executor: executor}
+	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", routeSet.Done)
 	router.ServeHTTP(recorder, req)
@@ -284,7 +316,7 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routeSet := Images{Store: nil, Executor: nil}
+	routeSet := Images{Authenticator: AllowAll{}}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", routeSet.Done)
 	router.ServeHTTP(recorder, req)
@@ -327,7 +359,7 @@ func TestImageDestroy(t *testing.T) {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}", Images{Store: store, Executor: executor}.Destroy).Methods("DELETE")
+	router.HandleFunc("/images/{id}", Images{Store: store, Executor: executor, Authenticator: AllowAll{}}.Destroy).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)

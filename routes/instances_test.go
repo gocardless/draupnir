@@ -14,8 +14,8 @@ import (
 
 type FakeInstanceStore struct {
 	_Create  func(models.Instance) (models.Instance, error)
-	_List    func() ([]models.Instance, error)
-	_Get     func(id int) (models.Instance, error)
+	_List    func(string) ([]models.Instance, error)
+	_Get     func(int, string) (models.Instance, error)
 	_Destroy func(instance models.Instance) error
 }
 
@@ -23,12 +23,12 @@ func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error
 	return s._Create(image)
 }
 
-func (s FakeInstanceStore) List() ([]models.Instance, error) {
-	return s._List()
+func (s FakeInstanceStore) List(email string) ([]models.Instance, error) {
+	return s._List(email)
 }
 
-func (s FakeInstanceStore) Get(id int) (models.Instance, error) {
-	return s._Get(id)
+func (s FakeInstanceStore) Get(id int, email string) (models.Instance, error) {
+	return s._Get(id, email)
 }
 
 func (s FakeInstanceStore) Destroy(instance models.Instance) error {
@@ -71,6 +71,7 @@ func TestInstanceCreate(t *testing.T) {
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
+		Authenticator: AllowAll{},
 	}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
@@ -121,6 +122,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
+		Authenticator: AllowAll{},
 	}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
@@ -143,7 +145,7 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := http.HandlerFunc(Instances{}.Create)
+	handler := http.HandlerFunc(Instances{Authenticator: AllowAll{}}.Create)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -165,7 +167,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routeSet := Instances{Executor: FakeExecutor{}}
+	routeSet := Instances{Executor: FakeExecutor{}, Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -187,7 +189,7 @@ func TestInstanceList(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_List: func() ([]models.Instance, error) {
+		_List: func(email string) ([]models.Instance, error) {
 			return []models.Instance{
 				models.Instance{
 					ID:        1,
@@ -200,7 +202,7 @@ func TestInstanceList(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(Instances{InstanceStore: store}.List)
+	handler := http.HandlerFunc(Instances{InstanceStore: store, Authenticator: AllowAll{}}.List)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -222,7 +224,7 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_Get: func(id int) (models.Instance, error) {
+		_Get: func(id int, email string) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
 				ImageID:   1,
@@ -234,7 +236,7 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", Instances{InstanceStore: store}.Get)
+	router.HandleFunc("/instances/{id}", Instances{InstanceStore: store, Authenticator: AllowAll{}}.Get)
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -256,7 +258,7 @@ func TestInstanceDestroy(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_Get: func(id int) (models.Instance, error) {
+		_Get: func(id int, email string) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
 				ImageID:   1,
@@ -279,7 +281,7 @@ func TestInstanceDestroy(t *testing.T) {
 	router := mux.NewRouter()
 	router.HandleFunc(
 		"/instances/{id}",
-		Instances{InstanceStore: store, Executor: executor}.Destroy,
+		Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}.Destroy,
 	).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 

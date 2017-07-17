@@ -40,6 +40,14 @@ var notFoundError = APIError{
 	Detail: "The resource you requested could not be found",
 }
 
+var unauthorizedError = APIError{
+	ID:     "unauthorized",
+	Code:   "unauthorized",
+	Status: "401",
+	Title:  "Unauthorized",
+	Detail: "You do not have permission to view this resource",
+}
+
 var imageNotFoundError = APIError{
 	ID:     "resource_not_found",
 	Code:   "resource_not_found",

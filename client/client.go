@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -17,6 +18,8 @@ type Client struct {
 	// The URL of the draupnir server
 	// e.g. "https://draupnir-server.my-infra.io"
 	URL string
+	// OAuth Access Token to authenticate with
+	AccessToken string
 }
 
 // DraupnirClient defines the API that a draupnir client conforms to
@@ -30,9 +33,42 @@ type DraupnirClient interface {
 	DestroyImage(image models.Image) error
 }
 
+func (c Client) get(url string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+
+	return http.DefaultClient.Do(req)
+}
+
+func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPost, url, payload)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+
+	return http.DefaultClient.Do(req)
+}
+
+func (c Client) delete(url string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+
+	return http.DefaultClient.Do(req)
+}
+
 func (c Client) GetImage(id string) (models.Image, error) {
 	var image models.Image
-	resp, err := http.Get(c.URL + "/images/" + id)
+	resp, err := c.get(c.URL + "/images/" + id)
 	if err != nil {
 		return image, err
 	}
@@ -47,7 +83,7 @@ func (c Client) GetImage(id string) (models.Image, error) {
 
 func (c Client) GetInstance(id string) (models.Instance, error) {
 	var instance models.Instance
-	resp, err := http.Get(c.URL + "/instances/" + id)
+	resp, err := c.get(c.URL + "/instances/" + id)
 	if err != nil {
 		return instance, err
 	}
@@ -63,7 +99,7 @@ func (c Client) GetInstance(id string) (models.Instance, error) {
 // ListImages returns a list of all images
 func (c Client) ListImages() ([]models.Image, error) {
 	var images []models.Image
-	resp, err := http.Get(c.URL + "/images")
+	resp, err := c.get(c.URL + "/images")
 	if err != nil {
 		return images, err
 	}
@@ -86,7 +122,7 @@ func (c Client) ListImages() ([]models.Image, error) {
 // ListInstances returns a list of all instances
 func (c Client) ListInstances() ([]models.Instance, error) {
 	var instances []models.Instance
-	resp, err := http.Get(c.URL + "/instances")
+	resp, err := c.get(c.URL + "/instances")
 	if err != nil {
 		return instances, err
 	}
@@ -110,6 +146,7 @@ type createInstanceRequest struct {
 	ImageID string `jsonapi:"attr,image_id"`
 }
 
+// CreateInstance creates a new instance
 func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 	var instance models.Instance
 	request := createInstanceRequest{ImageID: strconv.Itoa(image.ID)}
@@ -120,7 +157,7 @@ func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 		return instance, err
 	}
 
-	resp, err := http.Post(c.URL+"/instances", "application/json", &payload)
+	resp, err := c.post(c.URL+"/instances", &payload)
 	if err != nil {
 		return instance, err
 	}
@@ -136,14 +173,10 @@ func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 	return instance, err
 }
 
+// DestroyInstance destroys an instance
 func (c Client) DestroyInstance(instance models.Instance) error {
 	url := c.URL + "/instances/" + strconv.Itoa(instance.ID)
-	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.delete(url)
 	if err != nil {
 		return err
 	}
@@ -158,14 +191,10 @@ func (c Client) DestroyInstance(instance models.Instance) error {
 	return nil
 }
 
+// DestroyImage destroys an image
 func (c Client) DestroyImage(image models.Image) error {
 	url := c.URL + "/images/" + strconv.Itoa(image.ID)
-	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.delete(url)
 	if err != nil {
 		return err
 	}

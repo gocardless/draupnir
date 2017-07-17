@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
@@ -15,14 +16,22 @@ import (
 )
 
 type Images struct {
-	Store    store.ImageStore
-	Executor exec.Executor
+	Store         store.ImageStore
+	Executor      exec.Executor
+	Authenticator auth.Authenticator
 }
 
 const mediaType = "application/json"
 
 func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
+
+	_, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -48,6 +57,13 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
+
+	_, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
 
 	images, err := i.Store.List()
 	if err != nil {
@@ -78,6 +94,13 @@ type createImageRequest struct {
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 
+	_, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
+
 	req := createImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		log.Print(err.Error())
@@ -86,7 +109,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	image := models.NewImage(req.BackedUpAt, req.Anon)
-	image, err := i.Store.Create(image)
+	image, err = i.Store.Create(image)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -109,6 +132,13 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
+
+	_, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -151,6 +181,13 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 
 func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
+
+	_, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {

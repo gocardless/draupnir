@@ -19,11 +19,7 @@ RSpec.describe '/images' do
   describe 'POST /images' do
     it 'creates an image and serialises it as a response' do
       timestamp = Time.utc(2016, 1, 2, 3, 4, 5)
-      response = RestClient.post(
-        "#{SERVER_ADDR}/images",
-        post_payload.to_json,
-        content_type: JSON_CONTENT_TYPE
-      )
+      response = post("/images", post_payload)
 
       expect(response.code).to eq(201)
       expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
@@ -43,19 +39,10 @@ RSpec.describe '/images' do
   end
 
   describe 'GET /images' do
-    before do
-      RestClient.post(
-        "#{SERVER_ADDR}/images",
-        post_payload.to_json,
-        content_type: JSON_CONTENT_TYPE
-      )
-    end
+    before { post("/images", post_payload) }
 
     it 'returns a JSON payload listing all the images' do
-      response = RestClient.get(
-        "#{SERVER_ADDR}/images",
-        content_type: JSON_CONTENT_TYPE
-      )
+      response = get("/images")
 
       expect(response.code).to eq(200)
       expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
@@ -78,20 +65,11 @@ RSpec.describe '/images' do
 
   describe 'GET /images/:id' do
     let!(:image_id) do
-      JSON.parse(
-        RestClient.post(
-          "#{SERVER_ADDR}/images",
-          post_payload.to_json,
-          content_type: JSON_CONTENT_TYPE
-        )
-      )['data']['id']
+      JSON.parse(post("/images", post_payload))['data']['id']
     end
 
     it 'returns a JSON payload showing the image' do
-      response = RestClient.get(
-        "#{SERVER_ADDR}/images/#{image_id}",
-        content_type: JSON_CONTENT_TYPE
-      )
+      response = get("/images/#{image_id}")
 
       expect(response.code).to eq(200)
       expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
@@ -112,20 +90,11 @@ RSpec.describe '/images' do
 
   describe 'DELETE /images/:id' do
     let!(:image_id) do
-      JSON.parse(
-        RestClient.post(
-          "#{SERVER_ADDR}/images",
-          post_payload.to_json,
-          content_type: JSON_CONTENT_TYPE
-        )
-      )['data']['id']
+      JSON.parse(post("/images", post_payload))['data']['id']
     end
 
     it 'deletes the image and returns a 204' do
-      response = RestClient.delete(
-        "#{SERVER_ADDR}/images/#{image_id}",
-        content_type: JSON_CONTENT_TYPE
-      )
+      response = delete("/images/#{image_id}")
 
       expect(response.code).to eq(204)
       expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)

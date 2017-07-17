@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/store"
@@ -19,6 +20,7 @@ type Config struct {
 	Port        int    `required:"true"`
 	DatabaseUrl string `required:"true" split_words:"true"`
 	DataPath    string `required:"true" split_words:"true"`
+	Environment string `required:"false"`
 }
 
 func main() {
@@ -36,9 +38,16 @@ func main() {
 	imageStore := store.DBImageStore{DB: db}
 
 	executor := exec.OSExecutor{DataPath: c.DataPath}
+
+	authenticator := auth.GoogleAuthenticator{OAuthClient: auth.GoogleOAuthClient{}}
+	if c.Environment == "test" {
+		authenticator.OAuthClient = auth.FakeOAuthClient{}
+	}
+
 	imageRouteSet := routes.Images{
-		Store:    imageStore,
-		Executor: executor,
+		Store:         imageStore,
+		Executor:      executor,
+		Authenticator: authenticator,
 	}
 
 	instanceStore := store.DBInstanceStore{DB: db}
@@ -47,6 +56,7 @@ func main() {
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
+		Authenticator: authenticator,
 	}
 
 	router := mux.NewRouter()

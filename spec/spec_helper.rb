@@ -13,18 +13,24 @@ RSpec.configure do |config|
     RestClient.post(
       "#{SERVER_ADDR}#{path}",
       payload.to_json,
-      content_type: JSON_CONTENT_TYPE
+      content_type: JSON_CONTENT_TYPE,
+      "Authorization" => "Bearer 1234"
     )
   end
 
   def get(path)
-    RestClient.get("#{SERVER_ADDR}#{path}", content_type: JSON_CONTENT_TYPE)
+    RestClient.get(
+      "#{SERVER_ADDR}#{path}",
+      content_type: JSON_CONTENT_TYPE,
+      authorization: "Bearer 1234"
+    )
   end
 
   def delete(path)
     RestClient.delete(
       "#{SERVER_ADDR}#{path}",
-      content_type: JSON_CONTENT_TYPE
+      content_type: JSON_CONTENT_TYPE,
+      authorization: "Bearer 1234"
     )
   end
 

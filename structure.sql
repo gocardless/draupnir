@@ -2,12 +2,17 @@
 -- PostgreSQL database dump
 --
 
+-- Dumped from database version 9.4.9
+-- Dumped by pg_dump version 9.6.3
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
+SET row_security = off;
 
 --
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
@@ -30,7 +35,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: gorp_migrations; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: gorp_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE gorp_migrations (
@@ -40,7 +45,7 @@ CREATE TABLE gorp_migrations (
 
 
 --
--- Name: images; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: images; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE images (
@@ -73,7 +78,7 @@ ALTER SEQUENCE images_id_seq OWNED BY images.id;
 
 
 --
--- Name: instances; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: instances; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE instances (
@@ -81,7 +86,8 @@ CREATE TABLE instances (
     image_id integer NOT NULL,
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
-    port integer NOT NULL
+    port integer NOT NULL,
+    user_email text
 );
 
 
@@ -105,21 +111,21 @@ ALTER SEQUENCE instances_id_seq OWNED BY instances.id;
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: images id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY images ALTER COLUMN id SET DEFAULT nextval('images_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY instances ALTER COLUMN id SET DEFAULT nextval('instances_id_seq'::regclass);
 
 
 --
--- Name: gorp_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: gorp_migrations gorp_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY gorp_migrations
@@ -127,7 +133,7 @@ ALTER TABLE ONLY gorp_migrations
 
 
 --
--- Name: images_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: images images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY images
@@ -135,7 +141,7 @@ ALTER TABLE ONLY images
 
 
 --
--- Name: instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: instances instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY instances
@@ -143,7 +149,7 @@ ALTER TABLE ONLY instances
 
 
 --
--- Name: instances_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: instances instances_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY instances

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
@@ -19,6 +20,7 @@ type Instances struct {
 	InstanceStore store.InstanceStore
 	ImageStore    store.ImageStore
 	Executor      exec.Executor
+	Authenticator auth.Authenticator
 }
 
 type createInstanceRequest struct {
@@ -27,6 +29,13 @@ type createInstanceRequest struct {
 
 func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
+
+	email, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
 
 	req := createInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
@@ -53,7 +62,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instance := models.NewInstance(imageID)
+	instance := models.NewInstance(imageID, email)
 	instance.Port = generateRandomPort()
 	instance, err = i.InstanceStore.Create(instance)
 	if err != nil {
@@ -87,7 +96,14 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 
-	instances, err := i.InstanceStore.List()
+	email, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
+
+	instances, err := i.InstanceStore.List(email)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -111,6 +127,13 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 
+	email, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
+
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Print(err.Error())
@@ -118,7 +141,7 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instance, err := i.InstanceStore.Get(id)
+	instance, err := i.InstanceStore.Get(id, email)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
@@ -136,6 +159,13 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 
+	email, err := i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		log.Print(err.Error())
+		RenderError(w, http.StatusUnauthorized, unauthorizedError)
+		return
+	}
+
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Print(err.Error())
@@ -143,7 +173,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instance, err := i.InstanceStore.Get(id)
+	instance, err := i.InstanceStore.Get(id, email)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)

@@ -8,8 +8,8 @@ import (
 
 type InstanceStore interface {
 	Create(models.Instance) (models.Instance, error)
-	List() ([]models.Instance, error)
-	Get(id int) (models.Instance, error)
+	List(email string) ([]models.Instance, error)
+	Get(id int, email string) (models.Instance, error)
 	Destroy(instance models.Instance) error
 }
 
@@ -19,13 +19,14 @@ type DBInstanceStore struct {
 
 func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, error) {
 	row := s.DB.QueryRow(
-		`INSERT INTO instances (image_id, port, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO instances (image_id, port, created_at, updated_at, user_email)
+		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id`,
 		instance.ImageID,
 		instance.Port,
 		instance.CreatedAt,
 		instance.UpdatedAt,
+		instance.UserEmail,
 	)
 
 	err := row.Scan(&instance.ID)
@@ -33,11 +34,14 @@ func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, erro
 	return instance, err
 }
 
-func (s DBInstanceStore) List() ([]models.Instance, error) {
+func (s DBInstanceStore) List(email string) ([]models.Instance, error) {
 	instances := make([]models.Instance, 0)
 
 	rows, err := s.DB.Query(
-		`SELECT id, image_id, port, created_at, updated_at FROM instances`,
+		`SELECT id, image_id, port, created_at, updated_at, user_email
+		 FROM instances
+		 WHERE user_email = $1`,
+		email,
 	)
 	if err != nil {
 		return instances, err
@@ -53,6 +57,7 @@ func (s DBInstanceStore) List() ([]models.Instance, error) {
 			&instance.Port,
 			&instance.CreatedAt,
 			&instance.UpdatedAt,
+			&instance.UserEmail,
 		)
 
 		if err != nil {
@@ -65,14 +70,16 @@ func (s DBInstanceStore) List() ([]models.Instance, error) {
 	return instances, nil
 }
 
-func (s DBInstanceStore) Get(id int) (models.Instance, error) {
+func (s DBInstanceStore) Get(id int, email string) (models.Instance, error) {
 	instance := models.Instance{}
 
 	row := s.DB.QueryRow(
-		`SELECT id, image_id, port, created_at, updated_at
+		`SELECT id, image_id, port, created_at, updated_at, user_email
 		 FROM instances
-		 WHERE id = $1`,
+		 WHERE id = $1
+		 AND user_email = $2`,
 		id,
+		email,
 	)
 	err := row.Scan(
 		&instance.ID,
@@ -80,6 +87,7 @@ func (s DBInstanceStore) Get(id int) (models.Instance, error) {
 		&instance.Port,
 		&instance.CreatedAt,
 		&instance.UpdatedAt,
+		&instance.UserEmail,
 	)
 	if err != nil {
 		return instance, err

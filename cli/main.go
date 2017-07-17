@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -10,18 +11,82 @@ import (
 	"github.com/urfave/cli"
 )
 
+type Config struct {
+	Domain      string
+	AccessToken string
+}
+
+var version string
+var clientID string
+var clientSecret string
+
+func LoadConfig() (Config, error) {
+	config := Config{Domain: "set-me-to-a-real-domain"}
+	file, err := os.Open(os.Getenv("HOME") + "/.draupnir")
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = nil
+			err = StoreConfig(config)
+			return config, err
+		}
+		return config, err
+	}
+	err = json.NewDecoder(file).Decode(&config)
+	return config, err
+}
+
+func StoreConfig(config Config) error {
+	file, err := os.Create(os.Getenv("HOME") + "/.draupnir")
+	if err != nil {
+		return err
+	}
+	err = json.NewEncoder(file).Encode(config)
+	return err
+}
+
 func main() {
-	DOMAIN := os.Getenv("DRAUPNIR_DOMAIN")
-	if DOMAIN == "" {
-		fmt.Println("You must set DRAUPNIR_DOMAIN")
+	CONFIG, err := LoadConfig()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
 		return
 	}
-	client := client.Client{URL: "http://" + DOMAIN}
+
+	client := client.Client{URL: "http://" + CONFIG.Domain, AccessToken: CONFIG.AccessToken}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
 	app.Usage = "A client for draupnir"
 	app.Commands = []cli.Command{
+		{
+			Name:    "config",
+			Aliases: []string{},
+			Usage:   "show the current configuration",
+			Action: func(c *cli.Context) error {
+				fmt.Printf("%+v\n", CONFIG)
+				return nil
+			},
+		},
+		{
+			Name:    "authenticate",
+			Aliases: []string{},
+			Usage:   "authenticate with google",
+			Action: func(c *cli.Context) error {
+				token, err := authorise(clientID, clientSecret)
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					return err
+				}
+
+				CONFIG.AccessToken = token.AccessToken
+				err = StoreConfig(CONFIG)
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					return err
+				}
+				fmt.Println("Successfully authenticated.")
+				return nil
+			},
+		},
 		{
 			Name:    "list-instances",
 			Aliases: []string{},
@@ -154,7 +219,7 @@ func main() {
 					return err
 				}
 
-				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres\n", DOMAIN, instance.Port)
+				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres\n", CONFIG.Domain, instance.Port)
 
 				return nil
 			},
