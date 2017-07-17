@@ -23,8 +23,8 @@ func main() {
 	app.Usage = "A client for draupnir"
 	app.Commands = []cli.Command{
 		{
-			Name:    "list",
-			Aliases: []string{"ls", "l"},
+			Name:    "list-instances",
+			Aliases: []string{},
 			Usage:   "list your instances",
 			Action: func(c *cli.Context) error {
 				instances, err := client.ListInstances()
@@ -40,7 +40,7 @@ func main() {
 		},
 		{
 			Name:    "list-images",
-			Aliases: []string{"images", "is"},
+			Aliases: []string{},
 			Usage:   "list your images",
 			Action: func(c *cli.Context) error {
 				images, err := client.ListImages()
@@ -57,7 +57,7 @@ func main() {
 		},
 		{
 			Name:    "create-instance",
-			Aliases: []string{"new"},
+			Aliases: []string{},
 			Usage:   "create a new instance",
 			Action: func(c *cli.Context) error {
 				id := c.Args().First()
@@ -85,7 +85,7 @@ func main() {
 		},
 		{
 			Name:    "destroy-instance",
-			Aliases: []string{"destroy", "d"},
+			Aliases: []string{},
 			Usage:   "destroy an instance",
 			Action: func(c *cli.Context) error {
 				id := c.Args().First()
@@ -112,7 +112,7 @@ func main() {
 		},
 		{
 			Name:    "destroy-image",
-			Aliases: []string{"di"},
+			Aliases: []string{},
 			Usage:   "destroy an image",
 			Action: func(c *cli.Context) error {
 				id := c.Args().First()
@@ -139,7 +139,7 @@ func main() {
 		},
 		{
 			Name:    "env",
-			Aliases: []string{"e"},
+			Aliases: []string{},
 			Usage:   "show the environment variables to connect to an instance",
 			Action: func(c *cli.Context) error {
 				id := c.Args().First()
