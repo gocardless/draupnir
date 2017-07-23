@@ -20,7 +20,8 @@ type Authenticator interface {
 }
 
 type GoogleAuthenticator struct {
-	OAuthClient
+	OAuthClient  OAuthClient
+	SharedSecret string
 }
 
 func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
@@ -28,6 +29,11 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 	_, err := fmt.Sscanf(r.Header.Get("Authorization"), "Bearer %s", &accessToken)
 	if err != nil {
 		return "", err
+	}
+
+	// abr uses a shared secret to authenticate
+	if accessToken == g.SharedSecret {
+		return "upload", nil
 	}
 
 	email, err := g.OAuthClient.LookupAccessToken(accessToken)
@@ -66,5 +72,8 @@ func (g GoogleOAuthClient) LookupAccessToken(accessToken string) (string, error)
 type FakeOAuthClient struct{}
 
 func (f FakeOAuthClient) LookupAccessToken(accessToken string) (string, error) {
-	return "integration-test@gocardless.com", nil
+	if accessToken == "the-integration-access-token" {
+		return "integration-test@gocardless.com", nil
+	}
+	return "", errors.New("Invalid access token")
 }

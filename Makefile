@@ -22,13 +22,14 @@ test-integration:
 	bundle exec kitchen exec -c "sudo -u postgres createuser draupnir"
 	bundle exec kitchen exec -c "echo \"alter role draupnir password 'draupnir'\" | sudo -u postgres psql"
 	bundle exec kitchen exec -c "cat /vagrant/structure.sql | sudo -u draupnir psql draupnir"
-	bundle exec kitchen exec -c "sudo sh -c \"echo 'DRAUPNIR_ENVIRONMENT=test' >> /etc/environments/draupnir\""
+	bundle exec kitchen exec -c "sudo sh -c \"echo 'DRAUPNIR_ENVIRONMENT=test' >> /etc/environments/draupnir.env\""
 	bundle exec kitchen exec -c "sudo service draupnir start"
 	bundle exec rspec
 
 setup-cookbook:
 	mkdir -p tmp/cookbooks/
 	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
+	cd tmp/cookbooks/draupnir && bundle && bundle exec berks vendor
 
 update-cookbook:
 	cd tmp/cookbooks/draupnir && git pull && rm -rf berks-cookbooks && bundle && bundle exec berks vendor

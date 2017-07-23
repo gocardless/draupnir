@@ -17,10 +17,11 @@ import (
 var version string
 
 type Config struct {
-	Port        int    `required:"true"`
-	DatabaseUrl string `required:"true" split_words:"true"`
-	DataPath    string `required:"true" split_words:"true"`
-	Environment string `required:"false"`
+	Port         int    `required:"true"`
+	DatabaseUrl  string `required:"true" split_words:"true"`
+	DataPath     string `required:"true" split_words:"true"`
+	Environment  string `required:"false"`
+	SharedSecret string `required:"true" split_words:"true"`
 }
 
 func main() {
@@ -39,7 +40,10 @@ func main() {
 
 	executor := exec.OSExecutor{DataPath: c.DataPath}
 
-	authenticator := auth.GoogleAuthenticator{OAuthClient: auth.GoogleOAuthClient{}}
+	authenticator := auth.GoogleAuthenticator{
+		OAuthClient:  auth.GoogleOAuthClient{},
+		SharedSecret: c.SharedSecret,
+	}
 	if c.Environment == "test" {
 		authenticator.OAuthClient = auth.FakeOAuthClient{}
 	}

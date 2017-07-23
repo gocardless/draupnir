@@ -17,24 +17,53 @@ RSpec.describe '/images' do
   let(:timestamp) { Time.utc(2016, 1, 2, 3, 4, 5) }
 
   describe 'POST /images' do
-    it 'creates an image and serialises it as a response' do
-      timestamp = Time.utc(2016, 1, 2, 3, 4, 5)
-      response = post("/images", post_payload)
+    let(:timestamp) { Time.utc(2016, 1, 2, 3, 4, 5) }
 
-      expect(response.code).to eq(201)
-      expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
-      expect(JSON.parse(response.body)).to match(
-        "data" => {
-          "type" => "images",
-          "id" => String,
-          "attributes" => include(
-            "backed_up_at" => timestamp.iso8601,
-            "ready" => false,
-            "created_at" => String,
-            "updated_at" => String
-          )
-        }
-      )
+    context "with an invalid shared secret" do
+      let(:secret) { "incorrectsecret" }
+
+      it "returns an error" do
+        response = begin
+                     post("/images", post_payload, authorization: "Bearer #{secret}")
+                   rescue RestClient::Unauthorized => e
+                     e.response
+                   end
+
+        expect(response.code).to eq(401)
+        expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
+        expect(JSON.parse(response.body)).to match(
+          "status" => "401",
+          "id" => "unauthorized",
+          "code" => "unauthorized",
+          "title" => "Unauthorized",
+          "detail" => "You do not have permission to view this resource",
+          "source" => {},
+        )
+      end
+    end
+
+    context "with a valid shared secret" do
+      let(:secret) { "thesharedsecret" }
+
+      it 'creates an image and serialises it as a response' do
+        timestamp = Time.utc(2016, 1, 2, 3, 4, 5)
+        response = post("/images", post_payload)
+
+        expect(response.code).to eq(201)
+        expect(response.headers[:content_type]).to eq(JSON_CONTENT_TYPE)
+        expect(JSON.parse(response.body)).to match(
+          "data" => {
+            "type" => "images",
+            "id" => String,
+            "attributes" => include(
+              "backed_up_at" => timestamp.iso8601,
+              "ready" => false,
+              "created_at" => String,
+              "updated_at" => String
+            )
+          }
+        )
+      end
     end
   end
 

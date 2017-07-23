@@ -5,16 +5,19 @@ require 'rspec'
 
 JSON_CONTENT_TYPE = "application/json"
 SERVER_IP = "192.168.2.3"
-SERVER_ADDR = "#{SERVER_IP}:8080"
+SERVER_ADDR = "#{SERVER_IP}:80"
 DATA_PATH = "/draupnir"
+ACCESS_TOKEN = "the-integration-access-token"
 
 RSpec.configure do |config|
-  def post(path, payload)
+  def post(path, payload, headers={})
     RestClient.post(
       "#{SERVER_ADDR}#{path}",
       payload.to_json,
-      content_type: JSON_CONTENT_TYPE,
-      "Authorization" => "Bearer 1234"
+      {
+        content_type: JSON_CONTENT_TYPE,
+        authorization: "Bearer #{ACCESS_TOKEN}",
+      }.merge(headers)
     )
   end
 
@@ -22,7 +25,7 @@ RSpec.configure do |config|
     RestClient.get(
       "#{SERVER_ADDR}#{path}",
       content_type: JSON_CONTENT_TYPE,
-      authorization: "Bearer 1234"
+      authorization: "Bearer #{ACCESS_TOKEN}",
     )
   end
 
@@ -30,7 +33,7 @@ RSpec.configure do |config|
     RestClient.delete(
       "#{SERVER_ADDR}#{path}",
       content_type: JSON_CONTENT_TYPE,
-      authorization: "Bearer 1234"
+      authorization: "Bearer #{ACCESS_TOKEN}",
     )
   end
 

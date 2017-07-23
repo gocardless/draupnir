@@ -1,3 +1,4 @@
 {
-  "password": "draupnir"
+  "password": "draupnir",
+  "shared_secret": "thesharedsecret"
 }
