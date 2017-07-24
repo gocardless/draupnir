@@ -23,7 +23,7 @@ func (s DBImageStore) List() ([]models.Image, error) {
 	images := make([]models.Image, 0)
 
 	rows, err := s.DB.Query(
-		`SELECT id, backed_up_at, ready, created_at, updated_at FROM images`,
+		`SELECT id, backed_up_at, ready, created_at, updated_at FROM images ORDER BY id ASC`,
 	)
 	if err != nil {
 		return images, err

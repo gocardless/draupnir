@@ -8,3 +8,4 @@
 /.bundle
 /vendor
 /.kitchen
+/.env

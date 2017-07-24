@@ -40,7 +40,8 @@ func (s DBInstanceStore) List(email string) ([]models.Instance, error) {
 	rows, err := s.DB.Query(
 		`SELECT id, image_id, port, created_at, updated_at, user_email
 		 FROM instances
-		 WHERE user_email = $1`,
+		 WHERE user_email = $1
+		 ORDER BY id ASC`,
 		email,
 	)
 	if err != nil {
