@@ -2,14 +2,16 @@ package client
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/routes"
 	"github.com/google/jsonapi"
 )
 
@@ -74,7 +76,7 @@ func (c Client) GetImage(id string) (models.Image, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return image, ErrorFromReader(resp.Body)
+		return image, parseError(resp.Body)
 	}
 
 	err = jsonapi.UnmarshalPayload(resp.Body, &image)
@@ -89,7 +91,7 @@ func (c Client) GetInstance(id string) (models.Instance, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return instance, ErrorFromReader(resp.Body)
+		return instance, parseError(resp.Body)
 	}
 
 	err = jsonapi.UnmarshalPayload(resp.Body, &instance)
@@ -102,6 +104,10 @@ func (c Client) ListImages() ([]models.Image, error) {
 	resp, err := c.get(c.URL + "/images")
 	if err != nil {
 		return images, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return images, parseError(resp.Body)
 	}
 
 	maybeImages, err := jsonapi.UnmarshalManyPayload(resp.Body, reflect.TypeOf(images))
@@ -125,6 +131,10 @@ func (c Client) ListInstances() ([]models.Instance, error) {
 	resp, err := c.get(c.URL + "/instances")
 	if err != nil {
 		return instances, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return instances, parseError(resp.Body)
 	}
 
 	maybeInstances, err := jsonapi.UnmarshalManyPayload(resp.Body, reflect.TypeOf(instances))
@@ -162,11 +172,8 @@ func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 		return instance, err
 	}
 
-	// If we don't get a 201 back, return the response as an error
 	if resp.StatusCode != http.StatusCreated {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		return instance, errors.New(buf.String())
+		return instance, parseError(resp.Body)
 	}
 
 	err = jsonapi.UnmarshalPayload(resp.Body, &instance)
@@ -181,11 +188,8 @@ func (c Client) DestroyInstance(instance models.Instance) error {
 		return err
 	}
 
-	// If we don't get a 204 back, return the response as an error
 	if resp.StatusCode != http.StatusNoContent {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		return errors.New(buf.String())
+		return parseError(resp.Body)
 	}
 
 	return nil
@@ -199,10 +203,20 @@ func (c Client) DestroyImage(image models.Image) error {
 		return err
 	}
 
-	// If we don't get a 204 back, return the response as an error
 	if resp.StatusCode != http.StatusNoContent {
-		return ErrorFromReader(resp.Body)
+		return parseError(resp.Body)
 	}
 
 	return nil
+}
+
+// parseError takes an io.Reader containing an API error response
+// and converts it to an error
+func parseError(r io.Reader) error {
+	var apiError routes.APIError
+	err := json.NewDecoder(r).Decode(&apiError)
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("%s (%s)", apiError.Title, apiError.Detail)
 }

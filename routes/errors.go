@@ -82,7 +82,7 @@ var cannotDeleteImageWithInstancesError = APIError{
 	ID:     "unprocessable_entity",
 	Code:   "unprocessable_entity",
 	Status: "422",
-	Title:  "Image Not Ready",
+	Title:  "Image Has Instances",
 	Detail: "Cannot delete an image that has instances",
 }
 
