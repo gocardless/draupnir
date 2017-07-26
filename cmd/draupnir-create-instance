@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 
-# USAGE:
-#   draupnir-create-instance IMAGE_ID INSTANCE_ID PORT
-
 set -e
 set -u
 set -o pipefail
+
+if ! [[ "$#" -eq 4 ]]; then
+  echo """
+  Desc:  Creates a new Draupnir image with given parameters
+  Usage: $(basename "$0") ROOT IMAGE_ID INSTANCE_ID PORT
+  Example:
+
+      $(basename "$0") /draupnir 9 999 6543
+
+  """
+  exit 1
+fi
 
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
 

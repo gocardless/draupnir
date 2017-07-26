@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 
-# USAGE:
-#   draupnir-destroy-instance ROOT_DIRECTORY INSTANCE_ID
-#
-# draupnir-destroy-instance deletes the instance's data directory
-
 set -e
 set -u
 set -o pipefail
+
+if ! [[ "$#" -eq 2 ]]; then
+  echo """
+  Desc:  Deletes an instance's data directory
+  Usage: $(basename "$0") ROOT INSTANCE_ID
+  Example:
+
+      $(basename "$0") /draupnir 999
+
+  """
+  exit 1
+fi
 
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
 

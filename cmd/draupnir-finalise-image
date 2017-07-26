@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
 
-# USAGE:
-#   draupnir-finalise-image IMAGE_ID PORT
-#
-# draupnir-finalise-image does the following things:
-# 1. Removes old pid files and sets the correct permissions to boot postgres
-# 2. Boots postgres
-# 3. Runs the anonymisation function(s)
-# 4. Stops postgres
-# 5. Takes a BTRFS snapshot of the directory
-
 set -e
 set -u
 set -o pipefail
+
+if ! [[ "$#" -eq 4 ]]; then
+  echo """
+  Desc:  Prepares an image for launching instances
+  Usage: $(basename "$0") ROOT INSTANCE_ID PORT ANON_FILE
+  Example:
+
+      $(basename "$0") /draupnir 999 6543 anon.sql
+
+  The steps taken are:
+
+  1. Removes old pid files and sets the correct permissions to boot postgres
+  2. Boots postgres
+  3. Runs the anonymisation function(s)
+  4. Stops postgres
+  5. Takes a BTRFS snapshot of the directory
+  """
+  exit 1
+fi
 
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
 PSQL=/usr/bin/psql
