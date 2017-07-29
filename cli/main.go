@@ -228,7 +228,7 @@ func main() {
 					return err
 				}
 
-				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres\n", CONFIG.Domain, instance.Port)
+				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD=''\n", CONFIG.Domain, instance.Port)
 
 				return nil
 			},
