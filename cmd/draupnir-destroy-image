@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 
-# USAGE:
-#   draupnir-destroy-image IMAGE_ID
-#
-# draupnir-destroy-image deletes the image's upload and snapshot directories
-
 set -e
 set -u
 set -o pipefail
+
+if ! [[ "$#" -eq 2 ]]; then
+  echo """
+  Desc:  Deletes the upload and snapshot directories for an image
+  Usage: $(basename "$0") ROOT INSTANCE_ID
+  Example:
+
+      $(basename "$0") /draupnir 999
+
+  """
+  exit 1
+fi
 
 ROOT=$1
 ID=$2
