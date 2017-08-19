@@ -48,13 +48,14 @@ func main() {
 		authenticator.OAuthClient = auth.FakeOAuthClient{}
 	}
 
+	instanceStore := store.DBInstanceStore{DB: db}
+
 	imageRouteSet := routes.Images{
-		Store:         imageStore,
+		ImageStore:    imageStore,
+		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
 	}
-
-	instanceStore := store.DBInstanceStore{DB: db}
 
 	instanceRouteSet := routes.Instances{
 		InstanceStore: instanceStore,

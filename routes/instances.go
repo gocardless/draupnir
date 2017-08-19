@@ -103,7 +103,7 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instances, err := i.InstanceStore.List(email)
+	instances, err := i.InstanceStore.List()
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -111,9 +111,12 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build a slice of pointers to our images, because this is what jsonapi wants
+	// At the same time, filter out instances that don't belong to this user
 	_instances := make([]*models.Instance, 0)
-	for i := range instances {
-		_instances = append(_instances, &instances[i])
+	for idx, instance := range instances {
+		if instance.UserEmail == email {
+			_instances = append(_instances, &instances[idx])
+		}
 	}
 
 	err = jsonapi.MarshalManyPayload(w, _instances)
@@ -141,9 +144,14 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instance, err := i.InstanceStore.Get(id, email)
+	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	if email != instance.UserEmail {
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
@@ -173,9 +181,14 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instance, err := i.InstanceStore.Get(id, email)
+	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		log.Print(err.Error())
+		RenderError(w, http.StatusNotFound, notFoundError)
+		return
+	}
+
+	if email != instance.UserEmail {
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}

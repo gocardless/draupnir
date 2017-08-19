@@ -8,8 +8,8 @@ import (
 
 type InstanceStore interface {
 	Create(models.Instance) (models.Instance, error)
-	List(email string) ([]models.Instance, error)
-	Get(id int, email string) (models.Instance, error)
+	List() ([]models.Instance, error)
+	Get(id int) (models.Instance, error)
 	Destroy(instance models.Instance) error
 }
 
@@ -34,15 +34,13 @@ func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, erro
 	return instance, err
 }
 
-func (s DBInstanceStore) List(email string) ([]models.Instance, error) {
+func (s DBInstanceStore) List() ([]models.Instance, error) {
 	instances := make([]models.Instance, 0)
 
 	rows, err := s.DB.Query(
 		`SELECT id, image_id, port, created_at, updated_at, user_email
 		 FROM instances
-		 WHERE user_email = $1
 		 ORDER BY id ASC`,
-		email,
 	)
 	if err != nil {
 		return instances, err
@@ -71,16 +69,14 @@ func (s DBInstanceStore) List(email string) ([]models.Instance, error) {
 	return instances, nil
 }
 
-func (s DBInstanceStore) Get(id int, email string) (models.Instance, error) {
+func (s DBInstanceStore) Get(id int) (models.Instance, error) {
 	instance := models.Instance{}
 
 	row := s.DB.QueryRow(
 		`SELECT id, image_id, port, created_at, updated_at, user_email
 		 FROM instances
-		 WHERE id = $1
-		 AND user_email = $2`,
+		 WHERE id = $1`,
 		id,
-		email,
 	)
 	err := row.Scan(
 		&instance.ID,
