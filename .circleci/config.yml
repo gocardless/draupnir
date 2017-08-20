@@ -1,0 +1,14 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.8
+    working_directory: /go/src/github.com/gocardless/draupnir
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    steps:
+      - checkout
+      - run: mkdir -p $TEST_RESULTS
+      - run: go get github.com/mattn/gom
+      - run: gom install
+      - run: make test
