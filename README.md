@@ -12,16 +12,6 @@ Prerequisites:
 - Go
 - Postgresql
 
-Install [gom](https://github.com/mattn/gom)
-```
-go get github.com/mattn/gom
-```
-
-Install dependencies
-```
-gom install
-```
-
 Create the database
 ```
 createdb draupnir
