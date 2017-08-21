@@ -135,7 +135,7 @@ func main() {
 					},
 				},
 				{
-					Name: "destroy",
+					Name:  "destroy",
 					Usage: "destroy an instance",
 					Action: func(c *cli.Context) error {
 						id := c.Args().First()

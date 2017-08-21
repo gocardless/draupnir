@@ -12,29 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type FakeInstanceStore struct {
-	_Create  func(models.Instance) (models.Instance, error)
-	_List    func(string) ([]models.Instance, error)
-	_Get     func(int, string) (models.Instance, error)
-	_Destroy func(instance models.Instance) error
-}
-
-func (s FakeInstanceStore) Create(image models.Instance) (models.Instance, error) {
-	return s._Create(image)
-}
-
-func (s FakeInstanceStore) List(email string) ([]models.Instance, error) {
-	return s._List(email)
-}
-
-func (s FakeInstanceStore) Get(id int, email string) (models.Instance, error) {
-	return s._Get(id, email)
-}
-
-func (s FakeInstanceStore) Destroy(instance models.Instance) error {
-	return s._Destroy(instance)
-}
-
 func TestInstanceCreate(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	body := `{"data":{"type":"instances","attributes":{"image_id":"1"}}}`
@@ -189,7 +166,7 @@ func TestInstanceList(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_List: func(email string) ([]models.Instance, error) {
+		_List: func() ([]models.Instance, error) {
 			return []models.Instance{
 				models.Instance{
 					ID:        1,
@@ -197,6 +174,15 @@ func TestInstanceList(t *testing.T) {
 					Port:      5432,
 					CreatedAt: timestamp(),
 					UpdatedAt: timestamp(),
+					UserEmail: "hmac@gocardless.com",
+				},
+				models.Instance{
+					ID:        2,
+					ImageID:   1,
+					Port:      5433,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+					UserEmail: "alice@gocardless.com",
 				},
 			}, nil
 		},
@@ -224,13 +210,14 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_Get: func(id int, email string) (models.Instance, error) {
+		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
 				UpdatedAt: timestamp(),
+				UserEmail: "hmac@gocardless.com",
 			}, nil
 		},
 	}
@@ -239,13 +226,46 @@ func TestInstanceGet(t *testing.T) {
 	router.HandleFunc("/instances/{id}", Instances{InstanceStore: store, Authenticator: AllowAll{}}.Get)
 	router.ServeHTTP(recorder, req)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
-
 	expected, err := json.Marshal(getInstanceFixture)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
+}
+
+func TestInstanceGetFromWrongUser(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/instances/1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeInstanceStore{
+		_Get: func(id int) (models.Instance, error) {
+			return models.Instance{
+				ID:        1,
+				ImageID:   1,
+				Port:      5432,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+				UserEmail: "alice@gocardless.com",
+			}, nil
+		},
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc("/instances/{id}", Instances{InstanceStore: store, Authenticator: AllowAll{}}.Get)
+	router.ServeHTTP(recorder, req)
+
+	expected, err := json.Marshal(notFoundError)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
@@ -258,13 +278,14 @@ func TestInstanceDestroy(t *testing.T) {
 	}
 
 	store := FakeInstanceStore{
-		_Get: func(id int, email string) (models.Instance, error) {
+		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
 				UpdatedAt: timestamp(),
+				UserEmail: "hmac@gocardless.com",
 			}, nil
 		},
 		_Destroy: func(instance models.Instance) error {
@@ -288,4 +309,51 @@ func TestInstanceDestroy(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+}
+
+func TestInstanceDestroyFromWrongUser(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("DELETE", "/instances/1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := FakeInstanceStore{
+		_Get: func(id int) (models.Instance, error) {
+			return models.Instance{
+				ID:        1,
+				ImageID:   1,
+				Port:      5432,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+				UserEmail: "alice@gocardless.com",
+			}, nil
+		},
+		_Destroy: func(instance models.Instance) error {
+			return nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_DestroyInstance: func(instanceID int) error {
+			return nil
+		},
+	}
+
+	router := mux.NewRouter()
+	// AllowAll will return a user email of hmac@gocardless.com
+	router.HandleFunc(
+		"/instances/{id}",
+		Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}.Destroy,
+	).Methods("DELETE")
+	router.ServeHTTP(recorder, req)
+
+	expected, err := json.Marshal(notFoundError)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
+	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }

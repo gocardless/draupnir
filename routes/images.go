@@ -16,7 +16,8 @@ import (
 )
 
 type Images struct {
-	Store         store.ImageStore
+	ImageStore    store.ImageStore
+	InstanceStore store.InstanceStore
 	Executor      exec.Executor
 	Authenticator auth.Authenticator
 }
@@ -40,7 +41,7 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := i.Store.Get(id)
+	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
@@ -65,7 +66,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images, err := i.Store.List()
+	images, err := i.ImageStore.List()
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -109,7 +110,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	image := models.NewImage(req.BackedUpAt, req.Anon)
-	image, err = i.Store.Create(image)
+	image, err = i.ImageStore.Create(image)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -147,7 +148,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := i.Store.Get(id)
+	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
@@ -162,7 +163,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		image, err = i.Store.MarkAsReady(image)
+		image, err = i.ImageStore.MarkAsReady(image)
 		if err != nil {
 			log.Print(err.Error())
 			RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -182,7 +183,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 
-	_, err := i.Authenticator.AuthenticateRequest(r)
+	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
@@ -196,14 +197,33 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := i.Store.Get(id)
+	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
 
-	err = i.Store.Destroy(image)
+	if email == auth.UPLOAD_USER_EMAIL {
+		// Destroy all instances of this image, if there are any
+		instances, err := i.InstanceStore.List()
+		for _, instance := range instances {
+			if instance.ImageID != id {
+				continue
+			}
+			err = i.InstanceStore.Destroy(instance)
+			if err == nil {
+				err = i.Executor.DestroyInstance(instance.ID)
+			}
+			if err != nil {
+				log.Print(err.Error())
+				RenderError(w, http.StatusInternalServerError, internalServerError)
+				return
+			}
+		}
+	}
+
+	err = i.ImageStore.Destroy(image)
 	if err != nil {
 		log.Print(err.Error())
 

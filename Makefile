@@ -1,6 +1,7 @@
 VERSION=0.0.1
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION) -X main.clientID=$(CLIENT_ID) -X main.clientSecret=$(CLIENT_SECRET)"
+PACKAGES=./routes ./models ./store ./auth ./cli ./client
 
 .PHONY: build clean test test-integration dump-schema
 
@@ -14,7 +15,8 @@ dump-schema:
 	pg_dump -sxOf structure.sql draupnir
 
 test:
-	go test ./routes ./models ./store
+	go vet $(PACKAGES)
+	go test $(PACKAGES)
 
 test-integration:
 	bundle exec kitchen destroy && bundle exec kitchen converge

@@ -9,80 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
-
-type FakeImageStore struct {
-	_List        func() ([]models.Image, error)
-	_Get         func(int) (models.Image, error)
-	_Create      func(models.Image) (models.Image, error)
-	_Destroy     func(models.Image) error
-	_MarkAsReady func(models.Image) (models.Image, error)
-}
-
-func (s FakeImageStore) List() ([]models.Image, error) {
-	return s._List()
-}
-
-func (s FakeImageStore) Get(id int) (models.Image, error) {
-	return s._Get(id)
-}
-
-func (s FakeImageStore) Create(image models.Image) (models.Image, error) {
-	return s._Create(image)
-}
-
-func (s FakeImageStore) Destroy(image models.Image) error {
-	return s._Destroy(image)
-}
-
-func (s FakeImageStore) MarkAsReady(image models.Image) (models.Image, error) {
-	return s._MarkAsReady(image)
-}
-
-type FakeExecutor struct {
-	_CreateBtrfsSubvolume func(id int) error
-	_FinaliseImage        func(image models.Image) error
-	_CreateInstance       func(imageID int, instanceID int, port int) error
-	_DestroyImage         func(id int) error
-	_DestroyInstance      func(id int) error
-}
-
-func (e FakeExecutor) CreateBtrfsSubvolume(id int) error {
-	return e._CreateBtrfsSubvolume(id)
-}
-
-func (e FakeExecutor) FinaliseImage(image models.Image) error {
-	return e._FinaliseImage(image)
-}
-
-func (e FakeExecutor) CreateInstance(imageID int, instanceID int, port int) error {
-	return e._CreateInstance(imageID, instanceID, port)
-}
-
-func (e FakeExecutor) DestroyImage(id int) error {
-	return e._DestroyImage(id)
-}
-
-func (e FakeExecutor) DestroyInstance(id int) error {
-	return e._DestroyInstance(id)
-}
-
-type FakeAuthenticator struct {
-	_AuthenticateRequest func(r *http.Request) (string, error)
-}
-
-func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
-	return f._AuthenticateRequest(r)
-}
-
-type AllowAll struct{}
-
-func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
-	return "hmac@gocardless.com", nil
-}
 
 func TestGetImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
@@ -100,7 +31,7 @@ func TestGetImage(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}", routeSet.Get)
 	router.ServeHTTP(recorder, req)
@@ -156,7 +87,7 @@ func TestListImages(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(Images{Store: store, Authenticator: AllowAll{}}.List)
+	handler := http.HandlerFunc(Images{ImageStore: store, Authenticator: AllowAll{}}.List)
 	handler.ServeHTTP(recorder, req)
 
 	expected, err := json.Marshal(listImagesFixture)
@@ -195,7 +126,7 @@ func TestCreateImage(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -254,7 +185,7 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 			return errors.New("some btrfs error")
 		},
 	}
-	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
 	handler := http.HandlerFunc(routeSet.Create)
 	handler.ServeHTTP(recorder, req)
 
@@ -295,7 +226,7 @@ func TestImageDone(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{Store: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", routeSet.Done)
 	router.ServeHTTP(recorder, req)
@@ -359,11 +290,76 @@ func TestImageDestroy(t *testing.T) {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}", Images{Store: store, Executor: executor, Authenticator: AllowAll{}}.Destroy).Methods("DELETE")
+	router.HandleFunc("/images/{id}", Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}.Destroy).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+}
+
+func TestImageDestroyFromUploadUser(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("DELETE", "/images/1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	imageStore := FakeImageStore{
+		_Get: func(id int) (models.Image, error) {
+			return models.Image{
+				ID:         1,
+				BackedUpAt: timestamp(),
+				Ready:      false,
+				CreatedAt:  timestamp(),
+				UpdatedAt:  timestamp(),
+			}, nil
+		},
+		_Destroy: func(image models.Image) error {
+			return nil
+		},
+	}
+
+	destroyedImages := make([]int, 0)
+
+	instanceStore := FakeInstanceStore{
+		_List: func() ([]models.Instance, error) {
+			return []models.Instance{
+				models.Instance{ID: 1, ImageID: 1},
+				models.Instance{ID: 2, ImageID: 2},
+				models.Instance{ID: 3, ImageID: 1},
+			}, nil
+		},
+		_Destroy: func(instance models.Instance) error {
+			destroyedImages = append(destroyedImages, instance.ID)
+			return nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_DestroyImage: func(imageID int) error {
+			return nil
+		},
+		_DestroyInstance: func(id int) error {
+			return nil
+		},
+	}
+
+	authenticator := FakeAuthenticator{
+		_AuthenticateRequest: func(r *http.Request) (string, error) {
+			return auth.UPLOAD_USER_EMAIL, nil
+		},
+	}
+
+	router := mux.NewRouter()
+	router.HandleFunc(
+		"/images/{id}",
+		Images{ImageStore: imageStore, InstanceStore: instanceStore, Executor: executor, Authenticator: authenticator}.Destroy,
+	).Methods("DELETE")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+	assert.Equal(t, []int{1, 3}, destroyedImages)
 }
 
 func timestamp() time.Time {

@@ -9,6 +9,8 @@ import (
 	"google.golang.org/api/oauth2/v1"
 )
 
+const UPLOAD_USER_EMAIL = "upload"
+
 type Authenticator interface {
 	// AuthenticateRequest takes an HTTP request and
 	// attempts to authenticate it.
@@ -33,7 +35,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 
 	// abr uses a shared secret to authenticate
 	if accessToken == g.SharedSecret {
-		return "upload", nil
+		return UPLOAD_USER_EMAIL, nil
 	}
 
 	email, err := g.OAuthClient.LookupAccessToken(accessToken)
