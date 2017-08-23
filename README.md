@@ -60,7 +60,7 @@ Create a new Image by `POST`ing to `/images`, providing a timestamp for the
 backup and an anonymisation script that will be run against the backup. You can
 use this to remove any sensitive data from your backup before serving it to
 users.
-```
+```http
 POST /images HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -101,7 +101,7 @@ scp -i key.pem db_backup.tar.gz upload@my-draupnir.tld:/draupnir/image_uploads/1
 Once you've uploaded the backup, inform Draupnir that you're ready to finalise
 the image. This may take some time, as Draupnir will spin up Postgres and run
 the anonymisation script.
-```
+```http
 POST /images/1/done HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -115,7 +115,7 @@ Authorization: Bearer 123
 ### Creating Instances
 Now you've got an image, you can create instances of it. The process for this is
 very simple.
-```
+```http
 POST /instances HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -152,7 +152,7 @@ PGHOST=my-draupnir.tld PGPORT=5678 psql my-db
 
 You can make any modifications to this database and they won't affect the
 original backup. When you're done, just destroy the instance.
-```
+```http
 DELETE /instances/1
 Authorization: Bearer 123
 
@@ -200,7 +200,7 @@ API
 
 ### Images
 #### List Images
-```
+```http
 GET /images HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -220,7 +220,7 @@ Authorization: Bearer 123
 ```
 
 #### Get Image
-```
+```http
 GET /images/1 HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -238,7 +238,7 @@ Authorization: Bearer 123
 ```
 
 #### Create Image
-```
+```http
 POST /images HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -269,7 +269,7 @@ Authorization: Bearer 123
 ```
 
 #### Finalise Image
-```
+```http
 POST /images/1/done HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -290,7 +290,7 @@ Authorization: Bearer 123
 ```
 
 #### Destroy Image
-```
+```http
 DELETE /images/1
 Authorization: Bearer 123
 
@@ -299,7 +299,7 @@ Authorization: Bearer 123
 
 ### Instances
 #### List Instances
-```
+```http
 GET /instances HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -322,7 +322,7 @@ Authorization: Bearer 123
 ```
 
 #### Get Instance
-```
+```http
 GET /instances HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
@@ -343,7 +343,7 @@ Authorization: Bearer 123
 ```
 
 #### Create Instance
-```
+```http
 POST /instances HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer 123
