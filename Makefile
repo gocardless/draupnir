@@ -1,6 +1,6 @@
 VERSION=0.0.1
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
-CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION) -X main.clientID=$(CLIENT_ID) -X main.clientSecret=$(CLIENT_SECRET)"
+CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 PACKAGES=./routes ./models ./store ./auth ./cli ./client
 
 .PHONY: build clean test test-integration dump-schema

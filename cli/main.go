@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/gocardless/draupnir/client"
@@ -17,8 +19,6 @@ type Config struct {
 }
 
 var version string
-var clientID string
-var clientSecret string
 
 func LoadConfig() (Config, error) {
 	config := Config{Domain: "set-me-to-a-real-domain"}
@@ -71,13 +71,21 @@ func main() {
 			Aliases: []string{},
 			Usage:   "authenticate with google",
 			Action: func(c *cli.Context) error {
-				token, err := authorise(clientID, clientSecret)
+				state := fmt.Sprintf("%d", rand.Int31())
+
+				url := fmt.Sprintf("http://%s/authenticate?state=%s", CONFIG.Domain, state)
+				err := exec.Command("open", url).Run()
 				if err != nil {
-					fmt.Printf("error: %s\n", err)
+					fmt.Printf("Visit this link in your browser: %s\n", url)
+				}
+
+				token, err := client.CreateAccessToken(state)
+				if err != nil {
+					fmt.Printf("error creating access token: %s\n", err.Error())
 					return err
 				}
 
-				CONFIG.AccessToken = token.AccessToken
+				CONFIG.AccessToken = token.Token
 				err = StoreConfig(CONFIG)
 				if err != nil {
 					fmt.Printf("error: %s\n", err)

@@ -33,6 +33,7 @@ type DraupnirClient interface {
 	CreateInstance(image models.Image) (models.Instance, error)
 	DestroyInstance(instance models.Instance) error
 	DestroyImage(image models.Image) error
+	CreateAccessToken(string) (models.AccessToken, error)
 }
 
 func (c Client) get(url string) (*http.Response, error) {
@@ -208,6 +209,36 @@ func (c Client) DestroyImage(image models.Image) error {
 	}
 
 	return nil
+}
+
+type createAccessTokenRequest struct {
+	State string `jsonapi:"attr,state"`
+}
+
+// CreateAccessToken creates an access token
+func (c Client) CreateAccessToken(state string) (models.AccessToken, error) {
+	var accessToken models.AccessToken
+	url := c.URL + "/access_tokens"
+
+	request := createAccessTokenRequest{State: state}
+
+	var payload bytes.Buffer
+	err := jsonapi.MarshalOnePayloadWithoutIncluded(&payload, &request)
+	if err != nil {
+		return accessToken, err
+	}
+
+	resp, err := c.post(url, &payload)
+	if err != nil {
+		return accessToken, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return accessToken, parseError(resp.Body)
+	}
+
+	err = jsonapi.UnmarshalPayload(resp.Body, &accessToken)
+	return accessToken, err
 }
 
 // parseError takes an io.Reader containing an API error response

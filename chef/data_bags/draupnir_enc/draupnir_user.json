@@ -1,4 +1,7 @@
 {
   "password": "draupnir",
-  "shared_secret": "thesharedsecret"
+  "shared_secret": "thesharedsecret",
+  "oauth_client_id": "the_client_id",
+  "oauth_client_secret": "the_client_secret",
+  "oauth_redirect_url": "http://server.com/oauth_callback"
 }

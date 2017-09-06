@@ -3,6 +3,9 @@ package routes
 import (
 	"net/http"
 
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+
 	"github.com/gocardless/draupnir/models"
 )
 
@@ -97,4 +100,17 @@ type AllowAll struct{}
 
 func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
 	return "hmac@gocardless.com", nil
+}
+
+type FakeOAuthClient struct {
+	_AuthCodeURL func(string, ...oauth2.AuthCodeOption) string
+	_Exchange    func(context.Context, string) (*oauth2.Token, error)
+}
+
+func (c *FakeOAuthClient) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+	return c._AuthCodeURL(state, opts...)
+}
+
+func (c *FakeOAuthClient) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
+	return c._Exchange(ctx, code)
 }
