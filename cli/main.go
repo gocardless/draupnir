@@ -51,7 +51,7 @@ func main() {
 		return
 	}
 
-	client := client.Client{URL: "http://" + CONFIG.Domain, AccessToken: CONFIG.AccessToken}
+	client := client.Client{URL: "https://" + CONFIG.Domain, AccessToken: CONFIG.AccessToken}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
@@ -73,7 +73,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				state := fmt.Sprintf("%d", rand.Int31())
 
-				url := fmt.Sprintf("http://%s/authenticate?state=%s", CONFIG.Domain, state)
+				url := fmt.Sprintf("https://%s/authenticate?state=%s", CONFIG.Domain, state)
 				err := exec.Command("open", url).Run()
 				if err != nil {
 					fmt.Printf("Visit this link in your browser: %s\n", url)

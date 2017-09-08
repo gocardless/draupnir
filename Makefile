@@ -25,6 +25,8 @@ test-integration:
 	bundle exec kitchen exec -c "echo \"alter role draupnir password 'draupnir'\" | sudo -u postgres psql"
 	bundle exec kitchen exec -c "cat /vagrant/structure.sql | sudo -u draupnir psql draupnir"
 	bundle exec kitchen exec -c "sudo sh -c \"echo 'DRAUPNIR_ENVIRONMENT=test' >> /etc/environments/draupnir.env\""
+	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem"
+	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem"
 	bundle exec kitchen exec -c "sudo service draupnir start"
 	bundle exec rspec
 

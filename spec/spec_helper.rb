@@ -5,16 +5,18 @@ require 'rspec'
 
 JSON_CONTENT_TYPE = "application/json"
 SERVER_IP = "192.168.2.3"
-SERVER_ADDR = "#{SERVER_IP}:80"
+SERVER_ADDR = "https://#{SERVER_IP}"
 DATA_PATH = "/draupnir"
 ACCESS_TOKEN = "the-integration-access-token"
 
 RSpec.configure do |config|
   def post(path, payload, headers={})
-    RestClient.post(
-      "#{SERVER_ADDR}#{path}",
-      payload.to_json,
-      {
+    RestClient::Request.execute(
+      verify_ssl: false,
+      method: :post,
+      url: "#{SERVER_ADDR}#{path}",
+      payload: payload.to_json,
+      headers: {
         content_type: JSON_CONTENT_TYPE,
         authorization: "Bearer #{ACCESS_TOKEN}",
       }.merge(headers)
@@ -22,18 +24,26 @@ RSpec.configure do |config|
   end
 
   def get(path)
-    RestClient.get(
-      "#{SERVER_ADDR}#{path}",
-      content_type: JSON_CONTENT_TYPE,
-      authorization: "Bearer #{ACCESS_TOKEN}",
+    RestClient::Request.execute(
+      verify_ssl: false,
+      method: :get,
+      url: "#{SERVER_ADDR}#{path}",
+      headers: {
+        content_type: JSON_CONTENT_TYPE,
+        authorization: "Bearer #{ACCESS_TOKEN}"
+      }
     )
   end
 
   def delete(path)
-    RestClient.delete(
-      "#{SERVER_ADDR}#{path}",
-      content_type: JSON_CONTENT_TYPE,
-      authorization: "Bearer #{ACCESS_TOKEN}",
+    RestClient::Request.execute(
+      verify_ssl: false,
+      method: :delete,
+      url: "#{SERVER_ADDR}#{path}",
+      headers: {
+        content_type: JSON_CONTENT_TYPE,
+        authorization: "Bearer #{ACCESS_TOKEN}",
+      }
     )
   end
 

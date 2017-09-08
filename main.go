@@ -19,14 +19,16 @@ import (
 var version string
 
 type Config struct {
-	Port              int    `required:"true"`
-	DatabaseUrl       string `required:"true" split_words:"true"`
-	DataPath          string `required:"true" split_words:"true"`
-	Environment       string `required:"false"`
-	SharedSecret      string `required:"true" split_words:"true"`
-	OauthRedirectUrl  string `required:"true" split_words:"true"`
-	OauthClientId     string `required:"true" split_words:"true"`
-	OauthClientSecret string `required:"true" split_words:"true"`
+	Port               int    `required:"true"`
+	DatabaseUrl        string `required:"true" split_words:"true"`
+	DataPath           string `required:"true" split_words:"true"`
+	Environment        string `required:"false"`
+	SharedSecret       string `required:"true" split_words:"true"`
+	OauthRedirectUrl   string `required:"true" split_words:"true"`
+	OauthClientId      string `required:"true" split_words:"true"`
+	OauthClientSecret  string `required:"true" split_words:"true"`
+	TlsCertificatePath string `required:"true" split_words:"true"`
+	TlsPrivateKeyPath  string `required:"true" split_words:"true"`
 }
 
 func main() {
@@ -52,8 +54,6 @@ func main() {
 		RedirectURL: c.OauthRedirectUrl,
 	}
 
-	imageStore := store.DBImageStore{DB: db}
-
 	executor := exec.OSExecutor{DataPath: c.DataPath}
 
 	authenticator := auth.GoogleAuthenticator{
@@ -64,6 +64,7 @@ func main() {
 		authenticator.OAuthClient = auth.FakeOAuthClient{}
 	}
 
+	imageStore := store.DBImageStore{DB: db}
 	instanceStore := store.DBInstanceStore{DB: db}
 
 	imageRouteSet := routes.Images{
@@ -105,7 +106,12 @@ func main() {
 
 	http.Handle("/", router)
 
-	err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), nil)
+	err = http.ListenAndServeTLS(
+		fmt.Sprintf(":%d", c.Port),
+		c.TlsCertificatePath,
+		c.TlsPrivateKeyPath,
+		nil,
+	)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
