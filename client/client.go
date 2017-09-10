@@ -80,7 +80,11 @@ func (c Client) GetLatestImage() (models.Image, error) {
 	}
 
 	if len(images) > 0 {
-		return images[len(images)-1], nil
+		for i := len(images) - 1; i >= 0; i-- {
+			if images[i].Ready {
+				return images[i], nil
+			}
+		}
 	}
 
 	return image, errors.New("no images available")
