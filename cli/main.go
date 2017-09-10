@@ -244,14 +244,38 @@ func main() {
 					return err
 				}
 
-				fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD=''\n", CONFIG.Domain, instance.Port)
+				showExportCommand(CONFIG, instance)
+				return nil
+			},
+		},
+		{
+			Name:    "auto",
+			Aliases: []string{},
+			Usage:   "show the environment variables to a newly created instance",
+			Action: func(c *cli.Context) error {
+				image, err := client.GetLatestImage()
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					return err
+				}
 
+				instance, err := client.CreateInstance(image)
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					return err
+				}
+
+				showExportCommand(CONFIG, instance)
 				return nil
 			},
 		},
 	}
 
 	app.Run(os.Args)
+}
+
+func showExportCommand(config Config, instance models.Instance) {
+	fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD=''\n", config.Domain, instance.Port)
 }
 
 func ImageToString(i models.Image) string {
