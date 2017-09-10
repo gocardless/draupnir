@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -67,6 +68,22 @@ func (c Client) delete(url string) (*http.Response, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
 
 	return http.DefaultClient.Do(req)
+}
+
+func (c Client) GetLatestImage() (models.Image, error) {
+	var image models.Image
+	images, err := c.ListImages()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return image, err
+	}
+
+	if len(images) > 0 {
+		return images[len(images)-1], nil
+	}
+
+	return image, errors.New("no images available")
 }
 
 func (c Client) GetImage(id string) (models.Image, error) {
