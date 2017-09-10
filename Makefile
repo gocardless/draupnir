@@ -1,6 +1,6 @@
 VERSION=0.0.1
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
-CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION) -X main.clientID=$(CLIENT_ID) -X main.clientSecret=$(CLIENT_SECRET)"
+CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 PACKAGES=./routes ./models ./store ./auth ./cli ./client
 
 .PHONY: build clean test test-integration dump-schema
@@ -25,6 +25,8 @@ test-integration:
 	bundle exec kitchen exec -c "echo \"alter role draupnir password 'draupnir'\" | sudo -u postgres psql"
 	bundle exec kitchen exec -c "cat /vagrant/structure.sql | sudo -u draupnir psql draupnir"
 	bundle exec kitchen exec -c "sudo sh -c \"echo 'DRAUPNIR_ENVIRONMENT=test' >> /etc/environments/draupnir.env\""
+	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem"
+	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem"
 	bundle exec kitchen exec -c "sudo service draupnir start"
 	bundle exec rspec
 

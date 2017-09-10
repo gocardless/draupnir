@@ -1,4 +1,9 @@
 {
   "password": "draupnir",
-  "shared_secret": "thesharedsecret"
+  "shared_secret": "thesharedsecret",
+  "oauth_client_id": "the_client_id",
+  "oauth_client_secret": "the_client_secret",
+  "oauth_redirect_url": "https://server.com/oauth_callback",
+  "tls_certificate_path": "/etc/ssl/certs/draupnir_cert.pem",
+  "tls_private_key_path": "/etc/ssl/certs/draupnir_key.pem"
 }

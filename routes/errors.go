@@ -93,3 +93,11 @@ var invalidJSONError = APIError{
 	Title:  "Invalid JSON",
 	Detail: "Your JSON is malformed",
 }
+
+var oauthError = APIError{
+	ID:     "bad_request",
+	Code:   "bad_request",
+	Status: "400",
+	Title:  "OAuth Error",
+	Detail: "There was some oauth error",
+}

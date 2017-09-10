@@ -71,6 +71,7 @@ func (g GoogleOAuthClient) LookupAccessToken(accessToken string) (string, error)
 	return tokenInfo.Email, nil
 }
 
+// FakeOAuthClient is used for integration tests
 type FakeOAuthClient struct{}
 
 func (f FakeOAuthClient) LookupAccessToken(accessToken string) (string, error) {
