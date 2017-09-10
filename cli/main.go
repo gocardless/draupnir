@@ -120,16 +120,23 @@ func main() {
 					Name:  "create",
 					Usage: "create a new instance",
 					Action: func(c *cli.Context) error {
-						id := c.Args().First()
-						if id == "" {
-							fmt.Println("error: must supply an image id")
-							return nil
-						}
-
-						image, err := client.GetImage(id)
-						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+						var image models.Image
+						if c.NArg() == 0 {
+							image, err = client.GetLatestImage()
+							if err != nil {
+								return err
+							}
+						} else {
+							id := c.Args().First()
+							if id == "" {
+								fmt.Println("error: must supply an image id")
+								return nil
+							}
+							image, err = client.GetImage(id)
+							if err != nil {
+								fmt.Printf("error: %s\n", err)
+								return err
+							}
 						}
 
 						instance, err := client.CreateInstance(image)
@@ -138,7 +145,7 @@ func main() {
 							return err
 						}
 
-						fmt.Println("Created")
+						fmt.Printf("Created with image ID: %d\n", image.ID)
 						fmt.Println(InstanceToString(instance))
 						return nil
 					},
