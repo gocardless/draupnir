@@ -55,6 +55,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
+	app.Version = version
 	app.Usage = "A client for draupnir"
 	app.Commands = []cli.Command{
 		{
