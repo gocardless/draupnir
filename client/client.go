@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -79,11 +80,15 @@ func (c Client) GetLatestImage() (models.Image, error) {
 		return image, err
 	}
 
-	if len(images) > 0 {
-		for i := len(images) - 1; i >= 0; i-- {
-			if images[i].Ready {
-				return images[i], nil
-			}
+	// Make sure they are all sorted by UpdatedAt
+	// The most up to date should be the first of the slice
+	sort.Slice(images, func(i, j int) bool {
+		return images[i].UpdatedAt.After(images[j].UpdatedAt)
+	})
+
+	for _, image := range images {
+		if image.Ready {
+			return image, nil
 		}
 	}
 
