@@ -169,6 +169,10 @@ CLI
 Draupnir comes with a command-line client, `draupnir-client`. Once you
 authenticate via OAuth, you can use it to manage your instances.
 
+The CLI has built-in help (`draupnir-client help`). For help on sub-commands,
+use an invocation like `draupnir-client images help` instead of
+`draupnir-client help images`.
+
 #### Authenticate
 ```
 draupnir-client authenticate
