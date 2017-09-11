@@ -3,10 +3,12 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -67,6 +69,30 @@ func (c Client) delete(url string) (*http.Response, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
 
 	return http.DefaultClient.Do(req)
+}
+
+func (c Client) GetLatestImage() (models.Image, error) {
+	var image models.Image
+	images, err := c.ListImages()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return image, err
+	}
+
+	// Make sure they are all sorted by UpdatedAt
+	// The most up to date should be the first of the slice
+	sort.Slice(images, func(i, j int) bool {
+		return images[i].UpdatedAt.After(images[j].UpdatedAt)
+	})
+
+	for _, image := range images {
+		if image.Ready {
+			return image, nil
+		}
+	}
+
+	return image, errors.New("no images available")
 }
 
 func (c Client) GetImage(id string) (models.Image, error) {
