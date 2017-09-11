@@ -154,6 +154,27 @@ func main() {
 							return nil
 						}
 
+						// all is special in that it will iterate over all
+						// instances and destroy them
+						if id == "all" {
+							instances, err := client.ListInstances()
+							if err != nil {
+								fmt.Printf("error: %s\n", err)
+								return err
+							}
+							var lastErrFound error
+							for _, instance := range instances {
+								err = client.DestroyInstance(instance)
+								if err != nil {
+									lastErrFound = err
+									fmt.Printf("error: %s\n", err)
+								} else {
+									fmt.Printf("Destroyed %d\n", instance.ID)
+								}
+							}
+							return lastErrFound
+						}
+
 						instance, err := client.GetInstance(id)
 						if err != nil {
 							fmt.Printf("error: %s\n", err)
