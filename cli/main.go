@@ -243,7 +243,7 @@ func main() {
 			},
 		},
 		{
-			Name:    "auto",
+			Name:    "new",
 			Aliases: []string{},
 			Usage:   "show the environment variables to a newly created instance",
 			Action: func(c *cli.Context) error {
