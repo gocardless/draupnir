@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.2
+-----
+
+Add quick start example to cli help
+
 0.1.1
 -----
 
