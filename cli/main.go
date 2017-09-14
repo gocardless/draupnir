@@ -44,6 +44,13 @@ func StoreConfig(config Config) error {
 	return err
 }
 
+const quickStart string = `
+QUICK START:
+		draupnir-client authenticate
+		eval $(draupnir-client new)
+		psql postgres
+`
+
 func main() {
 	CONFIG, err := LoadConfig()
 	if err != nil {
@@ -57,6 +64,7 @@ func main() {
 	app.Name = "draupnir"
 	app.Version = version
 	app.Usage = "A client for draupnir"
+	cli.AppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
 	app.Commands = []cli.Command{
 		{
 			Name:    "config",

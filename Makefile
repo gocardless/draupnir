@@ -1,4 +1,4 @@
-VERSION=0.1.1
+VERSION=0.1.2
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 PACKAGES=./routes ./models ./store ./auth ./cli ./client
