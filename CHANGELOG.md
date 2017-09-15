@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.3
+-----
+
+Cleanup compressed upload after extraction
+
 0.1.2
 -----
 
