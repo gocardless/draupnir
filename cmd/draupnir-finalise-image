@@ -42,6 +42,7 @@ sudo mkdir "${UPLOAD_PATH}/tmp"
 sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar* -C ${UPLOAD_PATH}/tmp"
 sudo sh -c "mv ${UPLOAD_PATH}/tmp/* ${UPLOAD_PATH}/"
 sudo rmdir "${UPLOAD_PATH}/tmp"
+sudo rm -f  "${UPLOAD_PATH}/*.tar" # remove the compressed backup file
 
 sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
 sudo rm -f "${UPLOAD_PATH}/postmaster.opts"
