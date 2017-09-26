@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.1.4
+-----
+
+Fix a bug where uploaded database archives were not being deleted.
+Minor fix to CLI output formatting
+
 0.1.3
 -----
 
