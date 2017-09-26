@@ -281,7 +281,7 @@ func showExportCommand(config Config, instance models.Instance) {
 }
 
 func ImageToString(i models.Image) string {
-	return fmt.Sprintf("%d [ %s - READY: %5t ]", i.ID, i.BackedUpAt.Format(time.RFC3339), i.Ready)
+	return fmt.Sprintf("%2d [ %s - READY: %5t ]", i.ID, i.BackedUpAt.Format(time.RFC3339), i.Ready)
 }
 
 func InstanceToString(i models.Instance) string {
