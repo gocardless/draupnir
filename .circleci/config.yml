@@ -1,14 +1,78 @@
 version: 2
-jobs:
-  build:
+
+references:
+  bundle_install: &bundle_install
+    run:
+      name: Bundle
+      command: bundle install --path vendor/bundle --jobs=4 --retry=3
+  cache_bundle_for_lockfile: &cache_bundle_for_lockfile
+    save_cache:
+      key: v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
+      paths:
+        - vendor/bundle
+  cache_bundle: &cache_bundle
+    save_cache:
+      key: v3-ruby2.4.1-Gemfile
+      paths:
+        - vendor/bundle
+  restore_bundle: &restore_bundle
+    restore_cache:
+      keys:
+        - v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
+        - v3-ruby2.4.1-Gemfile
+  docker_build_image: &docker_build_image
     docker:
-      - image: circleci/golang:1.8
+      - image: gocardless/draupnir-circleci:latest
     working_directory: /go/src/github.com/gocardless/draupnir
+
+jobs:
+  unit:
+    <<: *docker_build_image
     environment:
       TEST_RESULTS: /tmp/test-results
+      GOPATH: /go
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/mattn/gom
-      - run: gom install
       - run: make test
+
+  build-deb:
+    <<: *docker_build_image
+    environment:
+      GOPATH: /go
+    steps:
+      - checkout
+      - *restore_bundle
+      - *bundle_install
+      - *cache_bundle_for_lockfile
+      - *cache_bundle
+      - run:
+          name: Prepare .deb
+          command: make deb
+      - persist_to_workspace:
+          root: /go/src/github.com/gocardless/draupnir
+          paths: ['*.deb']
+
+  integration:
+    machine: true
+    steps:
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - restore_cache:
+          key: dependency-cache-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: Install Ruby bundle
+          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
+      - run:
+          name: Run integration tests
+          command: cp workspace/*.deb ./ && make test-integration
+
+workflows:
+  version: 2
+  build-integration:
+    jobs:
+      - unit
+      - build-deb
+      - integration:
+          requires: [build-deb]

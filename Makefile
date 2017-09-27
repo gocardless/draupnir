@@ -1,9 +1,8 @@
 VERSION=0.1.4
 BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
 CLIENT_BUILD_COMMAND=go build -ldflags "-X main.version=$(VERSION)"
-PACKAGES=./routes ./models ./store ./auth ./cli ./client
 
-.PHONY: build clean test test-integration dump-schema
+.PHONY: build clean test test-integration dump-schema publish-circleci-dockerfile
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
@@ -15,8 +14,8 @@ dump-schema:
 	pg_dump -sxOf structure.sql draupnir
 
 test:
-	go vet $(PACKAGES)
-	go test $(PACKAGES)
+	go vet ./...
+	go test ./...
 
 test-integration:
 	bundle exec kitchen destroy && bundle exec kitchen converge
@@ -38,7 +37,6 @@ setup-cookbook:
 update-cookbook:
 	cd tmp/cookbooks/draupnir && git pull && rm -rf berks-cookbooks && bundle && bundle exec berks vendor
 
-
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
 
@@ -57,3 +55,7 @@ deb: build-production
 
 clean:
 	-rm -f draupnir draupnir.linux_amd64
+
+publish-circleci-dockerfile:
+	docker build -t gocardless/draupnir-circleci .circleci \
+		&& docker push gocardless/draupnir-circleci
