@@ -9,6 +9,4 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/mattn/gom
-      - run: gom install
       - run: make test
