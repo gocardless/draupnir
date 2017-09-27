@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Bootstraps a draupnir base docker image with a btrfs mount and draupnir as a
+# service.
+
+set -x -euf -o pipefail
+
+# Prepare draupnir mountpoint
+dd if=/dev/zero of=/draupnir_image bs=1024 count=512000
+mkfs.btrfs /draupnir_image
+mkdir /draupnir
+mount /draupnir_image /draupnir
+mkdir /draupnir/image_uploads /draupnir/image_snapshots /draupnir/instances
+
+# Create draupnir database
+useradd draupnir --system --shell /bin/false
+service postgresql start
+sudo -u postgres createdb draupnir
+sudo -u postgres createuser draupnir
+sudo -u postgres psql -c "alter role draupnir password 'draupnir'"
+sudo -u draupnir psql draupnir -f /workspace/structure.sql
+
+# Install self-signed certs
+cp /workspace/spec/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem
+cp /workspace/spec/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem
+
+# Install scripts, boot draupnir
+find /workspace/cmd -type f -exec cp {} /usr/bin/ \;
+/workspace/draupnir.linux_amd64 >/var/log/draupnir.log 2>&1 &
+timeout 5 bash <<POLL 1>&2
+until curl --silent https://localhost:8443/health_check; do
+  sleep 0.2
+done
+
+echo health check successful!
+POLL

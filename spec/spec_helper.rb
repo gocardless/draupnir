@@ -1,80 +1,122 @@
 # frozen_string_literal: true
 
-require "rest_client"
 require "json"
 require "rspec"
+require "docker"
+require "rest-client"
+require "active_support/core_ext/module/delegation"
 
-JSON_CONTENT_TYPE = "application/json"
-SERVER_IP = "192.168.2.3"
-SERVER_ADDR = "https://#{SERVER_IP}"
-DATA_PATH = "/draupnir"
-ACCESS_TOKEN = "the-integration-access-token"
-DRAUPNIR_VERSION = `cat DRAUPNIR_VERSION`.freeze
+class Draupnir
+  BOOTSTRAP = "/workspace/spec/fixtures/bootstrap"
+  VERSION = File.read(File.expand_path("../../DRAUPNIR_VERSION", __FILE__)).chomp
+  STREAMER = ->(stream, chunk) { puts(chunk) if ENV.key?("DEBUG") || stream == :stderr }
 
-RSpec.configure do |config|
-  def post(path, payload, headers = {})
+  def self.client
+    @client ||= Draupnir.create_from_container.tap do |client|
+      raise "draupnir did not boot" unless client.alive?
+    end
+  end
+
+  # rubocop:disable Metrics/MethodLength, Metrics/LineLength
+  def self.create_from_container
+    draupnir = Docker::Container.create(
+      "Image" => "gocardless/draupnir-base",
+      "Cmd" => ["timeout", "600", "bash", "-c", "while :; do sleep 1; done"],
+      "HostConfig" => {
+        "Privileged" => true,
+        "Binds" => ["#{`pwd`.chomp}:/workspace"],
+        "PublishAllPorts" => true,
+      },
+      "Env" => %w[
+        DRAUPNIR_DATABASE_URL=postgres://draupnir:draupnir@127.0.0.1/draupnir?sslmode=disable
+        DRAUPNIR_DATA_PATH=/draupnir
+        DRAUPNIR_ENVIRONMENT=test
+        DRAUPNIR_OAUTH_CLIENT_ID=the_client_id
+        DRAUPNIR_OAUTH_CLIENT_SECRET=the_client_secret
+        DRAUPNIR_OAUTH_REDIRECT_URL=https://server.com/oauth_callback
+        DRAUPNIR_PASSWORD=draupnir
+        DRAUPNIR_PORT=8443
+        DRAUPNIR_SHARED_SECRET=thesharedsecret
+        DRAUPNIR_TLS_CERTIFICATE_PATH=/etc/ssl/certs/draupnir_cert.pem
+        DRAUPNIR_TLS_PRIVATE_KEY_PATH=/etc/ssl/certs/draupnir_key.pem
+        DRAUPNIR_TRUSTED_USER_EMAIL_DOMAIN=@gocardless.com
+      ],
+    )
+
+    draupnir.start!
+    draupnir.exec([BOOTSTRAP], &STREAMER)
+
+    new(draupnir)
+  end
+  # rubocop:enable Metrics/MethodLength, Metrics/LineLength
+
+  def initialize(draupnir)
+    @draupnir = draupnir
+    @host = URI.parse(Docker.connection.url).host || "127.0.0.1"
+    @port = @draupnir.json["NetworkSettings"]["Ports"]["8443/tcp"][0]["HostPort"]
+  end
+
+  delegate :remove, :exec, :store_file, to: :@draupnir
+
+  def request(method, path, payload = nil, headers = {})
     RestClient::Request.execute(
       verify_ssl: false,
-      method: :post,
-      url: "#{SERVER_ADDR}#{path}",
-      payload: payload.to_json,
+      method: method,
+      url: "https://#{@host}:#{@port}#{path}",
+      payload: payload&.to_json,
       headers: {
-        content_type: JSON_CONTENT_TYPE,
-        authorization: "Bearer #{ACCESS_TOKEN}",
-        draupnir_version: DRAUPNIR_VERSION,
+        content_type: "application/json",
+        authorization: "Bearer thesharedsecret",
+        draupnir_version: VERSION,
       }.merge(headers),
     )
   end
 
+  def alive?
+    JSON.parse(request(:get, "/health_check"))["status"] == "ok"
+  end
+
+  def destroy_all_instances
+    instances = JSON.parse(request(:get, "/instances"))["data"]
+
+    instances.each do |instance|
+      request(:delete, "/instances/#{instance['id']}")
+    end
+  end
+
+  def destroy_all_images
+    images = JSON.parse(request(:get, "/images"))["data"]
+
+    images.each do |image|
+      request(:delete, "/images/#{image['id']}")
+    end
+  end
+end
+
+RSpec.configure do |config|
+  def client
+    Draupnir.client
+  end
+
   def get(path)
-    RestClient::Request.execute(
-      verify_ssl: false,
-      method: :get,
-      url: "#{SERVER_ADDR}#{path}",
-      headers: {
-        content_type: JSON_CONTENT_TYPE,
-        authorization: "Bearer #{ACCESS_TOKEN}",
-        draupnir_version: DRAUPNIR_VERSION,
-      },
-    )
+    client.request(:get, path)
+  end
+
+  def post(path, payload, headers = {})
+    client.request(:post, path, payload, headers)
   end
 
   def delete(path)
-    RestClient::Request.execute(
-      verify_ssl: false,
-      method: :delete,
-      url: "#{SERVER_ADDR}#{path}",
-      headers: {
-        content_type: JSON_CONTENT_TYPE,
-        authorization: "Bearer #{ACCESS_TOKEN}",
-        draupnir_version: DRAUPNIR_VERSION,
-      },
-    )
-  end
-
-  def destroy_all_instances!
-    instances = JSON.parse(get("/instances"))["data"]
-
-    instances.each do |instance|
-      delete("/instances/#{instance['id']}")
-    end
-  end
-
-  def destroy_all_images!
-    images = JSON.parse(get("/images"))["data"]
-
-    images.each do |image|
-      delete("/images/#{image['id']}")
-    end
+    client.request(:delete, path)
   end
 
   config.around do |example|
-    destroy_all_instances!
-    destroy_all_images!
+    client.destroy_all_instances
+    client.destroy_all_images
 
     example.run
 
-    destroy_all_instances!
-    destroy_all_images!
+    client.destroy_all_instances
+    client.destroy_all_images
   end
 end

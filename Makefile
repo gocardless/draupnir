@@ -1,7 +1,7 @@
 VERSION="$(shell cat DRAUPNIR_VERSION)"
 BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Version=$(VERSION)"
 
-.PHONY: build clean test test-integration dump-schema
+.PHONY: build clean test test-integration dump-schema publish-circleci-dockerfile
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
@@ -17,25 +17,7 @@ test:
 	go vet ./...
 
 test-integration:
-	bundle exec kitchen destroy && bundle exec kitchen converge
-	bundle exec kitchen exec -c "sudo -u postgres createdb draupnir"
-	bundle exec kitchen exec -c "sudo -u postgres createuser draupnir"
-	bundle exec kitchen exec -c "echo \"alter role draupnir password 'draupnir'\" | sudo -u postgres psql"
-	bundle exec kitchen exec -c "cat /vagrant/structure.sql | sudo -u draupnir psql draupnir"
-	bundle exec kitchen exec -c "sudo sh -c \"echo 'DRAUPNIR_ENVIRONMENT=test' >> /etc/environments/draupnir.env\""
-	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem"
-	bundle exec kitchen exec -c "sudo cp /vagrant/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem"
-	bundle exec kitchen exec -c "sudo service draupnir start"
 	bundle exec rspec
-
-setup-cookbook:
-	mkdir -p tmp/cookbooks/
-	git clone git@github.com:gocardless/chef-draupnir.git tmp/cookbooks/draupnir
-	cd tmp/cookbooks/draupnir && bundle && bundle exec berks vendor
-
-update-cookbook:
-	cd tmp/cookbooks/draupnir && git pull && rm -rf berks-cookbooks && bundle && bundle exec berks vendor
-
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
@@ -44,7 +26,7 @@ client: test
 	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client cli/*.go
 
 deb: build-production
-	bundle exec fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
+	fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
 		--description "Databases on demand" \
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \
@@ -54,4 +36,12 @@ deb: build-production
 		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance
 
 clean:
-	-rm -f draupnir draupnir.linux_amd64
+	-rm -f draupnir draupnir.linux_amd64 *.deb
+
+publish-base-dockerfile:
+	docker build -t gocardless/draupnir-base . \
+		&& docker push gocardless/draupnir-base
+
+publish-circleci-dockerfile:
+	docker build -t gocardless/draupnir-circleci .circleci \
+		&& docker push gocardless/draupnir-circleci
