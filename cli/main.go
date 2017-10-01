@@ -11,11 +11,12 @@ import (
 	"github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
 	"github.com/urfave/cli"
+	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Domain      string
-	AccessToken string
+	Domain string
+	Token  oauth2.Token
 }
 
 var version string
@@ -58,7 +59,10 @@ func main() {
 		return
 	}
 
-	client := client.Client{URL: "https://" + CONFIG.Domain, AccessToken: CONFIG.AccessToken}
+	client := client.Client{
+		URL:   "https://" + CONFIG.Domain,
+		Token: CONFIG.Token,
+	}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
@@ -71,7 +75,6 @@ func main() {
 			Aliases: []string{},
 			Usage:   "show the current configuration",
 			Action: func(c *cli.Context) error {
-				fmt.Printf("%+v\n", CONFIG)
 				return nil
 			},
 		},
@@ -94,7 +97,8 @@ func main() {
 					return err
 				}
 
-				CONFIG.AccessToken = token.Token
+				CONFIG.Token = token
+
 				err = StoreConfig(CONFIG)
 				if err != nil {
 					fmt.Printf("error: %s\n", err)

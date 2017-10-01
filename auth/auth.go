@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"google.golang.org/api/oauth2/v1"
+	"golang.org/x/oauth2"
+	google "google.golang.org/api/oauth2/v1"
 )
 
 const UPLOAD_USER_EMAIL = "upload"
@@ -57,14 +59,24 @@ type OAuthClient interface {
 	LookupAccessToken(string) (string, error)
 }
 
-type GoogleOAuthClient struct{}
+type GoogleOAuthClient struct {
+	Config *oauth2.Config
+}
 
-func (g GoogleOAuthClient) LookupAccessToken(accessToken string) (string, error) {
-	service, err := oauth2.New(http.DefaultClient)
+func (g GoogleOAuthClient) LookupAccessToken(refreshToken string) (string, error) {
+	// Use the refresh token to obtain an access token
+	token := &oauth2.Token{RefreshToken: refreshToken}
+	tokenSource := g.Config.TokenSource(context.Background(), token)
+	token, err := tokenSource.Token()
 	if err != nil {
 		return "", err
 	}
-	tokenInfo, err := service.Tokeninfo().AccessToken(accessToken).Do()
+
+	service, err := google.New(http.DefaultClient)
+	if err != nil {
+		return "", err
+	}
+	tokenInfo, err := service.Tokeninfo().AccessToken(token.AccessToken).Do()
 	if err != nil {
 		return "", err
 	}

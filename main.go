@@ -57,7 +57,7 @@ func main() {
 	executor := exec.OSExecutor{DataPath: c.DataPath}
 
 	authenticator := auth.GoogleAuthenticator{
-		OAuthClient:  auth.GoogleOAuthClient{},
+		OAuthClient:  auth.GoogleOAuthClient{Config: &oauthConfig},
 		SharedSecret: c.SharedSecret,
 	}
 	if c.Environment == "test" {
