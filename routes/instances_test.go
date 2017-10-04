@@ -59,7 +59,6 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -110,7 +109,6 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -131,7 +129,6 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -154,7 +151,6 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -198,7 +194,6 @@ func TestInstanceList(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -232,7 +227,6 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -266,7 +260,6 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }
 
@@ -307,7 +300,6 @@ func TestInstanceDestroy(t *testing.T) {
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }
 
@@ -354,6 +346,5 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, []string{mediaType}, recorder.HeaderMap["Content-Type"])
 	assert.Equal(t, append(expected, byte('\n')), recorder.Body.Bytes())
 }

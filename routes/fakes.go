@@ -114,3 +114,16 @@ func (c *FakeOAuthClient) AuthCodeURL(state string, opts ...oauth2.AuthCodeOptio
 func (c *FakeOAuthClient) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
 	return c._Exchange(ctx, code)
 }
+
+func fakeOauthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     "the-client-id",
+		ClientSecret: "the-client-secret",
+		Scopes:       []string{"the-scope"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://example.org/auth",
+			TokenURL: "https://example.org/token",
+		},
+		RedirectURL: "https://draupnir.org/redirect",
+	}
+}

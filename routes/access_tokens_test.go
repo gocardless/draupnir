@@ -283,17 +283,3 @@ func oauthCallbackPath(state string, code string, _error string) string {
 		_error,
 	)
 }
-
-// TODO: move to fakes
-func fakeOauthConfig() *oauth2.Config {
-	return &oauth2.Config{
-		ClientID:     "the-client-id",
-		ClientSecret: "the-client-secret",
-		Scopes:       []string{"the-scope"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://example.org/auth",
-			TokenURL: "https://example.org/token",
-		},
-		RedirectURL: "https://draupnir.org/redirect",
-	}
-}

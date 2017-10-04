@@ -86,7 +86,6 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", mediaType)
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {

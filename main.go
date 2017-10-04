@@ -89,20 +89,20 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/health_check", routes.HealthCheck)
 
-	router.HandleFunc("/access_tokens", accessTokenRouteSet.Create).Methods("POST")
+	router.HandleFunc("/access_tokens", routes.SetHeaders(version, accessTokenRouteSet.Create)).Methods("POST")
 	router.HandleFunc("/oauth_callback", accessTokenRouteSet.Callback).Methods("GET")
 	router.HandleFunc("/authenticate", accessTokenRouteSet.Authenticate).Methods("GET")
 
-	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
-	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
-	router.HandleFunc("/images/{id}", imageRouteSet.Get).Methods("GET")
-	router.HandleFunc("/images/{id}/done", imageRouteSet.Done).Methods("POST")
-	router.HandleFunc("/images/{id}", imageRouteSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/images", routes.SetHeaders(version, imageRouteSet.List)).Methods("GET")
+	router.HandleFunc("/images", routes.SetHeaders(version, imageRouteSet.Create)).Methods("POST")
+	router.HandleFunc("/images/{id}", routes.SetHeaders(version, imageRouteSet.Get)).Methods("GET")
+	router.HandleFunc("/images/{id}/done", routes.SetHeaders(version, imageRouteSet.Done)).Methods("POST")
+	router.HandleFunc("/images/{id}", routes.SetHeaders(version, imageRouteSet.Destroy)).Methods("DELETE")
 
-	router.HandleFunc("/instances", instanceRouteSet.List).Methods("GET")
-	router.HandleFunc("/instances", instanceRouteSet.Create).Methods("POST")
-	router.HandleFunc("/instances/{id}", instanceRouteSet.Get).Methods("GET")
-	router.HandleFunc("/instances/{id}", instanceRouteSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/instances", routes.SetHeaders(version, instanceRouteSet.List)).Methods("GET")
+	router.HandleFunc("/instances", routes.SetHeaders(version, instanceRouteSet.Create)).Methods("POST")
+	router.HandleFunc("/instances/{id}", routes.SetHeaders(version, instanceRouteSet.Get)).Methods("GET")
+	router.HandleFunc("/instances/{id}", routes.SetHeaders(version, instanceRouteSet.Destroy)).Methods("DELETE")
 
 	http.Handle("/", router)
 
