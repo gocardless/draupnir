@@ -1,0 +1,6 @@
+inherit_gem:
+  ruboconfig: rubocop.yml
+
+AllCops:
+  Exclude:
+    - "tmp/**/*"
