@@ -127,7 +127,7 @@ GEM
     insist (1.0.0)
     io-like (0.3.0)
     ipaddress (0.8.3)
-    json (1.8.3)
+    json (1.8.6)
     kitchen-encrypt-databags (0.1.1)
       chef (>= 12.10)
       test-kitchen (~> 1.13)

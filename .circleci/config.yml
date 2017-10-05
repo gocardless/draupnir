@@ -12,3 +12,19 @@ jobs:
       - run: go get github.com/mattn/gom
       - run: gom install
       - run: make test
+      - run: make build-production
+      - run: make client
+  rubocop:
+    docker:
+      - image: circleci/ruby:2.4.2
+    working_directory: ~/draupnir
+    steps:
+      - checkout
+      - run: bundle install
+      - run: bundle exec rubocop
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - build
+      - rubocop
