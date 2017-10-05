@@ -1,11 +1,11 @@
 package routes
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "OK\n")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

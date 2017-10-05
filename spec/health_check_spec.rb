@@ -5,6 +5,6 @@ RSpec.describe '/health_check' do
   it "responds with 'OK'" do
     response = get("/health_check")
     expect(response.code).to eq(200)
-    expect(response.body).to eq("OK\n")
+    expect(JSON.parse(response.body)).to eq("status" => "ok")
   end
 end
