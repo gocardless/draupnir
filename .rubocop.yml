@@ -4,3 +4,6 @@ inherit_gem:
 AllCops:
   Exclude:
     - "tmp/**/*"
+
+Metrics/MethodLength:
+  Max: 12

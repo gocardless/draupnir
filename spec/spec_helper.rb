@@ -1,7 +1,8 @@
 # frozen_string_literal: true
-require 'rest_client'
-require 'json'
-require 'rspec'
+
+require "rest_client"
+require "json"
+require "rspec"
 
 JSON_CONTENT_TYPE = "application/json"
 SERVER_IP = "192.168.2.3"
@@ -11,7 +12,7 @@ ACCESS_TOKEN = "the-integration-access-token"
 DRAUPNIR_VERSION = `cat DRAUPNIR_VERSION`.freeze
 
 RSpec.configure do |config|
-  def post(path, payload, headers={})
+  def post(path, payload, headers = {})
     RestClient::Request.execute(
       verify_ssl: false,
       method: :post,
@@ -52,7 +53,7 @@ RSpec.configure do |config|
   end
 
   def destroy_all_instances!
-    instances = JSON.parse(get("/instances"))['data']
+    instances = JSON.parse(get("/instances"))["data"]
 
     instances.each do |instance|
       delete("/instances/#{instance['id']}")
@@ -60,7 +61,7 @@ RSpec.configure do |config|
   end
 
   def destroy_all_images!
-    images = JSON.parse(get("/images"))['data']
+    images = JSON.parse(get("/images"))["data"]
 
     images.each do |image|
       delete("/images/#{image['id']}")
@@ -76,5 +77,4 @@ RSpec.configure do |config|
     destroy_all_instances!
     destroy_all_images!
   end
-
 end
