@@ -10,6 +10,7 @@ import (
 
 	"github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/version"
 	"github.com/urfave/cli"
 	"golang.org/x/oauth2"
 )
@@ -18,8 +19,6 @@ type Config struct {
 	Domain string
 	Token  oauth2.Token
 }
-
-var version string
 
 func LoadConfig() (Config, error) {
 	config := Config{Domain: "set-me-to-a-real-domain"}
@@ -66,7 +65,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
-	app.Version = version
+	app.Version = version.Version
 	app.Usage = "A client for draupnir"
 	cli.AppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
 	app.Commands = []cli.Command{

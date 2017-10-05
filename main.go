@@ -13,11 +13,10 @@ import (
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/gocardless/draupnir/store"
+	"github.com/gocardless/draupnir/version"
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
 )
-
-var version string
 
 type Config struct {
 	Port               int    `required:"true"`
@@ -90,7 +89,7 @@ func main() {
 	router := mux.NewRouter()
 
 	withVersion := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Draupnir-Version", version)
+		w.Header().Set("Draupnir-Version", version.Version)
 	}
 	asJSON := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

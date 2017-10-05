@@ -16,6 +16,7 @@ import (
 
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/routes"
+	"github.com/gocardless/draupnir/version"
 	"github.com/google/jsonapi"
 )
 
@@ -51,8 +52,25 @@ func (c Client) get(url string) (*http.Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
-	return http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return response, err
+	}
+
+	versionHeader := response.Header["Draupnir-Version"]
+	var apiVersion string
+	if len(versionHeader) == 0 {
+		apiVersion = "0.0.0"
+	} else {
+		apiVersion = versionHeader[0]
+	}
+	if apiVersion != version.Version {
+		return response, fmt.Errorf("the API version (%s) does not match your client's version (%s). You may need to update your client", apiVersion, version.Version)
+	}
+
+	return response, nil
 }
 
 func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) {
@@ -62,6 +80,7 @@ func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) 
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
 	return http.DefaultClient.Do(req)
 }
@@ -73,6 +92,7 @@ func (c Client) delete(url string) (*http.Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
 	return http.DefaultClient.Do(req)
 }
