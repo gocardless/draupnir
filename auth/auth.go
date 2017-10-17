@@ -32,7 +32,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 	var accessToken string
 	_, err := fmt.Sscanf(r.Header.Get("Authorization"), "Bearer %s", &accessToken)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error extracting token from Authorization header: %s", err.Error())
 	}
 
 	// abr uses a shared secret to authenticate
@@ -42,7 +42,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 
 	email, err := g.OAuthClient.LookupAccessToken(accessToken)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error looking up access token: %s", err.Error())
 	}
 
 	if !strings.HasSuffix(email, "@gocardless.com") {
@@ -69,16 +69,16 @@ func (g GoogleOAuthClient) LookupAccessToken(refreshToken string) (string, error
 	tokenSource := g.Config.TokenSource(context.Background(), token)
 	token, err := tokenSource.Token()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error acquiring access token: %s", err.Error())
 	}
 
 	service, err := google.New(http.DefaultClient)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error initialising google oauth client: %s", err.Error())
 	}
 	tokenInfo, err := service.Tokeninfo().AccessToken(token.AccessToken).Do()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error getting info from Google: %s", err.Error())
 	}
 	return tokenInfo.Email, nil
 }

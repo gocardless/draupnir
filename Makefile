@@ -1,6 +1,6 @@
-VERSION=1.0.0
+VERSION="$(shell cat DRAUPNIR_VERSION)"
 BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Version=$(VERSION)"
-PACKAGES=./routes ./models ./store ./auth ./cli ./client
+PACKAGES=./routes ./models ./store ./auth ./cli ./client ./exec ./version
 
 .PHONY: build clean test test-integration dump-schema
 

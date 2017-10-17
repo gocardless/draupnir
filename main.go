@@ -88,89 +88,83 @@ func main() {
 
 	router := mux.NewRouter()
 
-	withVersion := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Draupnir-Version", version.Version)
-	}
-	asJSON := func(w http.ResponseWriter, r *http.Request) {
+	asJSON := func(w http.ResponseWriter, r *http.Request) bool {
 		w.Header().Set("Content-Type", "application/json")
+		return true
 	}
-	versionedJSON := chain.New().Add(withVersion).Add(asJSON).Resolve()
+	withVersion := func(w http.ResponseWriter, r *http.Request) bool {
+		w.Header().Set("Draupnir-Version", version.Version)
+		return true
+	}
+
+	defaultChain := chain.
+		New(routes.CheckAPIVersion).
+		Add(withVersion).
+		Add(asJSON).
+		ToMiddleware()
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/health_check")).
-		Add(versionedJSON).
-		Add(routes.HealthCheck).
-		ToRoute()
-
-	chain.
-		FromRoute(router.Methods("GET").Path("/oauth_callback")).
-		Add(accessTokenRouteSet.Callback).
-		ToRoute()
-
-	chain.
-		FromRoute(router.Methods("POST").Path("/access_tokens")).
-		Add(versionedJSON).
-		Add(accessTokenRouteSet.Create).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(routes.HealthCheck)
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/authenticate")).
-		Add(accessTokenRouteSet.Authenticate).
-		ToRoute()
+		ToRoute(accessTokenRouteSet.Authenticate)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/oauth_callback")).
+		ToRoute(accessTokenRouteSet.Callback)
+
+	chain.
+		FromRoute(router.Methods("POST").Path("/access_tokens")).
+		Add(defaultChain).
+		ToRoute(accessTokenRouteSet.Create)
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/images")).
-		Add(versionedJSON).
-		Add(imageRouteSet.List).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(imageRouteSet.List)
 
 	chain.
 		FromRoute(router.Methods("POST").Path("/images")).
-		Add(versionedJSON).
-		Add(imageRouteSet.Create).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Create)
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/images/{id}")).
-		Add(versionedJSON).
-		Add(imageRouteSet.Get).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Get)
 
 	chain.
 		FromRoute(router.Methods("POST").Path("/images/{id}/done")).
-		Add(versionedJSON).
-		Add(imageRouteSet.Done).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Done)
 
 	chain.
 		FromRoute(router.Methods("DELETE").Path("/images/{id}")).
-		Add(versionedJSON).
-		Add(imageRouteSet.Destroy).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Destroy)
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/instances")).
-		Add(versionedJSON).
-		Add(instanceRouteSet.List).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.List)
 
 	chain.
 		FromRoute(router.Methods("POST").Path("/instances")).
-		Add(versionedJSON).
-		Add(instanceRouteSet.Create).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Create)
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/instances/{id}")).
-		Add(versionedJSON).
-		Add(instanceRouteSet.Get).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Get)
 
 	chain.
 		FromRoute(router.Methods("DELETE").Path("/instances/{id}")).
-		Add(versionedJSON).
-		Add(instanceRouteSet.Destroy).
-		ToRoute()
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Destroy)
 
 	http.Handle("/", router)
 

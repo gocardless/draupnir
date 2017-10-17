@@ -82,6 +82,11 @@ func main() {
 			Aliases: []string{},
 			Usage:   "authenticate with google",
 			Action: func(c *cli.Context) error {
+				if CONFIG.Token.RefreshToken != "" {
+					fmt.Printf("You're already authenticated.\n")
+					return nil;
+				}
+
 				state := fmt.Sprintf("%d", rand.Int31())
 
 				url := fmt.Sprintf("https://%s/authenticate?state=%s", CONFIG.Domain, state)

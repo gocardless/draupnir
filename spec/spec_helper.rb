@@ -8,6 +8,7 @@ SERVER_IP = "192.168.2.3"
 SERVER_ADDR = "https://#{SERVER_IP}"
 DATA_PATH = "/draupnir"
 ACCESS_TOKEN = "the-integration-access-token"
+DRAUPNIR_VERSION = `cat DRAUPNIR_VERSION`.freeze
 
 RSpec.configure do |config|
   def post(path, payload, headers={})
@@ -19,7 +20,8 @@ RSpec.configure do |config|
       headers: {
         content_type: JSON_CONTENT_TYPE,
         authorization: "Bearer #{ACCESS_TOKEN}",
-      }.merge(headers)
+        draupnir_version: DRAUPNIR_VERSION,
+      }.merge(headers),
     )
   end
 
@@ -30,8 +32,9 @@ RSpec.configure do |config|
       url: "#{SERVER_ADDR}#{path}",
       headers: {
         content_type: JSON_CONTENT_TYPE,
-        authorization: "Bearer #{ACCESS_TOKEN}"
-      }
+        authorization: "Bearer #{ACCESS_TOKEN}",
+        draupnir_version: DRAUPNIR_VERSION,
+      },
     )
   end
 
@@ -43,7 +46,8 @@ RSpec.configure do |config|
       headers: {
         content_type: JSON_CONTENT_TYPE,
         authorization: "Bearer #{ACCESS_TOKEN}",
-      }
+        draupnir_version: DRAUPNIR_VERSION,
+      },
     )
   end
 
