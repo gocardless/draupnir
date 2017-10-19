@@ -2,7 +2,10 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"github.com/gocardless/draupnir/version"
 )
 
 type APIError struct {
@@ -30,6 +33,24 @@ var internalServerError = APIError{
 	Status: "500",
 	Title:  "Internal Server Error",
 	Detail: "Something went wrong :(",
+}
+
+var missingApiVersion = APIError{
+	ID:     "missing_api_version_header",
+	Code:   "missing_api_version_header",
+	Status: "400",
+	Title:  "Missing API Version Header",
+	Detail: "No API version specified in Draupnir-Version header",
+}
+
+func invalidApiVersion(v string) APIError {
+	return APIError{
+		ID:     "invalid_api_version",
+		Code:   "invalid_api_version",
+		Status: "400",
+		Title:  "Invalid API Version",
+		Detail: fmt.Sprintf("Specified API version (%s) does not match server version (%s)", v, version.Version),
+	}
 }
 
 var notFoundError = APIError{

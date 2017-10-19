@@ -28,8 +28,6 @@ type createInstanceRequest struct {
 }
 
 func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -94,8 +92,6 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Instances) List(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -128,8 +124,6 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -165,8 +159,6 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())

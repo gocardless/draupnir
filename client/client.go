@@ -12,18 +12,21 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/oauth2"
+
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/routes"
+	"github.com/gocardless/draupnir/version"
 	"github.com/google/jsonapi"
 )
 
 // Client represents the client for a draupnir server
 type Client struct {
 	// The URL of the draupnir server
-	// e.g. "https://draupnir-server.my-infra.io"
+	// e.g. "https://draupnir-server.my-infra.com"
 	URL string
-	// OAuth Access Token to authenticate with
-	AccessToken string
+	// OAuth Access Token
+	Token oauth2.Token
 }
 
 // DraupnirClient defines the API that a draupnir client conforms to
@@ -35,7 +38,11 @@ type DraupnirClient interface {
 	CreateInstance(image models.Image) (models.Instance, error)
 	DestroyInstance(instance models.Instance) error
 	DestroyImage(image models.Image) error
-	CreateAccessToken(string) (models.AccessToken, error)
+	CreateAccessToken(string) (string, error)
+}
+
+func (c Client) AuthorizationHeader() string {
+	return fmt.Sprintf("Bearer %s", c.Token.RefreshToken)
 }
 
 func (c Client) get(url string) (*http.Response, error) {
@@ -44,9 +51,26 @@ func (c Client) get(url string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
-	return http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return response, err
+	}
+
+	versionHeader := response.Header["Draupnir-Version"]
+	var apiVersion string
+	if len(versionHeader) == 0 {
+		apiVersion = "0.0.0"
+	} else {
+		apiVersion = versionHeader[0]
+	}
+	if apiVersion != version.Version {
+		return response, fmt.Errorf("the API version (%s) does not match your client's version (%s). You may need to update your client", apiVersion, version.Version)
+	}
+
+	return response, nil
 }
 
 func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) {
@@ -55,7 +79,8 @@ func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
 	return http.DefaultClient.Do(req)
 }
@@ -66,7 +91,8 @@ func (c Client) delete(url string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
+	req.Header.Set("Authorization", c.AuthorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
 
 	return http.DefaultClient.Do(req)
 }
@@ -241,9 +267,9 @@ type createAccessTokenRequest struct {
 	State string `jsonapi:"attr,state"`
 }
 
-// CreateAccessToken creates an access token
-func (c Client) CreateAccessToken(state string) (models.AccessToken, error) {
-	var accessToken models.AccessToken
+// CreateAccessToken creates an oauth access token
+func (c Client) CreateAccessToken(state string) (oauth2.Token, error) {
+	var token oauth2.Token
 	url := c.URL + "/access_tokens"
 
 	request := createAccessTokenRequest{State: state}
@@ -251,20 +277,20 @@ func (c Client) CreateAccessToken(state string) (models.AccessToken, error) {
 	var payload bytes.Buffer
 	err := jsonapi.MarshalOnePayloadWithoutIncluded(&payload, &request)
 	if err != nil {
-		return accessToken, err
+		return token, err
 	}
 
 	resp, err := c.post(url, &payload)
 	if err != nil {
-		return accessToken, err
+		return token, err
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return accessToken, parseError(resp.Body)
+		return token, parseError(resp.Body)
 	}
 
-	err = jsonapi.UnmarshalPayload(resp.Body, &accessToken)
-	return accessToken, err
+	err = json.NewDecoder(resp.Body).Decode(&token)
+	return token, err
 }
 
 // parseError takes an io.Reader containing an API error response

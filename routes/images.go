@@ -22,11 +22,7 @@ type Images struct {
 	Authenticator auth.Authenticator
 }
 
-const mediaType = "application/json"
-
 func (i Images) Get(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	_, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -57,8 +53,6 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) List(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	_, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -93,8 +87,6 @@ type createImageRequest struct {
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	_, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -132,8 +124,6 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	_, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())
@@ -181,8 +171,6 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", mediaType)
-
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
 		log.Print(err.Error())

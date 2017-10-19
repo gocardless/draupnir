@@ -34,7 +34,7 @@ func TestAuthenticate(t *testing.T) {
 	response := recorder.Result()
 
 	expectedRedirect := fmt.Sprintf(
-		"https://example.org/auth?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s&state=%s",
+		"https://example.org/auth?access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s&state=%s",
 		"the-client-id",
 		url.QueryEscape("https://draupnir.org/redirect"),
 		"code",
@@ -89,7 +89,7 @@ func TestCallback(t *testing.T) {
 
 	select {
 	case result := <-callback:
-		assert.Equal(t, OAuthCallback{AccessToken: "the-access-token", Error: nil}, result)
+		assert.Equal(t, OAuthCallback{Token: oauth2.Token{AccessToken: "the-access-token"}, Error: nil}, result)
 	default:
 		t.Fatal("Received nothing in channel")
 	}
@@ -282,18 +282,4 @@ func oauthCallbackPath(state string, code string, _error string) string {
 		code,
 		_error,
 	)
-}
-
-// TODO: move to fakes
-func fakeOauthConfig() *oauth2.Config {
-	return &oauth2.Config{
-		ClientID:     "the-client-id",
-		ClientSecret: "the-client-secret",
-		Scopes:       []string{"the-scope"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://example.org/auth",
-			TokenURL: "https://example.org/token",
-		},
-		RedirectURL: "https://draupnir.org/redirect",
-	}
 }

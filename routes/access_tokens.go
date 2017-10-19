@@ -1,13 +1,13 @@
 package routes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/gocardless/draupnir/models"
 	"github.com/google/jsonapi"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -22,8 +22,8 @@ type AccessTokens struct {
 }
 
 type OAuthCallback struct {
-	AccessToken string
-	Error       error
+	Token oauth2.Token
+	Error error
 }
 
 // OAuthClient is the abstract interface for handling OAuth.
@@ -38,7 +38,7 @@ func (a AccessTokens) Authenticate(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	state := r.Form.Get("state")
 
-	url := a.Client.AuthCodeURL(state)
+	url := a.Client.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
 	w.Header().Add("Location", url)
 	w.WriteHeader(http.StatusFound)
@@ -64,7 +64,6 @@ type createAccessTokenRequest struct {
 // Create will then receive the result through the channel, remove the channel
 // from the map, and serialise a result back to the client.
 func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
-	var accessToken models.AccessToken
 	var req createAccessTokenRequest
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
@@ -87,10 +86,8 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken.Token = token
-	w.Header().Set("Content-Type", mediaType)
 	w.WriteHeader(http.StatusCreated)
-	err = jsonapi.MarshalOnePayload(w, &accessToken)
+	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
 		log.Print(err.Error())
 		RenderError(w, http.StatusInternalServerError, internalServerError)
@@ -98,15 +95,15 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func waitForCallback(callbackChan chan OAuthCallback) (string, error) {
+func waitForCallback(callbackChan chan OAuthCallback) (oauth2.Token, error) {
 	select {
 	case c := <-callbackChan:
 		if c.Error != nil {
-			return "", c.Error
+			return oauth2.Token{}, c.Error
 		}
-		return c.AccessToken, nil
+		return c.Token, nil
 	case <-time.After(OAUTH_CALLBACK_TIMEOUT):
-		return "", errors.New("Callback timed out")
+		return oauth2.Token{}, errors.New("Callback timed out")
 	}
 }
 
@@ -148,7 +145,7 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	callback <- OAuthCallback{AccessToken: token.AccessToken}
+	callback <- OAuthCallback{Token: *token}
 
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte("<h1>Success!</h1><h3>You can close this tab</h3><script>window.close()</script>"))

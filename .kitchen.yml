@@ -32,4 +32,4 @@ suites:
       draupnir:
         port: 8080
         install_from_local_package: true
-        local_package_path: /vagrant/draupnir_0.0.1_amd64.deb
+        local_package_path: /vagrant/draupnir_1.0.0_amd64.deb

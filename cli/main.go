@@ -10,15 +10,15 @@ import (
 
 	"github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/version"
 	"github.com/urfave/cli"
+	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Domain      string
-	AccessToken string
+	Domain string
+	Token  oauth2.Token
 }
-
-var version string
 
 func LoadConfig() (Config, error) {
 	config := Config{Domain: "set-me-to-a-real-domain"}
@@ -58,11 +58,14 @@ func main() {
 		return
 	}
 
-	client := client.Client{URL: "https://" + CONFIG.Domain, AccessToken: CONFIG.AccessToken}
+	client := client.Client{
+		URL:   "https://" + CONFIG.Domain,
+		Token: CONFIG.Token,
+	}
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
-	app.Version = version
+	app.Version = version.Version
 	app.Usage = "A client for draupnir"
 	cli.AppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
 	app.Commands = []cli.Command{
@@ -71,7 +74,6 @@ func main() {
 			Aliases: []string{},
 			Usage:   "show the current configuration",
 			Action: func(c *cli.Context) error {
-				fmt.Printf("%+v\n", CONFIG)
 				return nil
 			},
 		},
@@ -80,6 +82,11 @@ func main() {
 			Aliases: []string{},
 			Usage:   "authenticate with google",
 			Action: func(c *cli.Context) error {
+				if CONFIG.Token.RefreshToken != "" {
+					fmt.Printf("You're already authenticated.\n")
+					return nil;
+				}
+
 				state := fmt.Sprintf("%d", rand.Int31())
 
 				url := fmt.Sprintf("https://%s/authenticate?state=%s", CONFIG.Domain, state)
@@ -94,7 +101,8 @@ func main() {
 					return err
 				}
 
-				CONFIG.AccessToken = token.Token
+				CONFIG.Token = token
+
 				err = StoreConfig(CONFIG)
 				if err != nil {
 					fmt.Printf("error: %s\n", err)

@@ -11,12 +11,12 @@ import (
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/routes"
+	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/gocardless/draupnir/store"
+	"github.com/gocardless/draupnir/version"
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
 )
-
-var version string
 
 type Config struct {
 	Port               int    `required:"true"`
@@ -57,7 +57,7 @@ func main() {
 	executor := exec.OSExecutor{DataPath: c.DataPath}
 
 	authenticator := auth.GoogleAuthenticator{
-		OAuthClient:  auth.GoogleOAuthClient{},
+		OAuthClient:  auth.GoogleOAuthClient{Config: &oauthConfig},
 		SharedSecret: c.SharedSecret,
 	}
 	if c.Environment == "test" {
@@ -87,22 +87,84 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/health_check", routes.HealthCheck)
 
-	router.HandleFunc("/access_tokens", accessTokenRouteSet.Create).Methods("POST")
-	router.HandleFunc("/oauth_callback", accessTokenRouteSet.Callback).Methods("GET")
-	router.HandleFunc("/authenticate", accessTokenRouteSet.Authenticate).Methods("GET")
+	asJSON := func(w http.ResponseWriter, r *http.Request) bool {
+		w.Header().Set("Content-Type", "application/json")
+		return true
+	}
+	withVersion := func(w http.ResponseWriter, r *http.Request) bool {
+		w.Header().Set("Draupnir-Version", version.Version)
+		return true
+	}
 
-	router.HandleFunc("/images", imageRouteSet.List).Methods("GET")
-	router.HandleFunc("/images", imageRouteSet.Create).Methods("POST")
-	router.HandleFunc("/images/{id}", imageRouteSet.Get).Methods("GET")
-	router.HandleFunc("/images/{id}/done", imageRouteSet.Done).Methods("POST")
-	router.HandleFunc("/images/{id}", imageRouteSet.Destroy).Methods("DELETE")
+	defaultChain := chain.
+		New(routes.CheckAPIVersion).
+		Add(withVersion).
+		Add(asJSON).
+		ToMiddleware()
 
-	router.HandleFunc("/instances", instanceRouteSet.List).Methods("GET")
-	router.HandleFunc("/instances", instanceRouteSet.Create).Methods("POST")
-	router.HandleFunc("/instances/{id}", instanceRouteSet.Get).Methods("GET")
-	router.HandleFunc("/instances/{id}", instanceRouteSet.Destroy).Methods("DELETE")
+	chain.
+		FromRoute(router.Methods("GET").Path("/health_check")).
+		Add(defaultChain).
+		ToRoute(routes.HealthCheck)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/authenticate")).
+		ToRoute(accessTokenRouteSet.Authenticate)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/oauth_callback")).
+		ToRoute(accessTokenRouteSet.Callback)
+
+	chain.
+		FromRoute(router.Methods("POST").Path("/access_tokens")).
+		Add(defaultChain).
+		ToRoute(accessTokenRouteSet.Create)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/images")).
+		Add(defaultChain).
+		ToRoute(imageRouteSet.List)
+
+	chain.
+		FromRoute(router.Methods("POST").Path("/images")).
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Create)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/images/{id}")).
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Get)
+
+	chain.
+		FromRoute(router.Methods("POST").Path("/images/{id}/done")).
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Done)
+
+	chain.
+		FromRoute(router.Methods("DELETE").Path("/images/{id}")).
+		Add(defaultChain).
+		ToRoute(imageRouteSet.Destroy)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/instances")).
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.List)
+
+	chain.
+		FromRoute(router.Methods("POST").Path("/instances")).
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Create)
+
+	chain.
+		FromRoute(router.Methods("GET").Path("/instances/{id}")).
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Get)
+
+	chain.
+		FromRoute(router.Methods("DELETE").Path("/instances/{id}")).
+		Add(defaultChain).
+		ToRoute(instanceRouteSet.Destroy)
 
 	http.Handle("/", router)
 

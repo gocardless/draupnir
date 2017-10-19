@@ -1,6 +1,15 @@
 Changelog
 =========
 
+1.0.0
+-----
+
+Switch to using OAuth Refresh Tokens for authentication, so users don't have to
+authenticate so often.
+Require client and server versions to be identical to cooperate. This should
+make it easier to handle breaking changes, at the expense of requiring more
+frequent client upgrades.
+
 0.1.4
 -----
 

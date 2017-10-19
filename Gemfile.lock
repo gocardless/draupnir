@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/gocardless/ruboconfig
+  revision: cd02a1d21846d3bbf5844e385d6e518556a96cef
+  branch: v1.0.1
+  specs:
+    ruboconfig (1.0.1)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -120,7 +127,7 @@ GEM
     insist (1.0.0)
     io-like (0.3.0)
     ipaddress (0.8.3)
-    json (1.8.3)
+    json (1.8.6)
     kitchen-encrypt-databags (0.1.1)
       chef (>= 12.10)
       test-kitchen (~> 1.13)
@@ -176,7 +183,8 @@ GEM
       plist (~> 3.1)
       systemu (~> 2.6.4)
       wmi-lite (~> 1.0)
-    parser (2.3.3.1)
+    parallel (1.12.0)
+    parser (2.4.0.0)
       ast (~> 2.2)
     pleaserun (0.0.27)
       cabin (> 0)
@@ -190,7 +198,9 @@ GEM
     proxifier (1.0.3)
     public_suffix (2.0.5)
     rack (2.0.1)
-    rainbow (2.1.0)
+    rainbow (2.2.2)
+      rake
+    rake (12.1.0)
     rest-client (2.0.0)
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
@@ -233,13 +243,14 @@ GEM
     rspec_junit_formatter (0.2.3)
       builder (< 4)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rubocop (0.46.0)
-      parser (>= 2.3.1.1, < 3.0)
+    rubocop (0.50.0)
+      parallel (~> 1.10)
+      parser (>= 2.3.3.1, < 3.0)
       powerpack (~> 0.1)
-      rainbow (>= 1.99.1, < 3.0)
+      rainbow (>= 2.2.2, < 3.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (~> 1.0, >= 1.0.1)
-    ruby-progressbar (1.8.1)
+    ruby-progressbar (1.9.0)
     ruby-xz (0.2.3)
       ffi (~> 1.9)
       io-like (~> 0.3)
@@ -279,7 +290,7 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.7.2)
-    unicode-display_width (1.1.2)
+    unicode-display_width (1.3.0)
     uuidtools (2.1.5)
     varia_model (0.6.0)
       buff-extensions (~> 2.0)
@@ -296,8 +307,9 @@ DEPENDENCIES
   kitchen-vagrant
   rest-client
   rspec
+  ruboconfig!
   rubocop
   test-kitchen
 
 BUNDLED WITH
-   1.15.1
+   1.16.0.pre.2

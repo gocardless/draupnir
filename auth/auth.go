@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"google.golang.org/api/oauth2/v1"
+	"golang.org/x/oauth2"
+	google "google.golang.org/api/oauth2/v1"
 )
 
 const UPLOAD_USER_EMAIL = "upload"
@@ -30,7 +32,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 	var accessToken string
 	_, err := fmt.Sscanf(r.Header.Get("Authorization"), "Bearer %s", &accessToken)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error extracting token from Authorization header: %s", err.Error())
 	}
 
 	// abr uses a shared secret to authenticate
@@ -40,7 +42,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 
 	email, err := g.OAuthClient.LookupAccessToken(accessToken)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error looking up access token: %s", err.Error())
 	}
 
 	if !strings.HasSuffix(email, "@gocardless.com") {
@@ -57,16 +59,26 @@ type OAuthClient interface {
 	LookupAccessToken(string) (string, error)
 }
 
-type GoogleOAuthClient struct{}
+type GoogleOAuthClient struct {
+	Config *oauth2.Config
+}
 
-func (g GoogleOAuthClient) LookupAccessToken(accessToken string) (string, error) {
-	service, err := oauth2.New(http.DefaultClient)
+func (g GoogleOAuthClient) LookupAccessToken(refreshToken string) (string, error) {
+	// Use the refresh token to obtain an access token
+	token := &oauth2.Token{RefreshToken: refreshToken}
+	tokenSource := g.Config.TokenSource(context.Background(), token)
+	token, err := tokenSource.Token()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error acquiring access token: %s", err.Error())
 	}
-	tokenInfo, err := service.Tokeninfo().AccessToken(accessToken).Do()
+
+	service, err := google.New(http.DefaultClient)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Error initialising google oauth client: %s", err.Error())
+	}
+	tokenInfo, err := service.Tokeninfo().AccessToken(token.AccessToken).Do()
+	if err != nil {
+		return "", fmt.Errorf("Error getting info from Google: %s", err.Error())
 	}
 	return tokenInfo.Email, nil
 }

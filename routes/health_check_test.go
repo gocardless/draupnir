@@ -1,10 +1,12 @@
 package routes
 
 import (
-	"github.com/stretchr/testify/assert"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheck(t *testing.T) {
@@ -18,5 +20,10 @@ func TestHealthCheck(t *testing.T) {
 
 	assert.Equal(t, recorder.Code, http.StatusOK)
 
-	assert.Equal(t, string(recorder.Body.Bytes()), "OK\n")
+	var response map[string]string
+	err = json.NewDecoder(recorder.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, response, map[string]string{"status": "ok"})
 }

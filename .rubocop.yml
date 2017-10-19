@@ -1,0 +1,9 @@
+inherit_gem:
+  ruboconfig: rubocop.yml
+
+AllCops:
+  Exclude:
+    - "tmp/**/*"
+
+Metrics/MethodLength:
+  Max: 12
