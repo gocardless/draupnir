@@ -51,7 +51,7 @@ func TestGetImage(t *testing.T) {
 	decodeJSON(recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
-	assert.Equal(t, response, getImageFixture)
+	assert.Equal(t, getImageFixture, response)
 }
 
 func TestGetImageWhenAuthenticationFails(t *testing.T) {

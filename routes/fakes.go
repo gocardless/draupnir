@@ -99,7 +99,7 @@ func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) 
 type AllowAll struct{}
 
 func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
-	return "hmac@gocardless.com", nil
+	return "test@draupnir", nil
 }
 
 type FakeOAuthClient struct {

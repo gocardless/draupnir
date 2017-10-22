@@ -16,8 +16,8 @@ type Instance struct {
 func NewInstance(imageID int, email string) Instance {
 	return Instance{
 		ImageID:   imageID,
+		UserEmail: email,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserEmail: email,
 	}
 }
