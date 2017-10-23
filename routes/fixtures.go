@@ -61,10 +61,10 @@ var createInstanceFixture = jsonapi.OnePayload{
 		Type: "instances",
 		ID:   "1",
 		Attributes: map[string]interface{}{
-			"image_id":   1,
+			"image_id":   float64(1),
 			"created_at": "2016-01-01T12:33:44Z",
 			"updated_at": "2016-01-01T12:33:44Z",
-			"port":       0,
+			"port":       float64(0),
 		},
 	},
 }
@@ -75,9 +75,9 @@ var listInstancesFixture = jsonapi.ManyPayload{
 			Type: "instances",
 			ID:   "1",
 			Attributes: map[string]interface{}{
-				"image_id":   1,
+				"image_id":   float64(1),
 				"created_at": "2016-01-01T12:33:44Z",
-				"port":       5432,
+				"port":       float64(5432),
 				"updated_at": "2016-01-01T12:33:44Z",
 			},
 		},
@@ -89,9 +89,9 @@ var getInstanceFixture = jsonapi.OnePayload{
 		Type: "instances",
 		ID:   "1",
 		Attributes: map[string]interface{}{
-			"image_id":   1,
+			"image_id":   float64(1),
 			"created_at": "2016-01-01T12:33:44Z",
-			"port":       5432,
+			"port":       float64(5432),
 			"updated_at": "2016-01-01T12:33:44Z",
 		},
 	},

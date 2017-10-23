@@ -12,14 +12,14 @@ Prerequisites:
 - Go
 - Postgresql
 
-Install [gom](https://github.com/mattn/gom)
+Install [dep](https://github.com/golang/dep)
 ```
-go get github.com/mattn/gom
+brew install dep
 ```
 
 Install dependencies
 ```
-gom install
+dep ensure
 ```
 
 Create the database
