@@ -5,8 +5,10 @@ Draupnir
 
 Draupnir is a tool that provides on-demand Postgres databases with preloaded data.
 
+**Looking to use Draupnir? Please check the developer handbook**
+
 Development
-===========
+-----------
 
 Prerequisites:
 - Go
