@@ -6,7 +6,7 @@ set -o pipefail
 
 if ! [[ "$#" -eq 4 ]]; then
   echo """
-  Desc:  Creates a new Draupnir image with given parameters
+  Desc:  Creates a new Draupnir instance with given parameters
   Usage: $(basename "$0") ROOT IMAGE_ID INSTANCE_ID PORT
   Example:
 

@@ -6,12 +6,13 @@ set -o pipefail
 
 if ! [[ "$#" -eq 2 ]]; then
   echo """
-  Desc:  Deletes an instance's data directory
+  Desc:  Destroys an instance
   Usage: $(basename "$0") ROOT INSTANCE_ID
   Example:
 
       $(basename "$0") /draupnir 999
 
+  Stops the instance's postgres process, and deletes the instance snapshot
   """
   exit 1
 fi
