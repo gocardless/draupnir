@@ -19,16 +19,17 @@ import (
 )
 
 type Config struct {
-	Port               int    `required:"true"`
-	DatabaseUrl        string `required:"true" split_words:"true"`
-	DataPath           string `required:"true" split_words:"true"`
-	Environment        string `required:"false"`
-	SharedSecret       string `required:"true" split_words:"true"`
-	OauthRedirectUrl   string `required:"true" split_words:"true"`
-	OauthClientId      string `required:"true" split_words:"true"`
-	OauthClientSecret  string `required:"true" split_words:"true"`
-	TlsCertificatePath string `required:"true" split_words:"true"`
-	TlsPrivateKeyPath  string `required:"true" split_words:"true"`
+	Port                   int    `required:"true"`
+	DatabaseUrl            string `required:"true" split_words:"true"`
+	DataPath               string `required:"true" split_words:"true"`
+	Environment            string `required:"false"`
+	SharedSecret           string `required:"true" split_words:"true"`
+	OauthRedirectUrl       string `required:"true" split_words:"true"`
+	OauthClientId          string `required:"true" split_words:"true"`
+	OauthClientSecret      string `required:"true" split_words:"true"`
+	TlsCertificatePath     string `required:"true" split_words:"true"`
+	TlsPrivateKeyPath      string `required:"true" split_words:"true"`
+	TrustedUserEmailDomain string `required:"true" split_words:"true"`
 }
 
 func main() {
@@ -57,8 +58,9 @@ func main() {
 	executor := exec.OSExecutor{DataPath: c.DataPath}
 
 	authenticator := auth.GoogleAuthenticator{
-		OAuthClient:  auth.GoogleOAuthClient{Config: &oauthConfig},
-		SharedSecret: c.SharedSecret,
+		OAuthClient:            auth.GoogleOAuthClient{Config: &oauthConfig},
+		SharedSecret:           c.SharedSecret,
+		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
 	}
 	if c.Environment == "test" {
 		authenticator.OAuthClient = auth.FakeOAuthClient{}

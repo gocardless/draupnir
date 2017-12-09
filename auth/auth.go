@@ -24,8 +24,9 @@ type Authenticator interface {
 }
 
 type GoogleAuthenticator struct {
-	OAuthClient  OAuthClient
-	SharedSecret string
+	OAuthClient            OAuthClient
+	SharedSecret           string
+	TrustedUserEmailDomain string
 }
 
 func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
@@ -45,7 +46,7 @@ func (g GoogleAuthenticator) AuthenticateRequest(r *http.Request) (string, error
 		return "", fmt.Errorf("Error looking up access token: %s", err.Error())
 	}
 
-	if !strings.HasSuffix(email, "@gocardless.com") {
+	if !strings.HasSuffix(email, g.TrustedUserEmailDomain) {
 		return "", errors.New("Email not valid")
 	}
 
