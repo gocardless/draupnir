@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+Allow the trusted email domain to be specified via an environment variable.
+
 1.0.0
 -----
 

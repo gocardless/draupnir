@@ -7,7 +7,7 @@ DEPENDENCIES
     path: tmp/cookbooks/draupnir/berks-cookbooks/sudo
 
 GRAPH
-  draupnir (0.1.0)
+  draupnir (0.1.1)
     iptables-ng (~> 2.2.8)
     sudo (~> 2.2.2)
   iptables-ng (2.2.11)
