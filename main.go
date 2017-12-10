@@ -100,14 +100,15 @@ func main() {
 	}
 
 	defaultChain := chain.
-		New(routes.CheckAPIVersion).
-		Add(withVersion).
+		New(withVersion).
 		Add(asJSON).
+		Add(routes.CheckAPIVersion).
 		ToMiddleware()
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/health_check")).
-		Add(defaultChain).
+		Add(withVersion).
+		Add(asJSON).
 		ToRoute(routes.HealthCheck)
 
 	chain.

@@ -5,6 +5,9 @@ Unreleased
 ----------
 
 Allow the trusted email domain to be specified via an environment variable.
+Fix a bug where the Draupnir-Version header would not be included in the API
+response when the client's header didn't match the server version.
+Don't require the Draupnir-Version header for the health check endpoint.
 
 1.0.0
 -----
