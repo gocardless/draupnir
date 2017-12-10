@@ -14,16 +14,6 @@ Prerequisites:
 - Go
 - Postgresql
 
-Install [dep](https://github.com/golang/dep)
-```
-brew install dep
-```
-
-Install dependencies
-```
-dep ensure
-```
-
 Create the database
 ```
 createdb draupnir

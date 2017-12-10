@@ -9,8 +9,6 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/golang/dep/cmd/dep
-      - run: dep ensure -vendor-only
       - run: make test
       - run: make build-production
       - run: make client
