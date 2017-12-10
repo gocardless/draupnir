@@ -14,11 +14,14 @@ if ! [[ "$#" -eq 4 ]]; then
 
   The steps taken are:
 
-  1. Removes old pid files and sets the correct permissions to boot postgres
-  2. Boots postgres
-  3. Runs the anonymisation function(s)
-  4. Stops postgres
-  5. Takes a BTRFS snapshot of the directory
+  1. Extract and remove any tar files in the directory
+  2. Remove pid files, if present
+  3. Set the correct permissions to boot postgres
+  4. Install our own postgresql.conf and pg_hba.conf
+  5. Boot postgres
+  6. Run the anonymisation script
+  7. Stop postgres
+  8. Take a BTRFS snapshot of the directory
   """
   exit 1
 fi
