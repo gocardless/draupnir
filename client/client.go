@@ -59,13 +59,7 @@ func (c Client) get(url string) (*http.Response, error) {
 		return response, err
 	}
 
-	versionHeader := response.Header["Draupnir-Version"]
-	var apiVersion string
-	if len(versionHeader) == 0 {
-		apiVersion = "0.0.0"
-	} else {
-		apiVersion = versionHeader[0]
-	}
+	apiVersion := response.Header.Get("Draupnir-Version")
 	if apiVersion != version.Version {
 		return response, fmt.Errorf("the API version (%s) does not match your client's version (%s). You may need to update your client", apiVersion, version.Version)
 	}

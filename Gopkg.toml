@@ -56,3 +56,7 @@
 [[constraint]]
   branch = "master"
   name = "google.golang.org/api"
+
+[[constraint]]
+  name = "github.com/burntsushi/toml"
+  version = "0.3.0"

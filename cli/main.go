@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
+	"github.com/burntsushi/toml"
 	"github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/version"
@@ -16,8 +19,9 @@ import (
 )
 
 type Config struct {
-	Domain string
-	Token  oauth2.Token
+	Domain   string
+	Token    oauth2.Token
+	Database string
 }
 
 func LoadConfig() (Config, error) {
@@ -31,7 +35,12 @@ func LoadConfig() (Config, error) {
 		}
 		return config, err
 	}
-	err = json.NewDecoder(file).Decode(&config)
+	_, err = toml.DecodeReader(file, &config)
+	if err != nil {
+		// Older versions of .draupnir were JSON formatted
+		file.Seek(0, 0)
+		err = json.NewDecoder(file).Decode(&config)
+	}
 	return config, err
 }
 
@@ -40,7 +49,7 @@ func StoreConfig(config Config) error {
 	if err != nil {
 		return err
 	}
-	err = json.NewEncoder(file).Encode(config)
+	err = toml.NewEncoder(file).Encode(config)
 	return err
 }
 
@@ -48,7 +57,7 @@ const quickStart string = `
 QUICK START:
 		draupnir-client authenticate
 		eval $(draupnir-client new)
-		psql postgres
+		psql
 `
 
 func main() {
@@ -70,11 +79,50 @@ func main() {
 	cli.AppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
 	app.Commands = []cli.Command{
 		{
-			Name:    "config",
-			Aliases: []string{},
-			Usage:   "show the current configuration",
-			Action: func(c *cli.Context) error {
-				return nil
+			Name:        "config",
+			Aliases:     []string{},
+			Usage:       "get and set config values",
+			Description: "Get and set config values",
+			Subcommands: []cli.Command{
+				{
+					Name:      "show",
+					Usage:     "show the current configuration",
+					UsageText: "draupnir config show",
+					Action: func(c *cli.Context) error {
+						fmt.Printf("Domain: %s\n", CONFIG.Domain)
+						fmt.Printf("Access Token: %s****\n", CONFIG.Token.AccessToken[0:10])
+						fmt.Printf("Database: %s\n", CONFIG.Database)
+						return nil
+					},
+				},
+				{
+					Name:  "set",
+					Usage: "set a config value",
+					UsageText: `draupnir config set [key] [value]
+
+[key] can take the following values:
+    domain: The domain of the draupnir server.
+    database: The default database to connect to. If not set, defaults to the PGDATABASE environment variable.`,
+					Action: func(c *cli.Context) error {
+						if len(c.Args()) != 2 {
+							println(c.Command.UsageText)
+							return errors.New("Invalid arguments")
+						}
+						key := c.Args().First()
+						val := c.Args()[1]
+						switch strings.ToLower(key) {
+						case "domain":
+							CONFIG.Domain = val
+							StoreConfig(CONFIG)
+						case "database":
+							CONFIG.Database = val
+							StoreConfig(CONFIG)
+						default:
+							fmt.Printf("Invalid key %s\n", key)
+						}
+						return nil
+					},
+				},
 			},
 		},
 		{
@@ -84,7 +132,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				if CONFIG.Token.RefreshToken != "" {
 					fmt.Printf("You're already authenticated.\n")
-					return nil;
+					return nil
 				}
 
 				state := fmt.Sprintf("%d", rand.Int31())
@@ -285,7 +333,20 @@ func main() {
 }
 
 func showExportCommand(config Config, instance models.Instance) {
-	fmt.Printf("export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD=''\n", config.Domain, instance.Port)
+	// The database precedence is config -> environment variable -> 'postgres'
+	database := config.Database
+	if database == "" {
+		database = os.Getenv("PGDATABASE")
+	}
+	if database == "" {
+		database = "postgres"
+	}
+	fmt.Printf(
+		"export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD='' PGDATABASE=%s\n",
+		config.Domain,
+		instance.Port,
+		database,
+	)
 }
 
 func ImageToString(i models.Image) string {
