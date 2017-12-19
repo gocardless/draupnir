@@ -6,50 +6,46 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type httpHandler func(http.ResponseWriter, *http.Request)
-
-// httpMiddleware is a handler that returns a bool indicating if the request
-// should be propagated to the next middleware in the chain
-type httpMiddleware func(http.ResponseWriter, *http.Request) bool
+// Middleware is a function that takes a HTTP handler
+// and returns a modified http handler
+type Middleware func(http.HandlerFunc) http.HandlerFunc
 
 type Chain struct {
-	route      *mux.Route
-	middleware httpMiddleware
+	route       *mux.Route
+	middlewares []Middleware
 }
 
-// New constructs a Chain with the given middleware as the first link
-func New(first httpMiddleware) Chain {
-	return Chain{route: &mux.Route{}, middleware: first}
+func nullMiddleware(h http.HandlerFunc) http.HandlerFunc {
+	return h
 }
 
-// Add adds a middleware to the end of a Chain
-func (c Chain) Add(h httpMiddleware) Chain {
-	newHandler := func(w http.ResponseWriter, r *http.Request) bool {
-		propagate := c.middleware(w, r)
-		if propagate {
-			return h(w, r)
-		}
-		return propagate
-	}
-	return Chain{middleware: newHandler, route: c.route}
+// New constructs an empty Chain
+func New() Chain {
+	return Chain{route: &mux.Route{}, middlewares: []Middleware{nullMiddleware}}
 }
 
 // FromRoute constructs an empty Chain from a mux Route
 func FromRoute(r *mux.Route) Chain {
-	return Chain{route: r, middleware: func(w http.ResponseWriter, h *http.Request) bool { return true }}
+	return Chain{route: r, middlewares: []Middleware{nullMiddleware}}
+}
+
+// Add adds a middleware to a Chain
+func (c Chain) Add(m Middleware) Chain {
+	return Chain{middlewares: append(c.middlewares, m), route: c.route}
 }
 
 // ToRoute converts the Chain to a normal HTTP handler and binds it to the route
-func (c Chain) ToRoute(routeHandler httpHandler) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if c.middleware(w, r) {
-			routeHandler(w, r)
-		}
-	}
-	c.route.HandlerFunc(handler)
+func (c Chain) ToRoute(routeHandler http.HandlerFunc) {
+	c.route.HandlerFunc(c.ToMiddleware()(routeHandler))
 }
 
 // ToMiddleware returns the middleware of a Chain
-func (c Chain) ToMiddleware() httpMiddleware {
-	return c.middleware
+func (c Chain) ToMiddleware() Middleware {
+	return func(h http.HandlerFunc) http.HandlerFunc {
+		for i := len(c.middlewares) - 1; i >= 0; i-- {
+			m := c.middlewares[i]
+			h = m(h)
+		}
+		return h
+	}
 }
