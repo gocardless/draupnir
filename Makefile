@@ -1,6 +1,5 @@
 VERSION="$(shell cat DRAUPNIR_VERSION)"
 BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Version=$(VERSION)"
-PACKAGES=./routes ./models ./store ./auth ./cli ./client ./exec ./version
 
 .PHONY: build clean test test-integration dump-schema
 
@@ -14,8 +13,8 @@ dump-schema:
 	pg_dump -sxOf structure.sql draupnir
 
 test:
-	go vet $(PACKAGES)
-	go test $(PACKAGES)
+	go test ./...
+	go vet ./...
 
 test-integration:
 	bundle exec kitchen destroy && bundle exec kitchen converge
