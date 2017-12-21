@@ -105,6 +105,7 @@ func main() {
 
 	defaultChain := chain.
 		New().
+		Add(routes.LogRequest).
 		Add(withVersion).
 		Add(asJSON).
 		Add(routes.CheckAPIVersion).
@@ -112,6 +113,7 @@ func main() {
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/health_check")).
+		Add(routes.LogRequest).
 		Add(withVersion).
 		Add(asJSON).
 		ToRoute(routes.HealthCheck)
