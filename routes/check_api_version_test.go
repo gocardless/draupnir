@@ -14,7 +14,12 @@ func TestCheckApiVersionWithNoVersionHeader(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/foo", nil)
 
-	assert.Equal(t, CheckAPIVersion(recorder, req), false)
+	CheckAPIVersion(
+		func(w http.ResponseWriter, h *http.Request) {
+			t.Fatal("this route should never be called")
+		},
+	)(recorder, req)
+
 	assert.Equal(t, recorder.Code, http.StatusBadRequest)
 
 	var response APIError
@@ -30,7 +35,12 @@ func TestCheckApiVersionWithMismatchingVersionHeader(t *testing.T) {
 	req := httptest.NewRequest("GET", "/foo", nil)
 	req.Header["Draupnir-Version"] = []string{"0.0.0"}
 
-	assert.Equal(t, CheckAPIVersion(recorder, req), false)
+	CheckAPIVersion(
+		func(w http.ResponseWriter, h *http.Request) {
+			t.Fatal("this route should never be called")
+		},
+	)(recorder, req)
+
 	assert.Equal(t, recorder.Code, http.StatusBadRequest)
 
 	var response APIError
@@ -46,5 +56,11 @@ func TestCheckApiVersionWithMatchingVersionHeader(t *testing.T) {
 	req := httptest.NewRequest("GET", "/foo", nil)
 	req.Header["Draupnir-Version"] = []string{version.Version}
 
-	assert.Equal(t, CheckAPIVersion(recorder, req), true)
+	CheckAPIVersion(
+		func(w http.ResponseWriter, h *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		},
+	)(recorder, req)
+
+	assert.Equal(t, recorder.Code, http.StatusAccepted)
 }

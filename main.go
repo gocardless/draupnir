@@ -90,23 +90,30 @@ func main() {
 
 	router := mux.NewRouter()
 
-	asJSON := func(w http.ResponseWriter, r *http.Request) bool {
-		w.Header().Set("Content-Type", "application/json")
-		return true
+	asJSON := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			next(w, r)
+		}
 	}
-	withVersion := func(w http.ResponseWriter, r *http.Request) bool {
-		w.Header().Set("Draupnir-Version", version.Version)
-		return true
+	withVersion := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Draupnir-Version", version.Version)
+			next(w, r)
+		}
 	}
 
 	defaultChain := chain.
-		New(withVersion).
+		New().
+		Add(routes.LogRequest).
+		Add(withVersion).
 		Add(asJSON).
 		Add(routes.CheckAPIVersion).
 		ToMiddleware()
 
 	chain.
 		FromRoute(router.Methods("GET").Path("/health_check")).
+		Add(routes.LogRequest).
 		Add(withVersion).
 		Add(asJSON).
 		ToRoute(routes.HealthCheck)
