@@ -4,12 +4,18 @@ Changelog
 Unreleased
 ----------
 
+No changes.
+
+1.1.0
+----------
+
 Allow the trusted email domain to be specified via an environment variable.
 Fix a bug where the Draupnir-Version header would not be included in the API
 response when the client's header didn't match the server version.
 Don't require the Draupnir-Version header for the health check endpoint.
-Change the config file format from JSON to TOML
-Allow the default database to be set as a config option
+Change the config file format from JSON to TOML.
+Allow the default database to be set as a config option.
+Log HTTP requests to STDOUT.
 
 1.0.0
 -----
