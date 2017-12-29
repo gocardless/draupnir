@@ -47,6 +47,8 @@ func main() {
 		log.Fatalf("Cannot connect to database: %s", err.Error())
 	}
 
+	// If DRAUPNIR_SENTRY_DSN is provided, use SentryLogger
+	// Otherwise, use StandardLogger
 	baseLogger := log.New(os.Stdout, "", log.LstdFlags)
 	var logger logging.Logger
 	if c.SentryDsn != "" {
@@ -96,6 +98,7 @@ func main() {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: authenticator,
+		Logger:        logger,
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
