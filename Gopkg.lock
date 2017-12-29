@@ -8,10 +8,22 @@
   version = "v0.3.0"
 
 [[projects]]
+  name = "github.com/certifi/gocertifi"
+  packages = ["."]
+  revision = "a4ab0227d360091084658029ec8ae45f989fba3e"
+  version = "2017.11.05"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/getsentry/raven-go"
+  packages = ["."]
+  revision = "32a13797442ccb601b11761d74232773c1402d14"
 
 [[projects]]
   branch = "master"
@@ -47,6 +59,12 @@
   name = "github.com/lib/pq"
   packages = [".","oid"]
   revision = "b0d5024adb34b4122c6ee7eeb6ab511f7223222d"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -93,6 +111,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "49f02a275308367be03a9e07483dbb6e5eafd6739bd46bee00a0627713ac98ec"
+  inputs-digest = "83f20803d93de0a55fc108cf902c6dc74cf09628cfba003a83a1d844014b446d"
   solver-name = "gps-cdcl"
   solver-version = 1

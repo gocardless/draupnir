@@ -60,3 +60,7 @@
 [[constraint]]
   name = "github.com/burntsushi/toml"
   version = "0.3.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getsentry/raven-go"
