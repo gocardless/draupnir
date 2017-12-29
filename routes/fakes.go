@@ -127,3 +127,16 @@ func fakeOauthConfig() *oauth2.Config {
 		RedirectURL: "https://draupnir.org/redirect",
 	}
 }
+
+type FakeLogger struct {
+	lines  []string
+	errors []error
+}
+
+func (f *FakeLogger) Info(msg string) {
+	f.lines = append(f.lines, msg)
+}
+
+func (f *FakeLogger) Error(err error) {
+	f.errors = append(f.errors, err)
+}

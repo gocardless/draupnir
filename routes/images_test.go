@@ -64,10 +64,14 @@ func TestGetImageWhenAuthenticationFails(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(Images{Authenticator: authenticator}.Get)
+	logger := FakeLogger{}
+	routeSet := Images{Authenticator: authenticator, Logger: &logger}
+
+	handler := http.HandlerFunc(routeSet.Get)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	assert.Equal(t, logger.lines[0], "Invalid email address")
 }
 
 func TestListImages(t *testing.T) {
@@ -141,7 +145,8 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	body := `{"this is": "not a valid JSON API request payload"}`
 	req := httptest.NewRequest("POST", "/images", strings.NewReader(body))
 
-	routeSet := Images{Authenticator: AllowAll{}}
+	logger := FakeLogger{}
+	routeSet := Images{Authenticator: AllowAll{}, Logger: &logger}
 	routeSet.Create(recorder, req)
 
 	var response APIError
@@ -149,6 +154,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, invalidJSONError, response)
+	assert.Contains(t, logger.lines[0], "data is not a jsonapi representation")
 }
 
 func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
@@ -178,7 +184,14 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 			return errors.New("some btrfs error")
 		},
 	}
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	logger := FakeLogger{}
+
+	routeSet := Images{
+		ImageStore:    store,
+		Executor:      executor,
+		Authenticator: AllowAll{},
+		Logger:        &logger,
+	}
 	routeSet.Create(recorder, req)
 
 	var response APIError
@@ -186,6 +199,7 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	assert.Equal(t, internalServerError, response)
+	assert.Equal(t, logger.errors[0], errors.New("some btrfs error"))
 }
 
 func TestImageDone(t *testing.T) {
@@ -238,7 +252,8 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/images/bad_id/done", nil)
 
-	routeSet := Images{Authenticator: AllowAll{}}
+	logger := FakeLogger{}
+	routeSet := Images{Authenticator: AllowAll{}, Logger: &logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", routeSet.Done)
 	router.ServeHTTP(recorder, req)
@@ -248,6 +263,7 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
+	assert.Contains(t, logger.lines[0], "parsing \"bad_id\": invalid syntax")
 }
 
 func TestImageDestroy(t *testing.T) {

@@ -88,6 +88,7 @@ func main() {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
+		Logger:        logger,
 	}
 
 	instanceRouteSet := routes.Instances{
