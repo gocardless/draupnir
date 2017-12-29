@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
+	"github.com/gocardless/draupnir/logging"
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/gocardless/draupnir/store"
@@ -30,6 +32,7 @@ type Config struct {
 	TlsCertificatePath     string `required:"true" split_words:"true"`
 	TlsPrivateKeyPath      string `required:"true" split_words:"true"`
 	TrustedUserEmailDomain string `required:"true" split_words:"true"`
+	SentryDsn              string `required:"false" split_words:"true"`
 }
 
 func main() {
@@ -42,6 +45,17 @@ func main() {
 	db, err := sql.Open("postgres", c.DatabaseUrl)
 	if err != nil {
 		log.Fatalf("Cannot connect to database: %s", err.Error())
+	}
+
+	baseLogger := log.New(os.Stdout, "", log.LstdFlags)
+	var logger logging.Logger
+	if c.SentryDsn != "" {
+		logger, err = logging.NewSentryLogger(baseLogger, c.SentryDsn)
+		if err != nil {
+			log.Panicf("Could not initialise sentry-raven client: %s", err.Error())
+		}
+	} else {
+		logger = logging.NewStandardLogger(baseLogger)
 	}
 
 	oauthConfig := oauth2.Config{
