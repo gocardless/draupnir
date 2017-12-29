@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/gocardless/draupnir/logging"
 	"github.com/google/jsonapi"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -19,6 +19,7 @@ const OAUTH_CALLBACK_TIMEOUT = time.Minute
 type AccessTokens struct {
 	Callbacks map[string]chan OAuthCallback
 	Client    OAuthClient
+	Logger    logging.Logger
 }
 
 type OAuthCallback struct {
@@ -67,7 +68,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	var req createAccessTokenRequest
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		log.Print(err.Error())
+		a.Logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
 		return
 	}
@@ -81,7 +82,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	delete(a.Callbacks, state)
 
 	if err != nil {
-		log.Print(err.Error())
+		a.Logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, oauthError) // TODO: improve error
 		return
 	}
@@ -89,7 +90,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
-		log.Print(err.Error())
+		a.Logger.Error(err)
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -116,13 +117,14 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 
 	callback := a.Callbacks[state]
 	if callback == nil {
-		log.Printf("Cannot find oauth callback with state %v", state)
+		a.Logger.Info(fmt.Sprintf("Cannot find oauth callback with state %v", state))
 		return
 	}
 
 	if respError != "" {
 		err := errors.New(respError)
 		callback <- OAuthCallback{Error: err}
+		a.Logger.Error(err)
 		oauthCallbackError(w, err)
 		return
 	}
@@ -130,6 +132,7 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 	if respCode == "" {
 		err := fmt.Errorf("OAuth callback response code is empty")
 		callback <- OAuthCallback{Error: err}
+		a.Logger.Error(err)
 		oauthCallbackError(w, err)
 		return
 	}
@@ -141,6 +144,7 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := fmt.Errorf("Token exchange error: %s", err.Error())
 		callback <- OAuthCallback{Error: err}
+		a.Logger.Error(err)
 		oauthCallbackError(w, err)
 		return
 	}

@@ -104,6 +104,7 @@ func main() {
 	accessTokenRouteSet := routes.AccessTokens{
 		Callbacks: make(map[string]chan routes.OAuthCallback),
 		Client:    &oauthConfig,
+		Logger:    logger,
 	}
 
 	router := mux.NewRouter()

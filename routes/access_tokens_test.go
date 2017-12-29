@@ -110,8 +110,9 @@ func TestCallbackWithResponseError(t *testing.T) {
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
+	logger := FakeLogger{}
 
-	routeSet := AccessTokens{Callbacks: callbacks}
+	routeSet := AccessTokens{Callbacks: callbacks, Logger: &logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/oauth_callback", routeSet.Callback)
 	recorder := httptest.NewRecorder()
@@ -125,6 +126,7 @@ func TestCallbackWithResponseError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	assert.Contains(t, responseBody.String(), "There was an error")
+	assert.Equal(t, logger.errors[0], errors.New("some_error"))
 
 	select {
 	case result := <-callback:
@@ -151,7 +153,9 @@ func TestCallbackWithEmptyResponseCode(t *testing.T) {
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	routeSet := AccessTokens{Callbacks: callbacks}
+	logger := FakeLogger{}
+
+	routeSet := AccessTokens{Callbacks: callbacks, Logger: &logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/oauth_callback", routeSet.Callback)
 	recorder := httptest.NewRecorder()
@@ -166,6 +170,7 @@ func TestCallbackWithEmptyResponseCode(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	assert.Contains(t, responseBody.String(), "There was an error")
 	assert.Contains(t, responseBody.String(), "OAuth callback response code is empty")
+	assert.Equal(t, logger.errors[0], errors.New("OAuth callback response code is empty"))
 
 	select {
 	case result := <-callback:
@@ -199,7 +204,9 @@ func TestCallbackWithFailedTokenExchange(t *testing.T) {
 		},
 	}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient}
+	logger := FakeLogger{}
+
+	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient, Logger: &logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/oauth_callback", routeSet.Callback)
 	recorder := httptest.NewRecorder()
@@ -214,6 +221,7 @@ func TestCallbackWithFailedTokenExchange(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	assert.Contains(t, responseBody.String(), "There was an error")
 	assert.Contains(t, responseBody.String(), "token exchange failed")
+	assert.Equal(t, logger.errors[0], errors.New("Token exchange error: token exchange failed"))
 
 	select {
 	case result := <-callback:
@@ -250,7 +258,9 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 		},
 	}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient}
+	logger := FakeLogger{}
+
+	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient, Logger: &logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/oauth_callback", routeSet.Callback)
 	recorder := httptest.NewRecorder()
@@ -265,6 +275,7 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	assert.Contains(t, responseBody.String(), "There was an error")
 	assert.Contains(t, responseBody.String(), "timeout")
+	assert.Equal(t, logger.errors[0], errors.New("Token exchange error: timeout"))
 
 	select {
 	case result := <-callback:
