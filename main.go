@@ -3,15 +3,15 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
+	"github.com/evalphobia/logrus_sentry"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
-	"github.com/gocardless/draupnir/logging"
 	"github.com/gocardless/draupnir/routes"
 	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/gocardless/draupnir/store"
@@ -47,17 +47,21 @@ func main() {
 		log.Fatalf("Cannot connect to database: %s", err.Error())
 	}
 
-	// If DRAUPNIR_SENTRY_DSN is provided, use SentryLogger
-	// Otherwise, use StandardLogger
-	baseLogger := log.New(os.Stdout, "", log.LstdFlags)
-	var logger logging.Logger
+	logger := log.With("app", "draupnir")
+
 	if c.SentryDsn != "" {
-		logger, err = logging.NewSentryLogger(baseLogger, c.SentryDsn)
+		hook, err := logrus_sentry.NewSentryHook(c.SentryDsn, []logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+		})
+
 		if err != nil {
-			log.Panicf("Could not initialise sentry-raven client: %s", err.Error())
+			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
 		}
-	} else {
-		logger = logging.NewStandardLogger(baseLogger)
+
+		hook.StacktraceConfiguration.Enable = true
+		log.AddHook(hook)
 	}
 
 	oauthConfig := oauth2.Config{
@@ -90,7 +94,7 @@ func main() {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger,
+		Logger:        logger.With("resource", "images"),
 	}
 
 	instanceRouteSet := routes.Instances{
@@ -98,13 +102,13 @@ func main() {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger,
+		Logger:        logger.With("resource", "instances"),
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
 		Callbacks: make(map[string]chan routes.OAuthCallback),
 		Client:    &oauthConfig,
-		Logger:    logger,
+		Logger:    logger.With("resource", "access_tokens"),
 	}
 
 	router := mux.NewRouter()

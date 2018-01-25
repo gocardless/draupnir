@@ -10,6 +10,7 @@ import (
 	"github.com/gocardless/draupnir/models"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,6 +56,7 @@ func TestInstanceCreate(t *testing.T) {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: AllowAll{},
+		Logger:        log.NewNopLogger(),
 	}
 	routeSet.Create(recorder, req)
 
@@ -102,6 +104,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: AllowAll{},
+		Logger:        log.NewNopLogger(),
 	}
 	routeSet.Create(recorder, req)
 
@@ -118,16 +121,16 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(&request)
 	req := httptest.NewRequest("POST", "/instances", body)
-	logger := FakeLogger{}
+	logger, output := NewFakeLogger()
 
-	Instances{Authenticator: AllowAll{}, Logger: &logger}.Create(recorder, req)
+	Instances{Authenticator: AllowAll{}, Logger: logger}.Create(recorder, req)
 
 	var response APIError
 	decodeJSON(recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, invalidJSONError, response)
-	assert.Contains(t, logger.lines[0], "not a jsonapi representation")
+	assert.Contains(t, output.String(), "not a jsonapi representation")
 }
 
 func TestInstanceCreateWithInvalidImageID(t *testing.T) {
@@ -135,14 +138,14 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	request := createInstanceRequest{ImageID: "garbage"}
 	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
-	logger := FakeLogger{}
+	logger, output := NewFakeLogger()
 
 	req := httptest.NewRequest("POST", "/instances", body)
 
 	routeSet := Instances{
 		Executor:      FakeExecutor{},
 		Authenticator: AllowAll{},
-		Logger:        &logger,
+		Logger:        logger,
 	}
 	routeSet.Create(recorder, req)
 
@@ -151,7 +154,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, badImageIDError, response)
-	assert.Contains(t, logger.lines[0], "parsing \"garbage\": invalid syntax")
+	assert.Contains(t, output.String(), "parsing \\\"garbage\\\": invalid syntax")
 }
 
 func TestInstanceList(t *testing.T) {
@@ -281,7 +284,7 @@ func TestInstanceDestroy(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}, Logger: log.NewNopLogger()}
 	router := mux.NewRouter()
 	router.HandleFunc("/instances/{id}", routeSet.Destroy).Methods("DELETE")
 	router.ServeHTTP(recorder, req)

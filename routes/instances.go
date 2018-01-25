@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/common/log"
+
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
-	"github.com/gocardless/draupnir/logging"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/store"
 	"github.com/google/jsonapi"
@@ -21,7 +22,7 @@ type Instances struct {
 	ImageStore    store.ImageStore
 	Executor      exec.Executor
 	Authenticator auth.Authenticator
-	Logger        logging.Logger
+	Logger        log.Logger
 }
 
 type createInstanceRequest struct {
@@ -73,13 +74,13 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to create instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
 	if err := i.Executor.CreateInstance(imageID, instance.ID, instance.Port); err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to create instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -87,7 +88,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -103,7 +104,7 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 
 	instances, err := i.InstanceStore.List()
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to list instances")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -119,7 +120,7 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 
 	err = jsonapi.MarshalManyPayload(w, _instances)
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal instances")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -142,7 +143,7 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		i.Logger.With("instance", id).Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
@@ -154,7 +155,8 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
 
 	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
+			Error("failed to marshal instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -177,7 +179,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		i.Logger.With("instance", id).Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}
@@ -187,16 +189,19 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	i.Logger.With("instance", id).Info("destroying instance")
 	err = i.InstanceStore.Destroy(instance)
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
+			Info("failed to destroy instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
 
 	err = i.Executor.DestroyInstance(instance.ID)
 	if err != nil {
-		i.Logger.Error(err)
+		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
+			Info("failed to destroy instance")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
