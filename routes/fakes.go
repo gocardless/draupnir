@@ -2,13 +2,17 @@ package routes
 
 import (
 	"bytes"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/routes/chain"
 )
 
 func NewFakeLogger() (log.Logger, *bytes.Buffer) {
@@ -133,4 +137,30 @@ func fakeOauthConfig() *oauth2.Config {
 		},
 		RedirectURL: "https://draupnir.org/redirect",
 	}
+}
+
+type FakeErrorHandler struct {
+	Error error
+}
+
+func (f *FakeErrorHandler) Handle(h chain.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := h(w, r)
+		f.Error = err
+	}
+}
+
+// This function is used in tests to construct an HTTP request, response
+// recorder and a fake logger
+func createRequest(t *testing.T, method string, path string, body io.Reader) (*http.Request, *httptest.ResponseRecorder, *bytes.Buffer) {
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger, output := NewFakeLogger()
+	ctx := req.Context()
+	req = req.WithContext(context.WithValue(ctx, loggerKey, &logger))
+	return req, recorder, output
 }

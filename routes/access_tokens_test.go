@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -17,19 +16,16 @@ import (
 )
 
 func TestAuthenticate(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/authenticate?state=foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, _ := createRequest(t, "GET", "/authenticate?state=foo", nil)
 
 	routeSet := AccessTokens{
 		Callbacks: make(map[string]chan OAuthCallback),
 		Client:    fakeOauthConfig(),
 	}
 
+	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
-	router.HandleFunc("/authenticate", routeSet.Authenticate)
+	router.HandleFunc("/authenticate", errorHandler.Handle(routeSet.Authenticate))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
@@ -45,6 +41,7 @@ func TestAuthenticate(t *testing.T) {
 	assert.Equal(t, http.StatusFound, response.StatusCode)
 	assert.Equal(t, []string{expectedRedirect}, response.Header["Location"])
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestCallback(t *testing.T) {
@@ -54,10 +51,7 @@ func TestCallback(t *testing.T) {
 
 	path := oauthCallbackPath(state, code, _error)
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, logs := createRequest(t, "GET", path, nil)
 
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
@@ -70,22 +64,25 @@ func TestCallback(t *testing.T) {
 		},
 	}
 
+	errorHandler := FakeErrorHandler{}
+
 	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/oauth_callback", routeSet.Callback)
-	recorder := httptest.NewRecorder()
+	router.HandleFunc("/oauth_callback", errorHandler.Handle(routeSet.Callback))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
 	responseBody := bytes.Buffer{}
-	if _, err = responseBody.ReadFrom(response.Body); err != nil {
+	if _, err := responseBody.ReadFrom(response.Body); err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, []string{"text/html"}, response.Header["Content-Type"])
 	assert.Contains(t, responseBody.String(), "Success!")
+	assert.Empty(t, logs.String())
+	assert.Nil(t, errorHandler.Error)
 
 	select {
 	case result := <-callback:
@@ -102,36 +99,32 @@ func TestCallbackWithResponseError(t *testing.T) {
 
 	path := oauthCallbackPath(state, code, _error)
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, _ := createRequest(t, "GET", path, nil)
 
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Logger: logger}
+	routeSet := AccessTokens{Callbacks: callbacks}
 	router := mux.NewRouter()
-	router.HandleFunc("/oauth_callback", routeSet.Callback)
-	recorder := httptest.NewRecorder()
+	router.HandleFunc("/oauth_callback", errorHandler.Handle(routeSet.Callback))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
 	responseBody := bytes.Buffer{}
-	if _, err = responseBody.ReadFrom(response.Body); err != nil {
+	if _, err := responseBody.ReadFrom(response.Body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
-	assert.Contains(t, responseBody.String(), "There was an error")
-	assert.Contains(t, output.String(), "error=some_error")
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Empty(t, responseBody.String())
+	assert.Equal(t, "some_error", errorHandler.Error.Error())
 
 	select {
 	case result := <-callback:
-		err = result.Error
+		err := result.Error
 		assert.Equal(t, _error, err.Error())
 	default:
 		t.Fatal("Received nothing in channel")
@@ -145,37 +138,33 @@ func TestCallbackWithEmptyResponseCode(t *testing.T) {
 
 	path := oauthCallbackPath(state, code, _error)
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, logs := createRequest(t, "GET", path, nil)
 
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Logger: logger}
+	routeSet := AccessTokens{Callbacks: callbacks}
 	router := mux.NewRouter()
-	router.HandleFunc("/oauth_callback", routeSet.Callback)
-	recorder := httptest.NewRecorder()
+	router.HandleFunc("/oauth_callback", errorHandler.Handle(routeSet.Callback))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
 	responseBody := bytes.Buffer{}
-	if _, err = responseBody.ReadFrom(response.Body); err != nil {
+	if _, err := responseBody.ReadFrom(response.Body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
-	assert.Contains(t, responseBody.String(), "There was an error")
-	assert.Contains(t, responseBody.String(), "OAuth callback response code is empty")
-	assert.Contains(t, output.String(), "msg=\"empty oauth response code\"")
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Empty(t, responseBody.String())
+	assert.Contains(t, logs.String(), "msg=\"empty oauth response code\"")
+	assert.Equal(t, "OAuth callback response code is empty", errorHandler.Error.Error())
 
 	select {
 	case result := <-callback:
-		err = result.Error
+		err := result.Error
 		assert.Equal(t, "OAuth callback response code is empty", err.Error())
 	default:
 		t.Fatal("Received nothing in channel")
@@ -189,10 +178,7 @@ func TestCallbackWithFailedTokenExchange(t *testing.T) {
 
 	path := oauthCallbackPath(state, code, _error)
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, logs := createRequest(t, "GET", path, nil)
 
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
@@ -205,28 +191,27 @@ func TestCallbackWithFailedTokenExchange(t *testing.T) {
 		},
 	}
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient, Logger: logger}
+	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient}
 	router := mux.NewRouter()
-	router.HandleFunc("/oauth_callback", routeSet.Callback)
-	recorder := httptest.NewRecorder()
+	router.HandleFunc("/oauth_callback", errorHandler.Handle(routeSet.Callback))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
 	responseBody := bytes.Buffer{}
-	if _, err = responseBody.ReadFrom(response.Body); err != nil {
+	if _, err := responseBody.ReadFrom(response.Body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
-	assert.Contains(t, responseBody.String(), "There was an error")
-	assert.Contains(t, responseBody.String(), "token exchange failed")
-	assert.Contains(t, output.String(), "token exchange error: token exchange failed")
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Empty(t, responseBody.String())
+	assert.Empty(t, logs.String())
+	assert.Equal(t, "token exchange error: token exchange failed", errorHandler.Error.Error())
 
 	select {
 	case result := <-callback:
-		err = result.Error
+		err := result.Error
 		assert.Equal(t, "token exchange error: token exchange failed", err.Error())
 	default:
 		t.Fatal("Received nothing in channel")
@@ -240,10 +225,7 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 
 	path := oauthCallbackPath(state, code, _error)
 
-	req, err := http.NewRequest("GET", path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, recorder, logs := createRequest(t, "GET", path, nil)
 
 	// Set the request to time out immediately
 	ctx, _ := context.WithTimeout(req.Context(), 0)
@@ -263,28 +245,27 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 		},
 	}
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
-	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient, Logger: logger}
+	routeSet := AccessTokens{Callbacks: callbacks, Client: &oauthClient}
 	router := mux.NewRouter()
-	router.HandleFunc("/oauth_callback", routeSet.Callback)
-	recorder := httptest.NewRecorder()
+	router.HandleFunc("/oauth_callback", errorHandler.Handle(routeSet.Callback))
 	router.ServeHTTP(recorder, req)
 	response := recorder.Result()
 
 	responseBody := bytes.Buffer{}
-	if _, err = responseBody.ReadFrom(response.Body); err != nil {
+	if _, err := responseBody.ReadFrom(response.Body); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
-	assert.Contains(t, responseBody.String(), "There was an error")
-	assert.Contains(t, responseBody.String(), "timeout")
-	assert.Contains(t, output.String(), "msg=\"token exchange error: timeout\"")
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Empty(t, responseBody.String())
+	assert.Empty(t, logs.String())
+	assert.Equal(t, errorHandler.Error.Error(), "token exchange error: timeout")
 
 	select {
 	case result := <-callback:
-		err = result.Error
+		err := result.Error
 		assert.Equal(t, "token exchange error: timeout", err.Error())
 	default:
 		t.Fatal("Received nothing in channel")

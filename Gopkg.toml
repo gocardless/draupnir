@@ -68,7 +68,3 @@
 [[constraint]]
   branch = "master"
   name = "github.com/prometheus/common"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/evalphobia/logrus_sentry"

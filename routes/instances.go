@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/common/log"
+	"github.com/pkg/errors"
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
@@ -22,44 +22,48 @@ type Instances struct {
 	ImageStore    store.ImageStore
 	Executor      exec.Executor
 	Authenticator auth.Authenticator
-	Logger        log.Logger
 }
 
 type CreateInstanceRequest struct {
 	ImageID string `jsonapi:"attr,image_id"`
 }
 
-func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
+func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	req := CreateInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
-		return
+		return nil
 	}
 
 	imageID, err := strconv.Atoi(req.ImageID)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, badImageIDError)
-		return
+		return nil
 	}
 
 	image, err := i.ImageStore.Get(imageID)
 	if err != nil {
 		RenderError(w, http.StatusNotFound, imageNotFoundError)
-		return
+		return nil
 	}
 
 	if !image.Ready {
 		RenderError(w, http.StatusUnprocessableEntity, unreadyImageError)
-		return
+		return nil
 	}
 
 	instance := models.NewInstance(imageID, email)
@@ -69,44 +73,43 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
-			i.Logger.Info(err.Error())
+			logger.Info(err.Error())
 			RenderError(w, http.StatusNotFound, imageNotFoundError)
-			return
+			return nil
 		}
 
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to create instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to create instance")
 	}
 
 	if err := i.Executor.CreateInstance(imageID, instance.ID, instance.Port); err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to create instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to create instance")
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to marshal instance")
 	}
+
+	return nil
 }
 
-func (i Instances) List(w http.ResponseWriter, r *http.Request) {
+func (i Instances) List(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	instances, err := i.InstanceStore.List()
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to list instances")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to get instances")
 	}
 
 	// Build a slice of pointers to our images, because this is what jsonapi wants
@@ -118,95 +121,95 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = jsonapi.MarshalManyPayload(w, _instances)
-	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal instances")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
-	}
+	return errors.Wrap(
+		jsonapi.MarshalManyPayload(w, _instances),
+		"failed to marshal instances",
+	)
 }
 
-func (i Instances) Get(w http.ResponseWriter, r *http.Request) {
+func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
-		i.Logger.With("instance", id).Info(err.Error())
+		logger.With("instance", id).Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	if email != instance.UserEmail {
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
-	err = jsonapi.MarshalOnePayload(w, &instance)
-	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
-			Error("failed to marshal instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
-	}
+	return errors.Wrap(
+		jsonapi.MarshalOnePayload(w, &instance),
+		"failed to marshal instance",
+	)
 }
 
-func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
+func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
-		i.Logger.With("instance", id).Info(err.Error())
+		logger.With("instance", id).Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	if email != auth.UPLOAD_USER_EMAIL && email != instance.UserEmail {
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
-	i.Logger.With("instance", id).Info("destroying instance")
+	logger.With("instance", id).Info("destroying instance")
 	err = i.InstanceStore.Destroy(instance)
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
-			Info("failed to destroy instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to destroy instance")
 	}
 
 	err = i.Executor.DestroyInstance(instance.ID)
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).With("instance", id).
-			Info("failed to destroy instance")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to destroy instance")
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
 func generateRandomPort() int {

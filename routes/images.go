@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/common/log"
+	"github.com/pkg/errors"
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
@@ -21,52 +21,59 @@ type Images struct {
 	InstanceStore store.InstanceStore
 	Executor      exec.Executor
 	Authenticator auth.Authenticator
-	Logger        log.Logger
 }
 
-func (i Images) Get(w http.ResponseWriter, r *http.Request) {
-	_, err := i.Authenticator.AuthenticateRequest(r)
+func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		return err
+	}
+
+	_, err = i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	err = jsonapi.MarshalOnePayload(w, &image)
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal payload")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to marshal payload")
 	}
+
+	return nil
 }
 
-func (i Images) List(w http.ResponseWriter, r *http.Request) {
-	_, err := i.Authenticator.AuthenticateRequest(r)
+func (i Images) List(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		return err
+	}
+
+	_, err = i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	images, err := i.ImageStore.List()
 	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to get images")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to get images")
 	}
 
 	// Build a slice of pointers to our images, because this is what jsonapi wants
@@ -75,12 +82,10 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 		_images = append(_images, &images[i])
 	}
 
-	err = jsonapi.MarshalManyPayload(w, _images)
-	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal images")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
-	}
+	return errors.Wrap(
+		jsonapi.MarshalManyPayload(w, _images),
+		"failed to marshal images",
+	)
 }
 
 type CreateImageRequest struct {
@@ -88,110 +93,116 @@ type CreateImageRequest struct {
 	Anon       string    `jsonapi:"attr,anonymisation_script"`
 }
 
-func (i Images) Create(w http.ResponseWriter, r *http.Request) {
-	_, err := i.Authenticator.AuthenticateRequest(r)
+func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		return err
+	}
+
+	_, err = i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	req := CreateImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
-		return
+		return nil
 	}
 
 	image := models.NewImage(req.BackedUpAt, req.Anon)
 	image, err = i.ImageStore.Create(image)
 	if err != nil {
-		i.Logger.With("error", err.Error()).Error("failed to create new image")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to create new image")
 	}
 
 	if err := i.Executor.CreateBtrfsSubvolume(image.ID); err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to create btrfs subvolume")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to create btrfs subvolume")
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	if err := jsonapi.MarshalOnePayload(w, &image); err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal image")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to marshal image")
 	}
+
+	return nil
 }
 
-func (i Images) Done(w http.ResponseWriter, r *http.Request) {
-	_, err := i.Authenticator.AuthenticateRequest(r)
+func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		return err
+	}
+
+	_, err = i.Authenticator.AuthenticateRequest(r)
+	if err != nil {
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	if !image.Ready {
 		err = i.Executor.FinaliseImage(image)
 		if err != nil {
-			i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal image")
-			RenderError(w, http.StatusInternalServerError, internalServerError)
-			return
+			return errors.Wrap(err, "failed to finalise image")
 		}
 
 		image, err = i.ImageStore.MarkAsReady(image)
 		if err != nil {
-			i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to mark image as ready")
-			RenderError(w, http.StatusInternalServerError, internalServerError)
-			return
+			return errors.Wrap(err, "failed to mark image as ready")
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = jsonapi.MarshalOnePayload(w, &image)
-	if err != nil {
-		i.Logger.With("error", err.Error()).With("http_request", r).Error("failed to marshal image")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
-	}
+
+	return errors.Wrap(
+		jsonapi.MarshalOnePayload(w, &image),
+		"failed to marshal image",
+	)
 }
 
-func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
+func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	email, err := i.Authenticator.AuthenticateRequest(r)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return
+		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
-		i.Logger.Info(err.Error())
+		logger.Info(err.Error())
 		RenderError(w, http.StatusNotFound, notFoundError)
-		return
+		return nil
 	}
 
 	if email == auth.UPLOAD_USER_EMAIL {
@@ -201,46 +212,40 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) {
 			if instance.ImageID != id {
 				continue
 			}
-			i.Logger.With("instance", instance.ID).Info("destroying instance")
+			logger.With("instance", instance.ID).Info("destroying instance")
 			err = i.InstanceStore.Destroy(instance)
 			if err == nil {
 				err = i.Executor.DestroyInstance(instance.ID)
 			}
 			if err != nil {
-				i.Logger.With("error", err.Error()).Error("failed to destroy instance")
-				RenderError(w, http.StatusInternalServerError, internalServerError)
-				return
+				return errors.Wrap(err, "failed to destroy instance")
 			}
 		}
 	}
 
-	i.Logger.With("image", id).Error("destroying image")
+	logger.With("image", id).Info("destroying image")
 	err = i.ImageStore.Destroy(image)
 	if err != nil {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
-			i.Logger.With("image", id).Info("cannot destroy image with instances")
+			logger.With("image", id).Info("cannot destroy image with instances")
 			RenderError(
 				w,
 				http.StatusUnprocessableEntity,
 				cannotDeleteImageWithInstancesError,
 			)
-			return
+			return nil
 		}
 
-		i.Logger.With("image", id).With("error", err).With("http_request", r).
-			Error("failed to destroy image")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to destroy image")
 	}
 
 	err = i.Executor.DestroyImage(id)
 	if err != nil {
-		i.Logger.With("image", id).With("error", err).With("http_request", r).
-			Error("failed to destroy image")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to destroy image")
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+
+	return nil
 }

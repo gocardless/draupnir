@@ -1,47 +1,79 @@
 package chain
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-// Middleware is a function that takes a HTTP handler
-// and returns a modified http handler
-type Middleware func(http.HandlerFunc) http.HandlerFunc
+// Handler is like http.HandlerFunc, but returns an error indicating a failure
+// during process the request. This can be used for cases when the application
+// wishes to serve a 500 Internal Server Error.
+type Handler func(http.ResponseWriter, *http.Request) error
 
+// Middleware is a function that takes a Handler and returns a Handler
+// It describes a transformation on the request/response
+// Middleware can short-circuit the chain by not calling the passed in handler.
+type Middleware func(Handler) Handler
+
+// TerminatingMiddleware should sit at the top of the middleware chain, and
+// converts a Handler (which returns an error) into a standard http.HandlerFunc
+// which can be given to things like mux.Router.
+type TerminatingMiddleware func(Handler) http.HandlerFunc
+
+// Chain represents a "chain" of middlewares through which a request can be
+// threaded. Each middleware can modify the request/response and is responsible
+// for calling the next middleware in the chain. The errorHandler is the last
+// middleware in the chain, and converts it from a chain.Handler to a
+// http.HandlerFunc.
 type Chain struct {
-	route       *mux.Route
-	middlewares []Middleware
+	route        *mux.Route
+	middlewares  []Middleware
+	errorHandler TerminatingMiddleware
 }
 
-func nullMiddleware(h http.HandlerFunc) http.HandlerFunc {
+func nullMiddleware(h Handler) Handler {
 	return h
 }
 
 // New constructs an empty Chain
-func New() Chain {
-	return Chain{route: &mux.Route{}, middlewares: []Middleware{nullMiddleware}}
+func New(errorHandler TerminatingMiddleware) Chain {
+	if errorHandler == nil {
+		log.Panicf("Cannot create chain without errorHandler")
+	}
+
+	return Chain{
+		route:        &mux.Route{},
+		middlewares:  []Middleware{nullMiddleware},
+		errorHandler: errorHandler,
+	}
 }
 
-// FromRoute constructs an empty Chain from a mux Route
-func FromRoute(r *mux.Route) Chain {
-	return Chain{route: r, middlewares: []Middleware{nullMiddleware}}
+// Route adds a mux route to the Chain
+func (c Chain) Route(r *mux.Route) Chain {
+	return Chain{
+		route:        r,
+		middlewares:  c.middlewares,
+		errorHandler: c.errorHandler,
+	}
 }
 
 // Add adds a middleware to a Chain
 func (c Chain) Add(m Middleware) Chain {
-	return Chain{middlewares: append(c.middlewares, m), route: c.route}
+	return Chain{middlewares: append(c.middlewares, m), route: c.route, errorHandler: c.errorHandler}
 }
 
-// ToRoute converts the Chain to a normal HTTP handler and binds it to the route
-func (c Chain) ToRoute(routeHandler http.HandlerFunc) {
-	c.route.HandlerFunc(c.ToMiddleware()(routeHandler))
+// Resolve converts the Chain to a normal HTTP handler and binds it to the route
+func (c Chain) Resolve(routeHandler Handler) {
+	c.route.HandlerFunc(
+		c.errorHandler(c.ToMiddleware()(routeHandler)),
+	)
 }
 
 // ToMiddleware returns the middleware of a Chain
 func (c Chain) ToMiddleware() Middleware {
-	return func(h http.HandlerFunc) http.HandlerFunc {
+	return func(h Handler) Handler {
 		for i := len(c.middlewares) - 1; i >= 0; i-- {
 			m := c.middlewares[i]
 			h = m(h)

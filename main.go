@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/evalphobia/logrus_sentry"
+	raven "github.com/getsentry/raven-go"
 	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/auth"
@@ -39,32 +38,19 @@ type Config struct {
 }
 
 func main() {
+	logger := log.With("app", "draupnir")
+
 	var c Config
 	err := envconfig.Process("draupnir", &c)
 	if err != nil {
-		log.Fatal(err.Error())
+		logger.With("error", err.Error()).Fatal("Could not read config")
 	}
+
+	logger = log.With("environment", c.Environment)
 
 	db, err := sql.Open("postgres", c.DatabaseUrl)
 	if err != nil {
-		log.Fatalf("Cannot connect to database: %s", err.Error())
-	}
-
-	logger := log.With("app", "draupnir")
-
-	if c.SentryDsn != "" {
-		hook, err := logrus_sentry.NewSentryHook(c.SentryDsn, []logrus.Level{
-			logrus.PanicLevel,
-			logrus.FatalLevel,
-			logrus.ErrorLevel,
-		})
-
-		if err != nil {
-			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
-		}
-
-		hook.StacktraceConfiguration.Enable = true
-		log.AddHook(hook)
+		logger.With("error", err.Error()).Fatal("Could not connect to database")
 	}
 
 	oauthConfig := oauth2.Config{
@@ -97,7 +83,6 @@ func main() {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger.With("resource", "images"),
 	}
 
 	instanceRouteSet := routes.Instances{
@@ -105,102 +90,106 @@ func main() {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger.With("resource", "instances"),
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
 		Callbacks: make(map[string]chan routes.OAuthCallback),
 		Client:    &oauthConfig,
-		Logger:    logger.With("resource", "access_tokens"),
 	}
+
+	errorHandler := routes.NewErrorHandler(logger)
+
+	if c.SentryDsn != "" {
+		sentryClient, err := raven.New(c.SentryDsn)
+		if err != nil {
+			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
+		}
+
+		errorHandler = routes.NewSentryErrorHandler(logger, sentryClient)
+	}
+
+	asJSON := func(next chain.Handler) chain.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
+			w.Header().Set("Content-Type", "application/json")
+			next(w, r)
+			return nil
+		}
+	}
+	withVersion := func(next chain.Handler) chain.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
+			w.Header().Set("Draupnir-Version", version.Version)
+			next(w, r)
+			return nil
+		}
+	}
+
+	logRequest := routes.NewRequestLogger(logger)
+	withErrorHandler := chain.New(errorHandler)
+
+	defaultChain := withErrorHandler.
+		Add(logRequest).
+		Add(withVersion).
+		Add(asJSON).
+		Add(routes.CheckAPIVersion(version.Version))
 
 	router := mux.NewRouter()
 
-	asJSON := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			next(w, r)
-		}
-	}
-	withVersion := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Draupnir-Version", version.Version)
-			next(w, r)
-		}
-	}
-
-	defaultChain := chain.
-		New().
-		Add(routes.LogRequest).
+	withErrorHandler.
+		Route(router.Methods("GET").Path("/health_check")).
+		Add(logRequest).
 		Add(withVersion).
 		Add(asJSON).
-		Add(routes.CheckAPIVersion(version.Version)).
-		ToMiddleware()
+		Resolve(routes.HealthCheck)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/health_check")).
-		Add(routes.LogRequest).
-		Add(withVersion).
-		Add(asJSON).
-		ToRoute(routes.HealthCheck)
+	withErrorHandler.
+		Route(router.Methods("GET").Path("/authenticate")).
+		Add(logRequest).
+		Resolve(accessTokenRouteSet.Authenticate)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/authenticate")).
-		ToRoute(accessTokenRouteSet.Authenticate)
+	chain.New(routes.HandleOAuthError).
+		Route(router.Methods("GET").Path("/oauth_callback")).
+		Add(logRequest).
+		Resolve(accessTokenRouteSet.Callback)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/oauth_callback")).
-		ToRoute(accessTokenRouteSet.Callback)
+	defaultChain.
+		Route(router.Methods("POST").Path("/access_tokens")).
+		Resolve(accessTokenRouteSet.Create)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/access_tokens")).
-		Add(defaultChain).
-		ToRoute(accessTokenRouteSet.Create)
+	defaultChain.
+		Route(router.Methods("GET").Path("/images")).
+		Resolve(imageRouteSet.List)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/images")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.List)
+	defaultChain.
+		Route(router.Methods("POST").Path("/images")).
+		Resolve(imageRouteSet.Create)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/images")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Create)
+	defaultChain.
+		Route(router.Methods("GET").Path("/images/{id}")).
+		Resolve(imageRouteSet.Get)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/images/{id}")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Get)
+	defaultChain.
+		Route(router.Methods("POST").Path("/images/{id}/done")).
+		Resolve(imageRouteSet.Done)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/images/{id}/done")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Done)
+	defaultChain.
+		Route(router.Methods("DELETE").Path("/images/{id}")).
+		Resolve(imageRouteSet.Destroy)
 
-	chain.
-		FromRoute(router.Methods("DELETE").Path("/images/{id}")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Destroy)
+	defaultChain.
+		Route(router.Methods("GET").Path("/instances")).
+		Resolve(instanceRouteSet.List)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/instances")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.List)
+	defaultChain.
+		Route(router.Methods("POST").Path("/instances")).
+		Resolve(instanceRouteSet.Create)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/instances")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Create)
+	defaultChain.
+		Route(router.Methods("GET").Path("/instances/{id}")).
+		Resolve(instanceRouteSet.Get)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/instances/{id}")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Get)
-
-	chain.
-		FromRoute(router.Methods("DELETE").Path("/instances/{id}")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Destroy)
+	defaultChain.
+		Route(router.Methods("DELETE").Path("/instances/{id}")).
+		Resolve(instanceRouteSet.Destroy)
 
 	var g run.Group
 

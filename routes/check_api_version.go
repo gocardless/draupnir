@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 
+	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/gocardless/draupnir/version"
 )
 
@@ -12,13 +13,13 @@ import (
 //
 // If the version doesn't match or the header is missing, it renders a 400 Bad
 // Request.
-func CheckAPIVersion(serverVersion string) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+func CheckAPIVersion(serverVersion string) chain.Middleware {
+	return func(next chain.Handler) chain.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
 			versions := r.Header["Draupnir-Version"]
 			if len(versions) == 0 {
 				RenderError(w, http.StatusBadRequest, missingApiVersion)
-				return
+				return nil
 			}
 
 			major, minor, _, err := version.ParseSemver(serverVersion)
@@ -31,11 +32,12 @@ func CheckAPIVersion(serverVersion string) func(http.HandlerFunc) http.HandlerFu
 
 				if err != nil || major != requestMajor || minor < requestMinor {
 					RenderError(w, http.StatusBadRequest, invalidApiVersion(requestVersion))
-					return
+					return nil
 				}
 			}
 
 			next(w, r)
+			return nil
 		}
 	}
 }
