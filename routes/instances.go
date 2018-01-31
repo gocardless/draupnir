@@ -184,7 +184,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if email != instance.UserEmail {
+	if email != auth.UPLOAD_USER_EMAIL && email != instance.UserEmail {
 		RenderError(w, http.StatusNotFound, notFoundError)
 		return
 	}

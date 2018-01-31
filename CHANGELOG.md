@@ -6,6 +6,10 @@ Unreleased
 
 No changes.
 
+1.3.0
+-----
+Allow the upload user to delete any instance via API
+
 1.2.0
 -----
 
