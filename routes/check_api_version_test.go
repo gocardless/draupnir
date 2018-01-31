@@ -9,71 +9,73 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckApiVersionWithNoVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-
-	CheckAPIVersion("1.0.0")(
-		func(w http.ResponseWriter, h *http.Request) {
-			t.Fatal("this route should never be called")
+func TestCheckApiVersion(t *testing.T) {
+	testCases := []struct {
+		name          string
+		headerVersion string
+		apiError      APIError
+		code          int
+	}{
+		{
+			"when version matches, calls handler",
+			"1.1.0",
+			APIError{},
+			http.StatusAccepted,
 		},
-	)(recorder, req)
-
-	assert.Equal(t, recorder.Code, http.StatusBadRequest)
-
-	var response APIError
-	err := json.NewDecoder(recorder.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
+		{
+			"when minor is lower, calls handler",
+			"1.0.0",
+			APIError{},
+			http.StatusAccepted,
+		},
+		{
+			"when minor is higher, responds with error",
+			"1.2.0",
+			invalidApiVersion("1.2.0"),
+			http.StatusBadRequest,
+		},
+		{
+			"when header major version is different, responds with error",
+			"0.1.0",
+			invalidApiVersion("0.1.0"),
+			http.StatusBadRequest,
+		},
+		{
+			"when header is missing, responds with error",
+			"",
+			missingApiVersion,
+			http.StatusBadRequest,
+		},
 	}
-	assert.Equal(t, response, missingApiVersion)
-}
 
-func TestCheckApiVersionWithHigherVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{"0.0.0"}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/foo", nil)
 
-	CheckAPIVersion("1.0.0")(
-		func(w http.ResponseWriter, h *http.Request) {
-			t.Fatal("this route should never be called")
-		},
-	)(recorder, req)
+			if tc.headerVersion != "" {
+				req.Header["Draupnir-Version"] = []string{tc.headerVersion}
+			}
 
-	assert.Equal(t, recorder.Code, http.StatusBadRequest)
+			CheckAPIVersion("1.1.0")(
+				func(w http.ResponseWriter, h *http.Request) {
+					if tc.apiError.ID != "" {
+						t.Fatal("this route should never be called")
+					}
 
-	var response APIError
-	err := json.NewDecoder(recorder.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
+					w.WriteHeader(http.StatusAccepted)
+				},
+			)(recorder, req)
+
+			if tc.apiError.ID != "" {
+				var response APIError
+				err := json.NewDecoder(recorder.Body).Decode(&response)
+
+				assert.Nil(t, err, "failed to decode response into APIError")
+				assert.EqualValues(t, tc.apiError, response)
+			}
+
+			assert.Equal(t, tc.code, recorder.Code)
+		})
 	}
-	assert.Equal(t, response, invalidApiVersion("0.0.0"))
-}
-
-func TestCheckApiVersionWithLowerMinorVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{"1.0.0"}
-
-	CheckAPIVersion("1.1.0")(
-		func(w http.ResponseWriter, h *http.Request) {
-			w.WriteHeader(http.StatusAccepted)
-		},
-	)(recorder, req)
-
-	assert.Equal(t, recorder.Code, http.StatusAccepted)
-}
-
-func TestCheckApiVersionWithMatchingVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{"1.0.0"}
-
-	CheckAPIVersion("1.0.0")(
-		func(w http.ResponseWriter, h *http.Request) {
-			w.WriteHeader(http.StatusAccepted)
-		},
-	)(recorder, req)
-
-	assert.Equal(t, recorder.Code, http.StatusAccepted)
 }
