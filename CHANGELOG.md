@@ -6,8 +6,15 @@ Unreleased
 
 No changes.
 
+1.2.0
+-----
+
+Additional logging for the draupnir server
+Support reporting exceptions to [Sentry](https://sentry.io) via the
+DRAUPNIR_SENTRY_DSN environment variable
+
 1.1.0
-----------
+-----
 
 Allow the trusted email domain to be specified via an environment variable.
 Fix a bug where the Draupnir-Version header would not be included in the API
