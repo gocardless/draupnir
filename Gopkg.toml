@@ -60,3 +60,15 @@
 [[constraint]]
   name = "github.com/burntsushi/toml"
   version = "0.3.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getsentry/raven-go"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/evalphobia/logrus_sentry"

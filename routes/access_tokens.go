@@ -2,13 +2,13 @@ package routes
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/google/jsonapi"
+	"github.com/pkg/errors"
+	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
@@ -19,6 +19,7 @@ const OAUTH_CALLBACK_TIMEOUT = time.Minute
 type AccessTokens struct {
 	Callbacks map[string]chan OAuthCallback
 	Client    OAuthClient
+	Logger    log.Logger
 }
 
 type OAuthCallback struct {
@@ -67,7 +68,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	var req createAccessTokenRequest
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		log.Print(err.Error())
+		a.Logger.With("error", err.Error()).Info("failed to unmarshal request")
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
 		return
 	}
@@ -81,7 +82,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	delete(a.Callbacks, state)
 
 	if err != nil {
-		log.Print(err.Error())
+		a.Logger.With("error", err.Error()).Info("oauth request failed")
 		RenderError(w, http.StatusBadRequest, oauthError) // TODO: improve error
 		return
 	}
@@ -89,7 +90,8 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
-		log.Print(err.Error())
+		a.Logger.With("error", err.Error()).With("http_request", r).
+			Error("failed to encode access token")
 		RenderError(w, http.StatusInternalServerError, internalServerError)
 		return
 	}
@@ -116,13 +118,14 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 
 	callback := a.Callbacks[state]
 	if callback == nil {
-		log.Printf("Cannot find oauth callback with state %v", state)
+		a.Logger.With("state", state).Info("cannot find oauth callback for state")
 		return
 	}
 
 	if respError != "" {
 		err := errors.New(respError)
 		callback <- OAuthCallback{Error: err}
+		a.Logger.With("http_request", r).Error(err)
 		oauthCallbackError(w, err)
 		return
 	}
@@ -130,6 +133,7 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 	if respCode == "" {
 		err := fmt.Errorf("OAuth callback response code is empty")
 		callback <- OAuthCallback{Error: err}
+		a.Logger.With("state", state).With("http_request", r).Error("empty oauth response code")
 		oauthCallbackError(w, err)
 		return
 	}
@@ -139,8 +143,9 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 	token, err := a.Client.Exchange(ctx, respCode)
 
 	if err != nil {
-		err := fmt.Errorf("Token exchange error: %s", err.Error())
+		err := errors.Wrap(err, "token exchange error")
 		callback <- OAuthCallback{Error: err}
+		a.Logger.With("http_request", r).Error(err.Error())
 		oauthCallbackError(w, err)
 		return
 	}

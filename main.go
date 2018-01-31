@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/evalphobia/logrus_sentry"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/auth"
@@ -30,6 +32,7 @@ type Config struct {
 	TlsCertificatePath     string `required:"true" split_words:"true"`
 	TlsPrivateKeyPath      string `required:"true" split_words:"true"`
 	TrustedUserEmailDomain string `required:"true" split_words:"true"`
+	SentryDsn              string `required:"false" split_words:"true"`
 }
 
 func main() {
@@ -42,6 +45,23 @@ func main() {
 	db, err := sql.Open("postgres", c.DatabaseUrl)
 	if err != nil {
 		log.Fatalf("Cannot connect to database: %s", err.Error())
+	}
+
+	logger := log.With("app", "draupnir")
+
+	if c.SentryDsn != "" {
+		hook, err := logrus_sentry.NewSentryHook(c.SentryDsn, []logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+		})
+
+		if err != nil {
+			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
+		}
+
+		hook.StacktraceConfiguration.Enable = true
+		log.AddHook(hook)
 	}
 
 	oauthConfig := oauth2.Config{
@@ -74,6 +94,7 @@ func main() {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
+		Logger:        logger.With("resource", "images"),
 	}
 
 	instanceRouteSet := routes.Instances{
@@ -81,11 +102,13 @@ func main() {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: authenticator,
+		Logger:        logger.With("resource", "instances"),
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
 		Callbacks: make(map[string]chan routes.OAuthCallback),
 		Client:    &oauthConfig,
+		Logger:    logger.With("resource", "access_tokens"),
 	}
 
 	router := mux.NewRouter()

@@ -1,13 +1,20 @@
 package routes
 
 import (
+	"bytes"
 	"net/http"
 
+	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
 )
+
+func NewFakeLogger() (log.Logger, *bytes.Buffer) {
+	var buffer bytes.Buffer
+	return log.NewLogger(&buffer), &buffer
+}
 
 type FakeImageStore struct {
 	_List        func() ([]models.Image, error)

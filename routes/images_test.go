@@ -64,10 +64,14 @@ func TestGetImageWhenAuthenticationFails(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(Images{Authenticator: authenticator}.Get)
+	logger, output := NewFakeLogger()
+	routeSet := Images{Authenticator: authenticator, Logger: logger}
+
+	handler := http.HandlerFunc(routeSet.Get)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	assert.Contains(t, output.String(), "Invalid email address")
 }
 
 func TestListImages(t *testing.T) {
@@ -141,7 +145,8 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	body := `{"this is": "not a valid JSON API request payload"}`
 	req := httptest.NewRequest("POST", "/images", strings.NewReader(body))
 
-	routeSet := Images{Authenticator: AllowAll{}}
+	logger, output := NewFakeLogger()
+	routeSet := Images{Authenticator: AllowAll{}, Logger: logger}
 	routeSet.Create(recorder, req)
 
 	var response APIError
@@ -149,6 +154,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, invalidJSONError, response)
+	assert.Contains(t, output.String(), "data is not a jsonapi representation")
 }
 
 func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
@@ -178,7 +184,14 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 			return errors.New("some btrfs error")
 		},
 	}
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	logger, output := NewFakeLogger()
+
+	routeSet := Images{
+		ImageStore:    store,
+		Executor:      executor,
+		Authenticator: AllowAll{},
+		Logger:        logger,
+	}
 	routeSet.Create(recorder, req)
 
 	var response APIError
@@ -186,6 +199,7 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	assert.Equal(t, internalServerError, response)
+	assert.Contains(t, output.String(), "error=\"some btrfs error\"")
 }
 
 func TestImageDone(t *testing.T) {
@@ -238,7 +252,9 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/images/bad_id/done", nil)
 
-	routeSet := Images{Authenticator: AllowAll{}}
+	logger, output := NewFakeLogger()
+
+	routeSet := Images{Authenticator: AllowAll{}, Logger: logger}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", routeSet.Done)
 	router.ServeHTTP(recorder, req)
@@ -248,6 +264,7 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
+	assert.Contains(t, output.String(), "invalid syntax")
 }
 
 func TestImageDestroy(t *testing.T) {
@@ -281,13 +298,16 @@ func TestImageDestroy(t *testing.T) {
 		},
 	}
 
+	logger, output := NewFakeLogger()
+
 	router := mux.NewRouter()
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}, Logger: logger}
 	router.HandleFunc("/images/{id}", routeSet.Destroy).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+	assert.Contains(t, output.String(), "destroying image")
 }
 
 func TestImageDestroyFromUploadUser(t *testing.T) {
@@ -345,14 +365,24 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
+	logger, output := NewFakeLogger()
+
 	router := mux.NewRouter()
-	routeSet := Images{ImageStore: imageStore, InstanceStore: instanceStore, Executor: executor, Authenticator: authenticator}
+	routeSet := Images{
+		ImageStore:    imageStore,
+		InstanceStore: instanceStore,
+		Executor:      executor,
+		Authenticator: authenticator,
+		Logger:        logger,
+	}
 	router.HandleFunc("/images/{id}", routeSet.Destroy).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 	assert.Equal(t, []int{1, 3}, destroyedImages)
+	assert.Contains(t, output.String(), "destroying instance")
+	assert.Contains(t, output.String(), "destroying image")
 }
 
 func timestamp() time.Time {
