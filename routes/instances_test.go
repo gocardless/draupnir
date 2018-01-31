@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
@@ -330,4 +331,45 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
+}
+
+func TestInstanceDestroyFromUploadUser(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/instances/1", nil)
+
+	store := FakeInstanceStore{
+		_Get: func(id int) (models.Instance, error) {
+			return models.Instance{
+				ID:        1,
+				ImageID:   1,
+				Port:      5432,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+				UserEmail: "test@draupnir",
+			}, nil
+		},
+		_Destroy: func(instance models.Instance) error {
+			return nil
+		},
+	}
+
+	executor := FakeExecutor{
+		_DestroyInstance: func(instanceID int) error {
+			return nil
+		},
+	}
+
+	authenticator := FakeAuthenticator{
+		_AuthenticateRequest: func(r *http.Request) (string, error) {
+			return auth.UPLOAD_USER_EMAIL, nil
+		},
+	}
+
+	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: authenticator, Logger: log.NewNopLogger()}
+	router := mux.NewRouter()
+	router.HandleFunc("/instances/{id}", routeSet.Destroy).Methods("DELETE")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }
