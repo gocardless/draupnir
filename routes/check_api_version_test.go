@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gocardless/draupnir/version"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +13,7 @@ func TestCheckApiVersionWithNoVersionHeader(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/foo", nil)
 
-	CheckAPIVersion(
+	CheckAPIVersion("1.0.0")(
 		func(w http.ResponseWriter, h *http.Request) {
 			t.Fatal("this route should never be called")
 		},
@@ -30,12 +29,12 @@ func TestCheckApiVersionWithNoVersionHeader(t *testing.T) {
 	assert.Equal(t, response, missingApiVersion)
 }
 
-func TestCheckApiVersionWithMismatchingVersionHeader(t *testing.T) {
+func TestCheckApiVersionWithHigherVersionHeader(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/foo", nil)
 	req.Header["Draupnir-Version"] = []string{"0.0.0"}
 
-	CheckAPIVersion(
+	CheckAPIVersion("1.0.0")(
 		func(w http.ResponseWriter, h *http.Request) {
 			t.Fatal("this route should never be called")
 		},
@@ -51,12 +50,26 @@ func TestCheckApiVersionWithMismatchingVersionHeader(t *testing.T) {
 	assert.Equal(t, response, invalidApiVersion("0.0.0"))
 }
 
+func TestCheckApiVersionWithLowerMinorVersionHeader(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/foo", nil)
+	req.Header["Draupnir-Version"] = []string{"1.0.0"}
+
+	CheckAPIVersion("1.1.0")(
+		func(w http.ResponseWriter, h *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		},
+	)(recorder, req)
+
+	assert.Equal(t, recorder.Code, http.StatusAccepted)
+}
+
 func TestCheckApiVersionWithMatchingVersionHeader(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{version.Version}
+	req.Header["Draupnir-Version"] = []string{"1.0.0"}
 
-	CheckAPIVersion(
+	CheckAPIVersion("1.0.0")(
 		func(w http.ResponseWriter, h *http.Request) {
 			w.WriteHeader(http.StatusAccepted)
 		},

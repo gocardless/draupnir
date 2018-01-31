@@ -131,7 +131,7 @@ func main() {
 		Add(routes.LogRequest).
 		Add(withVersion).
 		Add(asJSON).
-		Add(routes.CheckAPIVersion).
+		Add(routes.CheckAPIVersion(version.Version)).
 		ToMiddleware()
 
 	chain.
