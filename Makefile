@@ -1,7 +1,7 @@
 VERSION="$(shell cat DRAUPNIR_VERSION)"
 BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Version=$(VERSION)"
 
-.PHONY: build clean test test-integration dump-schema publish-circleci-dockerfile
+.PHONY: build client clean test test-integration dump-schema publish-circleci-dockerfile
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
