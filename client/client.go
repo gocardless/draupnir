@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -240,6 +241,50 @@ func (c Client) DestroyInstance(instance models.Instance) error {
 	}
 
 	return nil
+}
+
+type createImageRequest struct {
+	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
+	Anon       string    `jsonapi:"attr,anonymisation_script"`
+}
+
+// CreateImage creates a new image. This does not complete the process of preparing an
+// image, subsequent upload and finalisation steps are required.
+func (c Client) CreateImage(backedUpAt time.Time, anon []byte) (models.Image, error) {
+	var image models.Image
+	request := createImageRequest{BackedUpAt: backedUpAt, Anon: string(anon)}
+
+	var payload bytes.Buffer
+	err := jsonapi.MarshalOnePayloadWithoutIncluded(&payload, &request)
+	if err != nil {
+		return image, err
+	}
+
+	resp, err := c.post(fmt.Sprintf("%s/images", c.URL), &payload)
+	if err != nil {
+		return image, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return image, parseError(resp.Body)
+	}
+
+	err = jsonapi.UnmarshalPayload(resp.Body, &image)
+	return image, err
+}
+
+// FinaliseImage posts to images/id/done, causing draupnir to run the finalisation process
+// to anonymise and prepare the image for usage.
+func (c Client) FinaliseImage(imageID int) (models.Image, error) {
+	var image models.Image
+	var emptyPayload bytes.Buffer
+
+	resp, err := c.post(fmt.Sprintf("%s/images/%d/done", c.URL, imageID), &emptyPayload)
+	if err != nil {
+		err = jsonapi.UnmarshalPayload(resp.Body, &image)
+	}
+
+	return image, err
 }
 
 // DestroyImage destroys an image
