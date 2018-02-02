@@ -25,7 +25,7 @@ type Instances struct {
 	Logger        log.Logger
 }
 
-type createInstanceRequest struct {
+type CreateInstanceRequest struct {
 	ImageID string `jsonapi:"attr,image_id"`
 }
 
@@ -37,7 +37,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := createInstanceRequest{}
+	req := CreateInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		i.Logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, invalidJSONError)

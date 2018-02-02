@@ -18,7 +18,7 @@ import (
 func TestInstanceCreate(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
-	request := createInstanceRequest{ImageID: "1"}
+	request := CreateInstanceRequest{ImageID: "1"}
 	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
 	req := httptest.NewRequest("POST", "/instances", body)
@@ -71,7 +71,7 @@ func TestInstanceCreate(t *testing.T) {
 func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
-	request := createInstanceRequest{ImageID: "1"}
+	request := CreateInstanceRequest{ImageID: "1"}
 	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
 
@@ -136,7 +136,7 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := createInstanceRequest{ImageID: "garbage"}
+	request := CreateInstanceRequest{ImageID: "garbage"}
 	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
 	logger, output := NewFakeLogger()

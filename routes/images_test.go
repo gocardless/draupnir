@@ -104,7 +104,7 @@ func TestListImages(t *testing.T) {
 
 func TestCreateImage(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := createImageRequest{
+	request := CreateImageRequest{
 		BackedUpAt: timestamp(),
 		Anon:       "SELECT * FROM foo;",
 	}
@@ -159,7 +159,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := createImageRequest{
+	request := CreateImageRequest{
 		BackedUpAt: timestamp(),
 		Anon:       "SELECT * FROM foo;",
 	}

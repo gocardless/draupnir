@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/version"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/oauth2"
 )
@@ -254,6 +256,73 @@ func main() {
 						for _, image := range images {
 							fmt.Println(ImageToString(image))
 						}
+						return nil
+					},
+				},
+				{
+					Name:  "create",
+					Usage: "create a new image",
+					UsageText: `draupnir images create [backedUpAt] [anon.sql]
+
+[backedUpAt] an iso8601 timestamp defining when this backup was completed
+[anonyimse.sql] path to an anonymisation script that will be run on image finalisation`,
+					Action: func(c *cli.Context) error {
+						var image models.Image
+
+						if len(c.Args()) != 2 {
+							println(c.Command.UsageText)
+							return errors.New("Invalid arguments")
+						}
+
+						backedUpAt, err := time.Parse(time.RFC3339, c.Args().Get(0))
+						if err != nil {
+							println(c.Command.UsageText)
+							return errors.Wrap(err, "Invalid backedUpAt timestamp")
+						}
+
+						anonPath := c.Args().Get(1)
+						anon, err := ioutil.ReadFile(anonPath)
+						if err != nil {
+							println(c.Command.UsageText)
+							return errors.Wrap(err, "Invalid anon script")
+						}
+
+						image, err = client.CreateImage(backedUpAt, anon)
+						if err != nil {
+							fmt.Printf("error: %s\n", err)
+							return err
+						}
+
+						fmt.Println(ImageToString(image))
+						return nil
+					},
+				},
+				{
+					Name:  "finalise",
+					Usage: "finalises an image (makes it ready)",
+					UsageText: `draupnir images finalise [id]
+
+[id] the image ID to finalise`,
+					Action: func(c *cli.Context) error {
+						var image models.Image
+
+						if len(c.Args()) != 1 {
+							println(c.Command.UsageText)
+							return errors.New("Missing image ID argument")
+						}
+
+						imageID, err := strconv.Atoi(c.Args().First())
+						if err != nil {
+							println(c.Command.UsageText)
+							return errors.Wrap(err, "Invalid image ID")
+						}
+
+						image, err = client.FinaliseImage(imageID)
+						if err != nil {
+							return errors.Wrap(err, "Could not finalise image")
+						}
+
+						fmt.Println(ImageToString(image))
 						return nil
 					},
 				},

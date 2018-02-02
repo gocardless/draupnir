@@ -83,7 +83,7 @@ func (i Images) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type createImageRequest struct {
+type CreateImageRequest struct {
 	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
 	Anon       string    `jsonapi:"attr,anonymisation_script"`
 }
@@ -96,7 +96,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := createImageRequest{}
+	req := CreateImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		i.Logger.Info(err.Error())
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
