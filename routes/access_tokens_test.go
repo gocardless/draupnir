@@ -245,6 +245,10 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Set the request to time out immediately
+	ctx, _ := context.WithTimeout(req.Context(), 0)
+	req = req.WithContext(ctx)
+
 	callback := make(chan OAuthCallback, 1)
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback

@@ -138,7 +138,7 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TOKEN_EXCHANGE_TIMEOUT)
+	ctx, cancel := context.WithTimeout(r.Context(), TOKEN_EXCHANGE_TIMEOUT)
 	defer cancel()
 	token, err := a.Client.Exchange(ctx, respCode)
 
