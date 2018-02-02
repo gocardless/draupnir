@@ -200,14 +200,10 @@ func (c Client) ListInstances() ([]models.Instance, error) {
 	return instances, nil
 }
 
-type createInstanceRequest struct {
-	ImageID string `jsonapi:"attr,image_id"`
-}
-
 // CreateInstance creates a new instance
 func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 	var instance models.Instance
-	request := createInstanceRequest{ImageID: strconv.Itoa(image.ID)}
+	request := routes.CreateInstanceRequest{ImageID: strconv.Itoa(image.ID)}
 
 	var payload bytes.Buffer
 	err := jsonapi.MarshalOnePayloadWithoutIncluded(&payload, &request)
@@ -243,16 +239,11 @@ func (c Client) DestroyInstance(instance models.Instance) error {
 	return nil
 }
 
-type createImageRequest struct {
-	BackedUpAt time.Time `jsonapi:"attr,backed_up_at,iso8601"`
-	Anon       string    `jsonapi:"attr,anonymisation_script"`
-}
-
 // CreateImage creates a new image. This does not complete the process of preparing an
 // image, subsequent upload and finalisation steps are required.
 func (c Client) CreateImage(backedUpAt time.Time, anon []byte) (models.Image, error) {
 	var image models.Image
-	request := createImageRequest{BackedUpAt: backedUpAt, Anon: string(anon)}
+	request := routes.CreateImageRequest{BackedUpAt: backedUpAt, Anon: string(anon)}
 
 	var payload bytes.Buffer
 	err := jsonapi.MarshalOnePayloadWithoutIncluded(&payload, &request)
