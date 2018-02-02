@@ -21,13 +21,18 @@ func CheckAPIVersion(serverVersion string) func(http.HandlerFunc) http.HandlerFu
 				return
 			}
 
-			requestVersion := versions[0]
-			requestMajor, requestMinor, _ := version.ParseSemver(requestVersion)
-			major, minor, _ := version.ParseSemver(serverVersion)
+			major, minor, _, err := version.ParseSemver(serverVersion)
 
-			if major != requestMajor || minor < requestMinor {
-				RenderError(w, http.StatusBadRequest, invalidApiVersion(requestVersion))
-				return
+			// If we can't parse our server version then we shouldn't react by rejecting all
+			// requests.
+			if err == nil {
+				requestVersion := versions[0]
+				requestMajor, requestMinor, _, err := version.ParseSemver(requestVersion)
+
+				if err != nil || major != requestMajor || minor < requestMinor {
+					RenderError(w, http.StatusBadRequest, invalidApiVersion(requestVersion))
+					return
+				}
 			}
 
 			next(w, r)
