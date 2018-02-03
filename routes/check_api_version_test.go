@@ -6,61 +6,86 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gocardless/draupnir/version"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckApiVersionWithNoVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-
-	CheckAPIVersion(
-		func(w http.ResponseWriter, h *http.Request) {
-			t.Fatal("this route should never be called")
-		},
-	)(recorder, req)
-
-	assert.Equal(t, recorder.Code, http.StatusBadRequest)
-
-	var response APIError
-	err := json.NewDecoder(recorder.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
+func shouldNeverBeCalled(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, h *http.Request) {
+		t.Fatal("this route should never be called")
 	}
-	assert.Equal(t, response, missingApiVersion)
 }
 
-func TestCheckApiVersionWithMismatchingVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{"0.0.0"}
-
-	CheckAPIVersion(
-		func(w http.ResponseWriter, h *http.Request) {
-			t.Fatal("this route should never be called")
-		},
-	)(recorder, req)
-
-	assert.Equal(t, recorder.Code, http.StatusBadRequest)
-
-	var response APIError
-	err := json.NewDecoder(recorder.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
+func respondsWithStatus(status int) http.HandlerFunc {
+	return func(w http.ResponseWriter, h *http.Request) {
+		w.WriteHeader(status)
 	}
-	assert.Equal(t, response, invalidApiVersion("0.0.0"))
 }
 
-func TestCheckApiVersionWithMatchingVersionHeader(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header["Draupnir-Version"] = []string{version.Version}
-
-	CheckAPIVersion(
-		func(w http.ResponseWriter, h *http.Request) {
-			w.WriteHeader(http.StatusAccepted)
+func TestCheckApiVersion(t *testing.T) {
+	testCases := []struct {
+		name          string
+		headerVersion string
+		handler       http.HandlerFunc
+		apiError      APIError
+		code          int
+	}{
+		{
+			"when version matches, calls handler",
+			"1.1.0",
+			respondsWithStatus(http.StatusAccepted),
+			APIError{},
+			http.StatusAccepted,
 		},
-	)(recorder, req)
+		{
+			"when minor is lower, calls handler",
+			"1.0.0",
+			respondsWithStatus(http.StatusAccepted),
+			APIError{},
+			http.StatusAccepted,
+		},
+		{
+			"when minor is higher, responds with error",
+			"1.2.0",
+			shouldNeverBeCalled(t),
+			invalidApiVersion("1.2.0"),
+			http.StatusBadRequest,
+		},
+		{
+			"when header major version is different, responds with error",
+			"0.1.0",
+			shouldNeverBeCalled(t),
+			invalidApiVersion("0.1.0"),
+			http.StatusBadRequest,
+		},
+		{
+			"when header is missing, responds with error",
+			"",
+			shouldNeverBeCalled(t),
+			missingApiVersion,
+			http.StatusBadRequest,
+		},
+	}
 
-	assert.Equal(t, recorder.Code, http.StatusAccepted)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/foo", nil)
+
+			if tc.headerVersion != "" {
+				req.Header["Draupnir-Version"] = []string{tc.headerVersion}
+			}
+
+			CheckAPIVersion("1.1.0")(tc.handler)(recorder, req)
+
+			if tc.apiError.ID != "" {
+				var response APIError
+				err := json.NewDecoder(recorder.Body).Decode(&response)
+
+				assert.Nil(t, err, "failed to decode response into APIError")
+				assert.EqualValues(t, tc.apiError, response)
+			}
+
+			assert.Equal(t, tc.code, recorder.Code)
+		})
+	}
 }
