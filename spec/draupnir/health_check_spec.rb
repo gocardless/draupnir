@@ -9,5 +9,20 @@ RSpec.describe "/health_check" do
     expect(JSON.parse(response.body)).to eq("status" => "ok")
     expect(response.headers[:content_type]).to eq("application/json")
     expect(response.headers[:draupnir_version]).to eq(Draupnir::VERSION)
+
+    # Verify that we have a well-formed version, ie. valid semver value
+    expect(response.headers[:draupnir_version]).not_to eql("0.0.0")
+    expect(response.headers[:draupnir_version]).to match(/^\d+\.\d+\.\d+$/)
+  end
+
+  context "with old client version" do
+    it "responds with 'Bad Request'" do
+      begin
+        client.request(:get, "/images", nil, draupnir_version: "0.0.0")
+        raise "didn't throw 400 Bad Request"
+      rescue RestClient::BadRequest => err
+        expect(err.http_code).to be(400)
+      end
+    end
   end
 end
