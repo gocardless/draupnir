@@ -134,62 +134,70 @@ func main() {
 
 	router := mux.NewRouter()
 
-	withErrorHandler.
-		Route(router.Methods("GET").Path("/health_check")).
-		Add(logRequest).
-		Add(withVersion).
-		Add(asJSON).
-		Resolve(routes.HealthCheck)
+	router.Methods("GET").Path("/health_check").HandlerFunc(
+		withErrorHandler.
+			Add(logRequest).
+			Add(withVersion).
+			Add(asJSON).
+			Resolve(routes.HealthCheck),
+	)
 
-	withErrorHandler.
-		Route(router.Methods("GET").Path("/authenticate")).
-		Add(logRequest).
-		Resolve(accessTokenRouteSet.Authenticate)
+	router.Methods("GET").Path("/authenticate").HandlerFunc(
+		withErrorHandler.
+			Add(logRequest).
+			Resolve(accessTokenRouteSet.Authenticate),
+	)
 
-	chain.New(routes.HandleOAuthError).
-		Route(router.Methods("GET").Path("/oauth_callback")).
-		Add(logRequest).
-		Resolve(accessTokenRouteSet.Callback)
+	router.Methods("GET").Path("/oauth_callback").HandlerFunc(
+		chain.
+			New(routes.HandleOAuthError).
+			Add(logRequest).
+			Resolve(accessTokenRouteSet.Callback),
+	)
 
-	defaultChain.
-		Route(router.Methods("POST").Path("/access_tokens")).
-		Resolve(accessTokenRouteSet.Create)
+	router.Methods("POST").Path("/access_tokens").HandlerFunc(
+		defaultChain.Resolve(accessTokenRouteSet.Create),
+	)
 
-	defaultChain.
-		Route(router.Methods("GET").Path("/images")).
-		Resolve(imageRouteSet.List)
+	router.Methods("GET").Path("/images").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.List),
+	)
 
-	defaultChain.
-		Route(router.Methods("POST").Path("/images")).
-		Resolve(imageRouteSet.Create)
+	router.Methods("POST").Path("/images").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Create),
+	)
 
-	defaultChain.
-		Route(router.Methods("GET").Path("/images/{id}")).
-		Resolve(imageRouteSet.Get)
+	router.Methods("GET").Path("/images/{id}").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Get),
+	)
 
-	defaultChain.
-		Route(router.Methods("POST").Path("/images/{id}/done")).
-		Resolve(imageRouteSet.Done)
+	router.Methods("POST").Path("/images/{id}/done").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Done),
+	)
 
-	defaultChain.
-		Route(router.Methods("DELETE").Path("/images/{id}")).
-		Resolve(imageRouteSet.Destroy)
+	router.Methods("DELETE").Path("/images/{id}").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Destroy),
+	)
 
-	defaultChain.
-		Route(router.Methods("GET").Path("/instances")).
-		Resolve(instanceRouteSet.List)
+	router.Methods("GET").Path("/instances").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.List),
+	)
 
-	defaultChain.
-		Route(router.Methods("POST").Path("/instances")).
-		Resolve(instanceRouteSet.Create)
+	router.Methods("POST").Path("/instances").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Create),
+	)
 
-	defaultChain.
-		Route(router.Methods("GET").Path("/instances/{id}")).
-		Resolve(instanceRouteSet.Get)
+	router.Methods("GET").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Get),
+	)
 
-	defaultChain.
-		Route(router.Methods("DELETE").Path("/instances/{id}")).
-		Resolve(instanceRouteSet.Destroy)
+	router.Methods("DELETE").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Destroy),
+	)
+
+	router.Methods("DELETE").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Destroy),
+	)
 
 	var g run.Group
 

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,9 +80,7 @@ func TestResolve(t *testing.T) {
 		return nil
 	}
 
-	route := mux.NewRouter().NewRoute()
-	New(testErrorHandler(t)).Add(m1).Add(m2).Route(route).Resolve(handler)
-	route.GetHandler().ServeHTTP(nil, nil)
+	New(testErrorHandler(t)).Add(m1).Add(m2).Resolve(handler)(nil, nil)
 
 	assert.Equal(t, []int{1, 2, 3}, log)
 }
