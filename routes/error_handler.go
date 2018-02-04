@@ -14,21 +14,29 @@ func NewErrorHandler(logger log.Logger) chain.TerminatingMiddleware {
 			err := next(w, r)
 			if err != nil {
 				logger.With("http_request", r).Error(err.Error())
-				RenderError(w, http.StatusInternalServerError, internalServerError)
 			}
 		}
 	}
 }
 
-func NewSentryErrorHandler(logger log.Logger, sentry *raven.Client) chain.TerminatingMiddleware {
-	return func(next chain.Handler) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+func DefaultErrorRenderer(next chain.Handler) chain.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		err := next(w, r)
+		if err != nil {
+			RenderError(w, http.StatusInternalServerError, internalServerError)
+		}
+		return err
+	}
+}
+
+func NewSentryReporter(sentry *raven.Client) chain.Middleware {
+	return func(next chain.Handler) chain.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
 			err := next(w, r)
 			if err != nil {
-				logger.With("http_request", r).Error(err.Error())
-				RenderError(w, http.StatusInternalServerError, internalServerError)
 				sentry.CaptureError(err, map[string]string{})
 			}
+			return err
 		}
 	}
 }

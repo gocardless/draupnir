@@ -160,26 +160,20 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func oauthCallbackError(w http.ResponseWriter, err error) {
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusInternalServerError)
-	response := fmt.Sprintf(
-		`<h1>Error</h1>
-		 <h3>There was an error. Please try again</h3>
-		 <pre>%s</pre>`,
-		err.Error(),
-	)
-	w.Write([]byte(response))
-}
-
-func HandleOAuthError(next chain.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func OauthErrorRenderer(next chain.Handler) chain.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		err := next(w, r)
 		if err != nil {
-			oauthCallbackError(w, err)
-			// TODO:
-			// - send to sentry
-			// - annotate log with http request
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusInternalServerError)
+			response := fmt.Sprintf(
+				`<h1>Error</h1>
+				 <h3>There was an error. Please try again</h3>
+				 <pre>%s</pre>`,
+				err.Error(),
+			)
+			w.Write([]byte(response))
 		}
+		return err
 	}
 }

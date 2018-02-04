@@ -34,7 +34,8 @@ func nullMiddleware(h Handler) Handler {
 	return h
 }
 
-// New constructs an empty Chain
+// New constructs an empty Chain. You must provide a top level error handler to
+// consume any errors raised from the chain.
 func New(errorHandler TerminatingMiddleware) Chain {
 	if errorHandler == nil {
 		log.Panicf("Cannot create chain without errorHandler")
@@ -48,16 +49,19 @@ func New(errorHandler TerminatingMiddleware) Chain {
 
 // Add adds a middleware to a Chain
 func (c Chain) Add(m Middleware) Chain {
-	return Chain{middlewares: append(c.middlewares, m), errorHandler: c.errorHandler}
+	return Chain{
+		middlewares:  append(c.middlewares, m),
+		errorHandler: c.errorHandler,
+	}
 }
 
 // Resolve converts the Chain to a normal HTTP handler and returns it
 func (c Chain) Resolve(routeHandler Handler) http.HandlerFunc {
-	return c.errorHandler(c.ToMiddleware()(routeHandler))
+	return c.errorHandler(c.foldMiddleware()(routeHandler))
 }
 
-// ToMiddleware returns the middleware of a Chain
-func (c Chain) ToMiddleware() Middleware {
+// foldMiddleware returns the middleware of a Chain
+func (c Chain) foldMiddleware() Middleware {
 	return func(h Handler) Handler {
 		for i := len(c.middlewares) - 1; i >= 0; i-- {
 			m := c.middlewares[i]

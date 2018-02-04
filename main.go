@@ -97,17 +97,6 @@ func main() {
 		Client:    &oauthConfig,
 	}
 
-	errorHandler := routes.NewErrorHandler(logger)
-
-	if c.SentryDsn != "" {
-		sentryClient, err := raven.New(c.SentryDsn)
-		if err != nil {
-			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
-		}
-
-		errorHandler = routes.NewSentryErrorHandler(logger, sentryClient)
-	}
-
 	asJSON := func(next chain.Handler) chain.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			w.Header().Set("Content-Type", "application/json")
@@ -123,11 +112,23 @@ func main() {
 		}
 	}
 
+	withErrorHandler := chain.New(routes.NewErrorHandler(logger))
+
+	if c.SentryDsn != "" {
+		sentryClient, err := raven.New(c.SentryDsn)
+		if err != nil {
+			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
+		}
+
+		withErrorHandler = withErrorHandler.
+			Add(routes.NewSentryReporter(sentryClient))
+	}
+
 	logRequest := routes.NewRequestLogger(logger)
-	withErrorHandler := chain.New(errorHandler)
 
 	defaultChain := withErrorHandler.
 		Add(logRequest).
+		Add(routes.DefaultErrorRenderer).
 		Add(withVersion).
 		Add(asJSON).
 		Add(routes.CheckAPIVersion(version.Version))
@@ -149,9 +150,9 @@ func main() {
 	)
 
 	router.Methods("GET").Path("/oauth_callback").HandlerFunc(
-		chain.
-			New(routes.HandleOAuthError).
+		withErrorHandler.
 			Add(logRequest).
+			Add(routes.OauthErrorRenderer).
 			Resolve(accessTokenRouteSet.Callback),
 	)
 
