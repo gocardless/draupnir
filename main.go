@@ -97,69 +97,65 @@ func main() {
 		Client:    &oauthConfig,
 	}
 
-	asJSON := func(next chain.Handler) chain.Handler {
-		return func(w http.ResponseWriter, r *http.Request) error {
-			w.Header().Set("Content-Type", "application/json")
-			next(w, r)
-			return nil
-		}
-	}
-	withVersion := func(next chain.Handler) chain.Handler {
-		return func(w http.ResponseWriter, r *http.Request) error {
-			w.Header().Set("Draupnir-Version", version.Version)
-			next(w, r)
-			return nil
-		}
-	}
+	// Every request will be logged, and any error raised in serving the request
+	// will also be logged.
+	rootHandler := chain.
+		New(routes.NewErrorHandler(logger)).
+		Add(routes.NewRequestLogger(logger))
 
-	withErrorHandler := chain.New(routes.NewErrorHandler(logger))
-
+	// If Sentry is available, attach the Sentry middleware
+	// This will report all errors to Sentry
 	if c.SentryDsn != "" {
 		sentryClient, err := raven.New(c.SentryDsn)
 		if err != nil {
 			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
 		}
 
-		withErrorHandler = withErrorHandler.
+		rootHandler = rootHandler.
 			Add(routes.NewSentryReporter(sentryClient))
 	}
 
-	logRequest := routes.NewRequestLogger(logger)
-
-	defaultChain := withErrorHandler.
-		Add(logRequest).
-		Add(routes.DefaultErrorRenderer).
-		Add(withVersion).
-		Add(asJSON).
-		Add(routes.CheckAPIVersion(version.Version))
-
 	router := mux.NewRouter()
 
+	// Healthcheck
+	// We don't enforce a particulate API version on this route, because it should
+	// be easy to hit to monitor the health of the system.
 	router.Methods("GET").Path("/health_check").HandlerFunc(
-		withErrorHandler.
-			Add(logRequest).
-			Add(withVersion).
-			Add(asJSON).
+		rootHandler.
+			Add(routes.WithVersion).
+			Add(routes.AsJSON).
 			Resolve(routes.HealthCheck),
 	)
 
+	// OAuth
+	// These routes are a bit special, because they don't accept or return JSON.
+	// They're intended to be used through a web browser.
 	router.Methods("GET").Path("/authenticate").HandlerFunc(
-		withErrorHandler.
-			Add(logRequest).
+		rootHandler.
 			Resolve(accessTokenRouteSet.Authenticate),
 	)
 
 	router.Methods("GET").Path("/oauth_callback").HandlerFunc(
-		withErrorHandler.
-			Add(logRequest).
+		rootHandler.
 			Add(routes.OauthErrorRenderer).
 			Resolve(accessTokenRouteSet.Callback),
 	)
 
+	// Core API routes
+	// These routes all accept and return JSON, and will enforce that the client
+	// sends a compatible API version header.
+	defaultChain := rootHandler.
+		Add(routes.DefaultErrorRenderer).
+		Add(routes.WithVersion).
+		Add(routes.AsJSON).
+		Add(routes.CheckAPIVersion(version.Version))
+
+	// Access Tokens
 	router.Methods("POST").Path("/access_tokens").HandlerFunc(
 		defaultChain.Resolve(accessTokenRouteSet.Create),
 	)
 
+	// Images
 	router.Methods("GET").Path("/images").HandlerFunc(
 		defaultChain.Resolve(imageRouteSet.List),
 	)
@@ -180,6 +176,7 @@ func main() {
 		defaultChain.Resolve(imageRouteSet.Destroy),
 	)
 
+	// Instances
 	router.Methods("GET").Path("/instances").HandlerFunc(
 		defaultChain.Resolve(instanceRouteSet.List),
 	)
