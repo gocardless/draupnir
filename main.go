@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -18,10 +19,12 @@ import (
 	"github.com/gocardless/draupnir/version"
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/oklog/run"
 )
 
 type Config struct {
 	Port                   int    `required:"true"`
+	InsecurePort           int    `required:"false" default:"8080"`
 	DatabaseUrl            string `required:"true" split_words:"true"`
 	DataPath               string `required:"true" split_words:"true"`
 	Environment            string `required:"false"`
@@ -199,15 +202,32 @@ func main() {
 		Add(defaultChain).
 		ToRoute(instanceRouteSet.Destroy)
 
-	http.Handle("/", router)
+	var g run.Group
 
-	err = http.ListenAndServeTLS(
-		fmt.Sprintf(":%d", c.Port),
-		c.TlsCertificatePath,
-		c.TlsPrivateKeyPath,
-		nil,
+	// The default server for draupnir which will listen on TLS
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%d", c.Port),
+		Handler: router,
+	}
+
+	g.Add(
+		func() error { return server.ListenAndServeTLS(c.TlsCertificatePath, c.TlsPrivateKeyPath) },
+		func(error) { server.Shutdown(context.Background()) },
 	)
-	if err != nil {
-		log.Fatal(err.Error())
+
+	// We then listen for insecure connections on localhost, allowing connections from
+	// within the host without requiring the user to explicitly ignore certificates.
+	serverInsecure := http.Server{
+		Addr:    fmt.Sprintf("127.0.0.1:%d", c.InsecurePort),
+		Handler: router,
+	}
+
+	g.Add(
+		func() error { return serverInsecure.ListenAndServe() },
+		func(error) { serverInsecure.Shutdown(context.Background()) },
+	)
+
+	if err := g.Run(); err != nil {
+		logger.Fatal(err.Error())
 	}
 }
