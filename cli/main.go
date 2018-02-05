@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/burntsushi/toml"
-	"github.com/gocardless/draupnir/client"
+	clientPkg "github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
 	"github.com/gocardless/draupnir/version"
 	"github.com/pkg/errors"
@@ -69,16 +69,31 @@ func main() {
 		return
 	}
 
-	client := client.Client{
-		URL:   "https://" + CONFIG.Domain,
-		Token: CONFIG.Token,
-	}
+	var client clientPkg.Client
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
 	app.Version = version.Version
 	app.Usage = "A client for draupnir"
-	cli.AppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
+	app.CustomAppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "insecure",
+			Usage: "don't validate certificates when connecting to draupnir",
+		},
+	}
+
+	// Construct a client before we run any of our commands
+	app.Before = func(c *cli.Context) error {
+		client = clientPkg.NewClient(
+			fmt.Sprintf("https://%s", CONFIG.Domain),
+			CONFIG.Token,
+			c.GlobalBool("insecure"),
+		)
+
+		return nil
+	}
+
 	app.Commands = []cli.Command{
 		{
 			Name:        "config",

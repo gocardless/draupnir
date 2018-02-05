@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,9 +26,23 @@ import (
 type Client struct {
 	// The URL of the draupnir server
 	// e.g. "https://draupnir-server.my-infra.com"
-	URL string
+	url string
 	// OAuth Access Token
-	Token oauth2.Token
+	token  oauth2.Token
+	client *http.Client
+}
+
+// NewClient constructs a new draupnir client, pointing at the given endpoint
+func NewClient(url string, token oauth2.Token, insecure bool) Client {
+	client := &http.Client{}
+
+	if insecure {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	return Client{url, token, client}
 }
 
 // DraupnirClient defines the API that a draupnir client conforms to
@@ -40,51 +55,6 @@ type DraupnirClient interface {
 	DestroyInstance(instance models.Instance) error
 	DestroyImage(image models.Image) error
 	CreateAccessToken(string) (string, error)
-}
-
-func (c Client) AuthorizationHeader() string {
-	return fmt.Sprintf("Bearer %s", c.Token.RefreshToken)
-}
-
-func (c Client) get(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", c.AuthorizationHeader())
-	req.Header.Set("Draupnir-Version", version.Version)
-
-	response, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return response, err
-	}
-
-	return response, nil
-}
-
-func (c Client) post(url string, payload *bytes.Buffer) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodPost, url, payload)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", c.AuthorizationHeader())
-	req.Header.Set("Draupnir-Version", version.Version)
-
-	return http.DefaultClient.Do(req)
-}
-
-func (c Client) delete(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", c.AuthorizationHeader())
-	req.Header.Set("Draupnir-Version", version.Version)
-
-	return http.DefaultClient.Do(req)
 }
 
 func (c Client) GetLatestImage() (models.Image, error) {
@@ -113,7 +83,7 @@ func (c Client) GetLatestImage() (models.Image, error) {
 
 func (c Client) GetImage(id string) (models.Image, error) {
 	var image models.Image
-	resp, err := c.get(c.URL + "/images/" + id)
+	resp, err := c.get("/images/" + id)
 	if err != nil {
 		return image, err
 	}
@@ -128,7 +98,7 @@ func (c Client) GetImage(id string) (models.Image, error) {
 
 func (c Client) GetInstance(id string) (models.Instance, error) {
 	var instance models.Instance
-	resp, err := c.get(c.URL + "/instances/" + id)
+	resp, err := c.get("/instances/" + id)
 	if err != nil {
 		return instance, err
 	}
@@ -144,7 +114,7 @@ func (c Client) GetInstance(id string) (models.Instance, error) {
 // ListImages returns a list of all images
 func (c Client) ListImages() ([]models.Image, error) {
 	var images []models.Image
-	resp, err := c.get(c.URL + "/images")
+	resp, err := c.get("/images")
 	if err != nil {
 		return images, err
 	}
@@ -171,7 +141,7 @@ func (c Client) ListImages() ([]models.Image, error) {
 // ListInstances returns a list of all instances
 func (c Client) ListInstances() ([]models.Instance, error) {
 	var instances []models.Instance
-	resp, err := c.get(c.URL + "/instances")
+	resp, err := c.get("/instances")
 	if err != nil {
 		return instances, err
 	}
@@ -206,7 +176,7 @@ func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 		return instance, err
 	}
 
-	resp, err := c.post(c.URL+"/instances", &payload)
+	resp, err := c.post("/instances", &payload)
 	if err != nil {
 		return instance, err
 	}
@@ -221,7 +191,7 @@ func (c Client) CreateInstance(image models.Image) (models.Instance, error) {
 
 // DestroyInstance destroys an instance
 func (c Client) DestroyInstance(instance models.Instance) error {
-	url := c.URL + "/instances/" + strconv.Itoa(instance.ID)
+	url := fmt.Sprintf("/instances/%d", instance.ID)
 	resp, err := c.delete(url)
 	if err != nil {
 		return err
@@ -246,7 +216,7 @@ func (c Client) CreateImage(backedUpAt time.Time, anon []byte) (models.Image, er
 		return image, err
 	}
 
-	resp, err := c.post(fmt.Sprintf("%s/images", c.URL), &payload)
+	resp, err := c.post("/images", &payload)
 	if err != nil {
 		return image, err
 	}
@@ -265,7 +235,7 @@ func (c Client) FinaliseImage(imageID int) (models.Image, error) {
 	var image models.Image
 	var emptyPayload bytes.Buffer
 
-	resp, err := c.post(fmt.Sprintf("%s/images/%d/done", c.URL, imageID), &emptyPayload)
+	resp, err := c.post(fmt.Sprintf("/images/%d/done", imageID), &emptyPayload)
 	if err != nil {
 		err = jsonapi.UnmarshalPayload(resp.Body, &image)
 	}
@@ -275,7 +245,7 @@ func (c Client) FinaliseImage(imageID int) (models.Image, error) {
 
 // DestroyImage destroys an image
 func (c Client) DestroyImage(image models.Image) error {
-	url := c.URL + "/images/" + strconv.Itoa(image.ID)
+	url := fmt.Sprintf("/images/%d", image.ID)
 	resp, err := c.delete(url)
 	if err != nil {
 		return err
@@ -295,8 +265,6 @@ type createAccessTokenRequest struct {
 // CreateAccessToken creates an oauth access token
 func (c Client) CreateAccessToken(state string) (oauth2.Token, error) {
 	var token oauth2.Token
-	url := c.URL + "/access_tokens"
-
 	request := createAccessTokenRequest{State: state}
 
 	var payload bytes.Buffer
@@ -305,7 +273,7 @@ func (c Client) CreateAccessToken(state string) (oauth2.Token, error) {
 		return token, err
 	}
 
-	resp, err := c.post(url, &payload)
+	resp, err := c.post("/access_tokens", &payload)
 	if err != nil {
 		return token, err
 	}
@@ -316,6 +284,45 @@ func (c Client) CreateAccessToken(state string) (oauth2.Token, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&token)
 	return token, err
+}
+
+func (c Client) do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", c.authorizationHeader())
+	req.Header.Set("Draupnir-Version", version.Version)
+
+	return c.client.Do(req)
+}
+
+func (c Client) get(path string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, c.url+path, strings.NewReader(""))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.do(req)
+}
+
+func (c Client) post(path string, payload *bytes.Buffer) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPost, c.url+path, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.do(req)
+}
+
+func (c Client) delete(path string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, c.url+path, strings.NewReader(""))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.do(req)
+}
+
+func (c Client) authorizationHeader() string {
+	return fmt.Sprintf("Bearer %s", c.token.RefreshToken)
 }
 
 // parseError takes an io.Reader containing an API error response
