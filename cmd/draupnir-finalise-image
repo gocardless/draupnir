@@ -41,11 +41,19 @@ SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
 
 set -x
 
-sudo mkdir "${UPLOAD_PATH}/tmp"
-sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar* -C ${UPLOAD_PATH}/tmp"
-sudo sh -c "mv ${UPLOAD_PATH}/tmp/* ${UPLOAD_PATH}/"
-sudo rmdir "${UPLOAD_PATH}/tmp"
-sudo sh -c "rm -f ${UPLOAD_PATH}/*.tar*" # remove the compressed backup file(s)
+sudo mkdir -p "${UPLOAD_PATH}/tmp"
+
+if sudo sh -c "ls ${UPLOAD_PATH}/*.tar*"; then
+	sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar* -C ${UPLOAD_PATH}/tmp"
+	sudo sh -c "mv ${UPLOAD_PATH}/tmp/* ${UPLOAD_PATH}/"
+	sudo rmdir "${UPLOAD_PATH}/tmp"
+	sudo sh -c "rm -f ${UPLOAD_PATH}/*.tar*" # remove the compressed backup file(s)
+fi
+
+if ! sudo -u postgres /usr/lib/postgresql/9.4/bin/pg_controldata "${UPLOAD_PATH}"; then
+	echo "image upload is not valid postgresql data directory"
+	exit 255
+fi
 
 sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
 sudo rm -f "${UPLOAD_PATH}/postmaster.opts"
