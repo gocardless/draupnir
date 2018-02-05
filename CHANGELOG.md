@@ -6,8 +6,20 @@ Unreleased
 
 No changes.
 
+1.5.0
+-----
+
+Listen on https locally (#41)
+
+1.4.0
+-----
+
+Check version semantically- don't fail requests for exact version equality (#37)
+Client can now create and finalise images
+
 1.3.0
 -----
+
 Allow the upload user to delete any instance via API
 
 1.2.0
