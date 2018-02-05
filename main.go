@@ -48,35 +48,14 @@ func main() {
 
 	logger = log.With("environment", c.Environment)
 
-	db, err := sql.Open("postgres", c.DatabaseUrl)
-	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not connect to database")
-	}
+	oauthConfig := createOauthConfig(c)
+	authenticator := createAuthenticator(c, oauthConfig)
 
-	oauthConfig := oauth2.Config{
-		ClientID:     c.OauthClientId,
-		ClientSecret: c.OauthClientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
-		},
-		RedirectURL: c.OauthRedirectUrl,
-	}
+	db := connectToDatabase(c, logger)
+	imageStore := createImageStore(db)
+	instanceStore := createInstanceStore(db)
 
-	executor := exec.OSExecutor{DataPath: c.DataPath}
-
-	authenticator := auth.GoogleAuthenticator{
-		OAuthClient:            auth.GoogleOAuthClient{Config: &oauthConfig},
-		SharedSecret:           c.SharedSecret,
-		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
-	}
-	if c.Environment == "test" {
-		authenticator.OAuthClient = auth.FakeOAuthClient{}
-	}
-
-	imageStore := store.DBImageStore{DB: db}
-	instanceStore := store.DBInstanceStore{DB: db}
+	executor := createExecutor(c)
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
@@ -225,4 +204,49 @@ func main() {
 	if err := g.Run(); err != nil {
 		logger.Fatal(err.Error())
 	}
+}
+
+func connectToDatabase(c Config, logger log.Logger) *sql.DB {
+	db, err := sql.Open("postgres", c.DatabaseUrl)
+	if err != nil {
+		logger.With("error", err.Error()).Fatal("Could not connect to database")
+	}
+	return db
+}
+
+func createOauthConfig(c Config) oauth2.Config {
+	return oauth2.Config{
+		ClientID:     c.OauthClientId,
+		ClientSecret: c.OauthClientSecret,
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
+		},
+		RedirectURL: c.OauthRedirectUrl,
+	}
+}
+
+func createAuthenticator(c Config, oauthConfig oauth2.Config) auth.Authenticator {
+	authenticator := auth.GoogleAuthenticator{
+		OAuthClient:            auth.GoogleOAuthClient{Config: &oauthConfig},
+		SharedSecret:           c.SharedSecret,
+		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
+	}
+	if c.Environment == "test" {
+		authenticator.OAuthClient = auth.FakeOAuthClient{}
+	}
+	return authenticator
+}
+
+func createImageStore(db *sql.DB) store.ImageStore {
+	return store.DBImageStore{DB: db}
+}
+
+func createInstanceStore(db *sql.DB) store.InstanceStore {
+	return store.DBInstanceStore{DB: db}
+}
+
+func createExecutor(c Config) exec.Executor {
+	return exec.OSExecutor{DataPath: c.DataPath}
 }
