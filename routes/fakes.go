@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
+	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
 )
 
@@ -107,6 +108,12 @@ type AllowAll struct{}
 
 func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
 	return "test@draupnir", nil
+}
+
+type UploadUser struct{}
+
+func (u UploadUser) AuthenticateRequest(r *http.Request) (string, error) {
+	return auth.UPLOAD_USER_EMAIL, nil
 }
 
 type FakeOAuthClient struct {

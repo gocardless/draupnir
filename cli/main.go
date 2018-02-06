@@ -423,5 +423,5 @@ func ImageToString(i models.Image) string {
 }
 
 func InstanceToString(i models.Instance) string {
-	return fmt.Sprintf("%2d [ PORT: %d - %s ]", i.ID, i.Port, i.CreatedAt.Format(time.RFC3339))
+	return fmt.Sprintf("%2d [ IMAGE: %d | PORT: %d - %s ]", i.ID, i.ImageID, i.Port, i.CreatedAt.Format(time.RFC3339))
 }

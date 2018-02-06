@@ -110,10 +110,11 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build a slice of pointers to our images, because this is what jsonapi wants
-	// At the same time, filter out instances that don't belong to this user
+	// At the same time, filter out instances that don't belong to this user if we're not
+	// using the shared secret.
 	_instances := make([]*models.Instance, 0)
 	for idx, instance := range instances {
-		if instance.UserEmail == email {
+		if auth.UPLOAD_USER_EMAIL == email || instance.UserEmail == email {
 			_instances = append(_instances, &instances[idx])
 		}
 	}

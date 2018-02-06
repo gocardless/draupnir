@@ -158,7 +158,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	assert.Contains(t, output.String(), "parsing \\\"garbage\\\": invalid syntax")
 }
 
-func TestInstanceList(t *testing.T) {
+func TestInstanceList_asTestUser(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/instances", nil)
 
@@ -193,6 +193,43 @@ func TestInstanceList(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, listInstancesFixture, response)
+}
+
+func TestInstanceList_asUploadUser(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/instances", nil)
+
+	store := FakeInstanceStore{
+		_List: func() ([]models.Instance, error) {
+			return []models.Instance{
+				models.Instance{
+					ID:        1,
+					ImageID:   1,
+					Port:      5432,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+					UserEmail: "test@draupnir",
+				},
+				models.Instance{
+					ID:        2,
+					ImageID:   1,
+					Port:      5433,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+					UserEmail: "otheruser@draupnir",
+				},
+			}, nil
+		},
+	}
+
+	routeSet := Instances{InstanceStore: store, Authenticator: UploadUser{}}
+	routeSet.List(recorder, req)
+
+	var response jsonapi.ManyPayload
+	decodeJSON(recorder.Body, &response)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, 2, len(response.Data))
 }
 
 func TestInstanceGet(t *testing.T) {
