@@ -6,6 +6,12 @@ Unreleased
 
 No changes.
 
+1.6.0
+-----
+
+Add --insecure flag to the draupnir-client
+Optionally unpack a database upload tar
+
 1.5.0
 -----
 
