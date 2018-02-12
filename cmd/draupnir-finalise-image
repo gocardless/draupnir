@@ -80,6 +80,7 @@ shared_preload_libraries = 'pg_stat_statements'
 ssl = on
 ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
 ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
+temp_file_limit = 5242880 # 5GiB
 work_mem = '128MB'
 hot_standby = 'on'
 wal_level = 'hot_standby'
