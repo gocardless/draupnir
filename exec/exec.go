@@ -1,46 +1,60 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/prometheus/common/log"
 )
 
 type Executor interface {
-	CreateBtrfsSubvolume(id int) error
-	FinaliseImage(image models.Image) error
-	CreateInstance(imageID int, instanceID int, port int) error
-	DestroyImage(id int) error
-	DestroyInstance(id int) error
+	CreateBtrfsSubvolume(ctx context.Context, id int) error
+	FinaliseImage(ctx context.Context, image models.Image) error
+	CreateInstance(ctx context.Context, imageID int, instanceID int, port int) error
+	DestroyImage(ctx context.Context, id int) error
+	DestroyInstance(ctx context.Context, id int) error
 }
 
 type OSExecutor struct {
 	DataPath string
 }
 
+const loggerKey = 1
+
+func GetLogger(ctx context.Context) log.Logger {
+	if logger, ok := ctx.Value(loggerKey).(*log.Logger); ok {
+		return *logger
+	}
+
+	return log.NewNopLogger()
+}
+
 // CreateBtrfsSubvolume creates a BTRFS subvolume in $(DataPath)/image_uploads
 // and sets its permissions to 775 so that 'upload' can write to it.
-func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
+func (e OSExecutor) CreateBtrfsSubvolume(ctx context.Context, id int) error {
 	name := fmt.Sprintf("%d", id)
 	path := filepath.Join(e.DataPath, "image_uploads", name)
-	output, err := exec.Command("btrfs", "subvolume", "create", path).Output()
+	output, err := exec.CommandContext(ctx, "btrfs", "subvolume", "create", path).Output()
 	if err != nil {
 		return err
 	}
-	log.Printf("Created btrfs subvolume %s: %s", name, output)
+
+	logger := GetLogger(ctx).With("imageID", id).With("path", path)
+	logger.With("output", output).Info("Created btrfs subvolume")
 
 	perms := os.ModeDir | 0775
 	err = os.Chmod(path, perms)
 	if err != nil {
 		return err
 	}
-	log.Printf("Set permissions for %s to %s", path, perms)
+
+	logger.Info("Set permissions")
 
 	return nil
 }
@@ -57,7 +71,7 @@ func (e OSExecutor) CreateBtrfsSubvolume(id int) error {
 // This snapshot is the finalised image
 //
 // draupnir-finalise-image is a separate script because it has to run with sudo.
-func (e OSExecutor) FinaliseImage(image models.Image) error {
+func (e OSExecutor) FinaliseImage(ctx context.Context, image models.Image) error {
 	anonFile, err := ioutil.TempFile("/tmp", "draupnir")
 	if err != nil {
 		return err
@@ -73,7 +87,10 @@ func (e OSExecutor) FinaliseImage(image models.Image) error {
 		return err
 	}
 
-	output, err := exec.Command(
+	logger := GetLogger(ctx).With("imageID", image.ID)
+
+	output, err := exec.CommandContext(
+		ctx,
 		"sudo",
 		"draupnir-finalise-image",
 		e.DataPath,
@@ -82,21 +99,18 @@ func (e OSExecutor) FinaliseImage(image models.Image) error {
 		anonFile.Name(),
 	).Output()
 
-	log.Printf("%s", output)
+	logger.With("output", output).Info("Finalising image")
 	if err != nil {
 		return err
 	}
 
-	err = os.Remove(anonFile.Name())
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Finalised image %d", image.ID)
-	return nil
+	logger.With("file", anonFile.Name()).Info("Removing anonymisation file")
+	return os.Remove(anonFile.Name())
 }
 
-func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error {
+func (e OSExecutor) CreateInstance(ctx context.Context, imageID int, instanceID int, port int) error {
+	logger := GetLogger(ctx).With("imageID", imageID).With("instanceID", instanceID).With("port", port)
+
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-create-instance",
@@ -106,16 +120,13 @@ func (e OSExecutor) CreateInstance(imageID int, instanceID int, port int) error 
 		fmt.Sprintf("%d", port),
 	).Output()
 
-	log.Printf("%s", output)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Created instance %d", instanceID)
-	return nil
+	logger.With("output", output).Info("Creating instance")
+	return err
 }
 
-func (e OSExecutor) DestroyImage(id int) error {
+func (e OSExecutor) DestroyImage(ctx context.Context, id int) error {
+	logger := GetLogger(ctx).With("imageID", id)
+
 	output, err := exec.Command(
 		"sudo",
 		"draupnir-destroy-image",
@@ -123,28 +134,21 @@ func (e OSExecutor) DestroyImage(id int) error {
 		fmt.Sprintf("%d", id),
 	).Output()
 
-	log.Printf("%s", output)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Destroyed image %d", id)
-	return nil
+	logger.With("output", output).Info("Destroying image")
+	return err
 }
 
-func (e OSExecutor) DestroyInstance(id int) error {
-	output, err := exec.Command(
+func (e OSExecutor) DestroyInstance(ctx context.Context, id int) error {
+	logger := GetLogger(ctx).With("instanceID", id)
+
+	output, err := exec.CommandContext(
+		ctx,
 		"sudo",
 		"draupnir-destroy-instance",
 		e.DataPath,
 		fmt.Sprintf("%d", id),
 	).Output()
 
-	log.Printf("%s", output)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Destroyed instance %d", id)
-	return nil
+	logger.With("output", output).Info("Destroying instance")
+	return err
 }

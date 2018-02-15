@@ -113,7 +113,7 @@ func TestCreateImage(t *testing.T) {
 	req, recorder, _ := createRequest(t, "POST", "/images", body)
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(id int) error { assert.Equal(t, id, 1); return nil },
+		_CreateBtrfsSubvolume: func(ctx context.Context, id int) error { assert.Equal(t, id, 1); return nil },
 	}
 
 	store := FakeImageStore{
@@ -182,7 +182,7 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(id int) error {
+		_CreateBtrfsSubvolume: func(context.Context, int) error {
 			return errors.New("some btrfs error")
 		},
 	}
@@ -226,7 +226,7 @@ func TestImageDone(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_FinaliseImage: func(i models.Image) error {
+		_FinaliseImage: func(ctx context.Context, i models.Image) error {
 			assert.Equal(t, image, i)
 
 			return nil
@@ -290,7 +290,7 @@ func TestImageDestroy(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyImage: func(imageID int) error {
+		_DestroyImage: func(ctx context.Context, imageID int) error {
 			assert.Equal(t, 1, imageID)
 			return nil
 		},
@@ -348,11 +348,11 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyImage: func(imageID int) error {
+		_DestroyImage: func(ctx context.Context, imageID int) error {
 			assert.Equal(t, 1, imageID)
 			return nil
 		},
-		_DestroyInstance: func(id int) error {
+		_DestroyInstance: func(context.Context, int) error {
 			return nil
 		},
 	}

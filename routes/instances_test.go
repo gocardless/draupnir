@@ -43,7 +43,7 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateInstance: func(instanceID int, imageID int, port int) error {
+		_CreateInstance: func(ctx context.Context, instanceID int, imageID int, port int) error {
 			assert.Equal(t, 1, instanceID)
 			assert.Equal(t, 1, imageID)
 			return nil
@@ -90,7 +90,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateInstance: func(instanceID int, imageID int, port int) error {
+		_CreateInstance: func(ctx context.Context, instanceID int, imageID int, port int) error {
 			return nil
 		},
 	}
@@ -278,7 +278,7 @@ func TestInstanceDestroy(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}
@@ -315,7 +315,7 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}
@@ -356,7 +356,7 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}

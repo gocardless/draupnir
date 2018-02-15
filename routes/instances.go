@@ -81,7 +81,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to create instance")
 	}
 
-	if err := i.Executor.CreateInstance(imageID, instance.ID, instance.Port); err != nil {
+	if err := i.Executor.CreateInstance(r.Context(), imageID, instance.ID, instance.Port); err != nil {
 		return errors.Wrap(err, "failed to create instance")
 	}
 
@@ -203,7 +203,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to destroy instance")
 	}
 
-	err = i.Executor.DestroyInstance(instance.ID)
+	err = i.Executor.DestroyInstance(r.Context(), instance.ID)
 	if err != nil {
 		return errors.Wrap(err, "failed to destroy instance")
 	}

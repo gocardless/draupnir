@@ -119,7 +119,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to create new image")
 	}
 
-	if err := i.Executor.CreateBtrfsSubvolume(image.ID); err != nil {
+	if err := i.Executor.CreateBtrfsSubvolume(r.Context(), image.ID); err != nil {
 		return errors.Wrap(err, "failed to create btrfs subvolume")
 	}
 
@@ -159,7 +159,7 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if !image.Ready {
-		err = i.Executor.FinaliseImage(image)
+		err = i.Executor.FinaliseImage(r.Context(), image)
 		if err != nil {
 			return errors.Wrap(err, "failed to finalise image")
 		}
@@ -215,7 +215,7 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 			logger.With("instance", instance.ID).Info("destroying instance")
 			err = i.InstanceStore.Destroy(instance)
 			if err == nil {
-				err = i.Executor.DestroyInstance(instance.ID)
+				err = i.Executor.DestroyInstance(r.Context(), instance.ID)
 			}
 			if err != nil {
 				return errors.Wrap(err, "failed to destroy instance")
@@ -240,7 +240,7 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to destroy image")
 	}
 
-	err = i.Executor.DestroyImage(id)
+	err = i.Executor.DestroyImage(r.Context(), id)
 	if err != nil {
 		return errors.Wrap(err, "failed to destroy image")
 	}
