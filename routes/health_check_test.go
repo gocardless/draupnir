@@ -15,10 +15,12 @@ func TestHealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := http.HandlerFunc(HealthCheck)
+	errorHandler := FakeErrorHandler{}
+	handler := http.HandlerFunc(errorHandler.Handle(HealthCheck))
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, recorder.Code, http.StatusOK)
+	assert.Nil(t, errorHandler.Error)
 
 	var response map[string]string
 	err = json.NewDecoder(recorder.Body).Decode(&response)

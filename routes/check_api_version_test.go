@@ -6,18 +6,21 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/stretchr/testify/assert"
 )
 
-func shouldNeverBeCalled(t *testing.T) http.HandlerFunc {
-	return func(w http.ResponseWriter, h *http.Request) {
+func shouldNeverBeCalled(t *testing.T) chain.Handler {
+	return func(w http.ResponseWriter, h *http.Request) error {
 		t.Fatal("this route should never be called")
+		return nil
 	}
 }
 
-func respondsWithStatus(status int) http.HandlerFunc {
-	return func(w http.ResponseWriter, h *http.Request) {
+func respondsWithStatus(status int) chain.Handler {
+	return func(w http.ResponseWriter, h *http.Request) error {
 		w.WriteHeader(status)
+		return nil
 	}
 }
 
@@ -25,7 +28,7 @@ func TestCheckApiVersion(t *testing.T) {
 	testCases := []struct {
 		name          string
 		headerVersion string
-		handler       http.HandlerFunc
+		handler       chain.Handler
 		apiError      APIError
 		code          int
 	}{

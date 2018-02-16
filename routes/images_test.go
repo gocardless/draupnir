@@ -2,10 +2,9 @@ package routes
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,19 +15,19 @@ import (
 	"github.com/gocardless/draupnir/models"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func decodeJSON(r io.Reader, out interface{}) {
+func decodeJSON(t *testing.T, r io.Reader, out interface{}) {
 	err := json.NewDecoder(r).Decode(out)
 	if err != nil {
-		log.Panic(err)
+		t.Fatalf("%s", errors.Wrap(err, "Could not decode JSON").Error())
 	}
 }
 
 func TestGetImage(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/images/1", nil)
+	req, recorder, _ := createRequest(t, "GET", "/images/1", nil)
 
 	store := FakeImageStore{
 		_Get: func(id int) (models.Image, error) {
@@ -42,21 +41,22 @@ func TestGetImage(t *testing.T) {
 		},
 	}
 
+	errorHandler := FakeErrorHandler{}
 	routeSet := Images{ImageStore: store, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}", routeSet.Get)
+	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
 	var response jsonapi.OnePayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, getImageFixture, response)
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestGetImageWhenAuthenticationFails(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/images/1", nil)
+	req, recorder, logs := createRequest(t, "GET", "/images/1", nil)
 
 	authenticator := FakeAuthenticator{
 		_AuthenticateRequest: func(r *http.Request) (string, error) {
@@ -64,19 +64,19 @@ func TestGetImageWhenAuthenticationFails(t *testing.T) {
 		},
 	}
 
-	logger, output := NewFakeLogger()
-	routeSet := Images{Authenticator: authenticator, Logger: logger}
+	routeSet := Images{Authenticator: authenticator}
+	errorHandler := FakeErrorHandler{}
 
-	handler := http.HandlerFunc(routeSet.Get)
+	handler := http.HandlerFunc(errorHandler.Handle(routeSet.Get))
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	assert.Contains(t, output.String(), "Invalid email address")
+	assert.Contains(t, logs.String(), "Invalid email address")
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestListImages(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/images", nil)
+	req, recorder, _ := createRequest(t, "GET", "/images", nil)
 
 	store := FakeImageStore{
 		_List: func() ([]models.Image, error) {
@@ -93,28 +93,27 @@ func TestListImages(t *testing.T) {
 	}
 
 	handler := Images{ImageStore: store, Authenticator: AllowAll{}}.List
-	handler(recorder, req)
+	err := handler(recorder, req)
 
 	var response jsonapi.ManyPayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, response, listImagesFixture)
+	assert.Nil(t, err)
 }
 
 func TestCreateImage(t *testing.T) {
-	recorder := httptest.NewRecorder()
+	body := bytes.NewBuffer([]byte{})
 	request := CreateImageRequest{
 		BackedUpAt: timestamp(),
 		Anon:       "SELECT * FROM foo;",
 	}
-	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
-
-	req := httptest.NewRequest("POST", "/images", body)
+	req, recorder, _ := createRequest(t, "POST", "/images", body)
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(id int) error { assert.Equal(t, id, 1); return nil },
+		_CreateBtrfsSubvolume: func(ctx context.Context, id int) error { assert.Equal(t, id, 1); return nil },
 	}
 
 	store := FakeImageStore{
@@ -131,41 +130,44 @@ func TestCreateImage(t *testing.T) {
 	}
 
 	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
-	routeSet.Create(recorder, req)
+	err := routeSet.Create(recorder, req)
 
 	var response jsonapi.OnePayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
 	assert.Equal(t, createImageFixture, response)
+	assert.Nil(t, err)
 }
 
 func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
-	recorder := httptest.NewRecorder()
 	body := `{"this is": "not a valid JSON API request payload"}`
 	req := httptest.NewRequest("POST", "/images", strings.NewReader(body))
+	ctx := req.Context()
+	logger, logs := NewFakeLogger()
+	req = req.WithContext(context.WithValue(ctx, loggerKey, &logger))
+	recorder := httptest.NewRecorder()
 
-	logger, output := NewFakeLogger()
-	routeSet := Images{Authenticator: AllowAll{}, Logger: logger}
-	routeSet.Create(recorder, req)
+	routeSet := Images{Authenticator: AllowAll{}}
+	err := routeSet.Create(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, invalidJSONError, response)
-	assert.Contains(t, output.String(), "data is not a jsonapi representation")
+	assert.Contains(t, logs.String(), "data is not a jsonapi representation")
+	assert.Nil(t, err)
 }
 
 func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
-	recorder := httptest.NewRecorder()
+	body := bytes.NewBuffer([]byte{})
 	request := CreateImageRequest{
 		BackedUpAt: timestamp(),
 		Anon:       "SELECT * FROM foo;",
 	}
-	body := bytes.NewBuffer([]byte{})
 	jsonapi.MarshalOnePayload(body, &request)
-	req := httptest.NewRequest("POST", "/images", body)
+	req, recorder, logs := createRequest(t, "POST", "/images", body)
 
 	store := FakeImageStore{
 		_Create: func(image models.Image) (models.Image, error) {
@@ -180,31 +182,26 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateBtrfsSubvolume: func(id int) error {
+		_CreateBtrfsSubvolume: func(context.Context, int) error {
 			return errors.New("some btrfs error")
 		},
 	}
-	logger, output := NewFakeLogger()
 
 	routeSet := Images{
 		ImageStore:    store,
 		Executor:      executor,
 		Authenticator: AllowAll{},
-		Logger:        logger,
 	}
-	routeSet.Create(recorder, req)
+	err := routeSet.Create(recorder, req)
 
-	var response APIError
-	decodeJSON(recorder.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	assert.Equal(t, internalServerError, response)
-	assert.Contains(t, output.String(), "error=\"some btrfs error\"")
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Empty(t, recorder.Body.String())
+	assert.Empty(t, logs.String())
+	assert.Equal(t, "failed to create btrfs subvolume: some btrfs error", err.Error())
 }
 
 func TestImageDone(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/images/1/done", nil)
+	req, recorder, _ := createRequest(t, "POST", "/images/1/done", nil)
 
 	image := models.Image{
 		ID:         1,
@@ -229,47 +226,48 @@ func TestImageDone(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_FinaliseImage: func(i models.Image) error {
+		_FinaliseImage: func(ctx context.Context, i models.Image) error {
 			assert.Equal(t, image, i)
 
 			return nil
 		},
 	}
 
+	errorHandler := FakeErrorHandler{}
 	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}/done", routeSet.Done)
+	router.HandleFunc("/images/{id}/done", errorHandler.Handle(routeSet.Done))
 	router.ServeHTTP(recorder, req)
 
 	var response jsonapi.OnePayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, doneImageFixture, response)
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestImageDoneWithNonNumericID(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/images/bad_id/done", nil)
+	req, recorder, logs := createRequest(t, "POST", "/images/bad_id/done", nil)
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
-	routeSet := Images{Authenticator: AllowAll{}, Logger: logger}
+	routeSet := Images{Authenticator: AllowAll{}}
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}/done", routeSet.Done)
+	router.HandleFunc("/images/{id}/done", errorHandler.Handle(routeSet.Done))
 	router.ServeHTTP(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
-	assert.Contains(t, output.String(), "invalid syntax")
+	assert.Contains(t, logs.String(), "invalid syntax")
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestImageDestroy(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/images/1", nil)
+	req, recorder, logs := createRequest(t, "DELETE", "/images/1", nil)
 
 	image := models.Image{
 		ID:         1,
@@ -292,27 +290,27 @@ func TestImageDestroy(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyImage: func(imageID int) error {
+		_DestroyImage: func(ctx context.Context, imageID int) error {
 			assert.Equal(t, 1, imageID)
 			return nil
 		},
 	}
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
 	router := mux.NewRouter()
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}, Logger: logger}
-	router.HandleFunc("/images/{id}", routeSet.Destroy).Methods("DELETE")
+	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
-	assert.Contains(t, output.String(), "destroying image")
+	assert.Contains(t, logs.String(), "destroying image")
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestImageDestroyFromUploadUser(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/images/1", nil)
+	req, recorder, logs := createRequest(t, "DELETE", "/images/1", nil)
 
 	image := models.Image{
 		ID:         1,
@@ -350,11 +348,11 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyImage: func(imageID int) error {
+		_DestroyImage: func(ctx context.Context, imageID int) error {
 			assert.Equal(t, 1, imageID)
 			return nil
 		},
-		_DestroyInstance: func(id int) error {
+		_DestroyInstance: func(context.Context, int) error {
 			return nil
 		},
 	}
@@ -365,7 +363,7 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
-	logger, output := NewFakeLogger()
+	errorHandler := FakeErrorHandler{}
 
 	router := mux.NewRouter()
 	routeSet := Images{
@@ -373,16 +371,16 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger,
 	}
-	router.HandleFunc("/images/{id}", routeSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 	assert.Equal(t, []int{1, 3}, destroyedImages)
-	assert.Contains(t, output.String(), "destroying instance")
-	assert.Contains(t, output.String(), "destroying image")
+	assert.Contains(t, logs.String(), "destroying instance")
+	assert.Contains(t, logs.String(), "destroying image")
+	assert.Nil(t, errorHandler.Error)
 }
 
 func timestamp() time.Time {

@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/evalphobia/logrus_sentry"
+	raven "github.com/getsentry/raven-go"
 	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/auth"
@@ -39,65 +38,30 @@ type Config struct {
 }
 
 func main() {
+	logger := log.With("app", "draupnir")
+
 	var c Config
 	err := envconfig.Process("draupnir", &c)
 	if err != nil {
-		log.Fatal(err.Error())
+		logger.With("error", err.Error()).Fatal("Could not read config")
 	}
 
-	db, err := sql.Open("postgres", c.DatabaseUrl)
-	if err != nil {
-		log.Fatalf("Cannot connect to database: %s", err.Error())
-	}
+	logger = log.With("environment", c.Environment)
 
-	logger := log.With("app", "draupnir")
+	oauthConfig := createOauthConfig(c)
+	authenticator := createAuthenticator(c, oauthConfig)
 
-	if c.SentryDsn != "" {
-		hook, err := logrus_sentry.NewSentryHook(c.SentryDsn, []logrus.Level{
-			logrus.PanicLevel,
-			logrus.FatalLevel,
-			logrus.ErrorLevel,
-		})
+	db := connectToDatabase(c, logger)
+	imageStore := createImageStore(db)
+	instanceStore := createInstanceStore(db)
 
-		if err != nil {
-			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
-		}
-
-		hook.StacktraceConfiguration.Enable = true
-		log.AddHook(hook)
-	}
-
-	oauthConfig := oauth2.Config{
-		ClientID:     c.OauthClientId,
-		ClientSecret: c.OauthClientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
-		},
-		RedirectURL: c.OauthRedirectUrl,
-	}
-
-	executor := exec.OSExecutor{DataPath: c.DataPath}
-
-	authenticator := auth.GoogleAuthenticator{
-		OAuthClient:            auth.GoogleOAuthClient{Config: &oauthConfig},
-		SharedSecret:           c.SharedSecret,
-		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
-	}
-	if c.Environment == "test" {
-		authenticator.OAuthClient = auth.FakeOAuthClient{}
-	}
-
-	imageStore := store.DBImageStore{DB: db}
-	instanceStore := store.DBInstanceStore{DB: db}
+	executor := createExecutor(c)
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
 		InstanceStore: instanceStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger.With("resource", "images"),
 	}
 
 	instanceRouteSet := routes.Instances{
@@ -105,102 +69,112 @@ func main() {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: authenticator,
-		Logger:        logger.With("resource", "instances"),
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
 		Callbacks: make(map[string]chan routes.OAuthCallback),
 		Client:    &oauthConfig,
-		Logger:    logger.With("resource", "access_tokens"),
+	}
+
+	// Every request will be logged, and any error raised in serving the request
+	// will also be logged.
+	rootHandler := chain.
+		New(routes.NewErrorHandler(logger)).
+		Add(routes.NewRequestLogger(logger))
+
+	// If Sentry is available, attach the Sentry middleware
+	// This will report all errors to Sentry
+	if c.SentryDsn != "" {
+		sentryClient, err := raven.New(c.SentryDsn)
+		if err != nil {
+			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
+		}
+
+		rootHandler = rootHandler.
+			Add(routes.NewSentryReporter(sentryClient))
 	}
 
 	router := mux.NewRouter()
 
-	asJSON := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			next(w, r)
-		}
-	}
-	withVersion := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Draupnir-Version", version.Version)
-			next(w, r)
-		}
-	}
+	// Healthcheck
+	// We don't enforce a particulate API version on this route, because it should
+	// be easy to hit to monitor the health of the system.
+	router.Methods("GET").Path("/health_check").HandlerFunc(
+		rootHandler.
+			Add(routes.WithVersion).
+			Add(routes.AsJSON).
+			Resolve(routes.HealthCheck),
+	)
 
-	defaultChain := chain.
-		New().
-		Add(routes.LogRequest).
-		Add(withVersion).
-		Add(asJSON).
-		Add(routes.CheckAPIVersion(version.Version)).
-		ToMiddleware()
+	// OAuth
+	// These routes are a bit special, because they don't accept or return JSON.
+	// They're intended to be used through a web browser.
+	router.Methods("GET").Path("/authenticate").HandlerFunc(
+		rootHandler.
+			Resolve(accessTokenRouteSet.Authenticate),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/health_check")).
-		Add(routes.LogRequest).
-		Add(withVersion).
-		Add(asJSON).
-		ToRoute(routes.HealthCheck)
+	router.Methods("GET").Path("/oauth_callback").HandlerFunc(
+		rootHandler.
+			Add(routes.OauthErrorRenderer).
+			Resolve(accessTokenRouteSet.Callback),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/authenticate")).
-		ToRoute(accessTokenRouteSet.Authenticate)
+	// Core API routes
+	// These routes all accept and return JSON, and will enforce that the client
+	// sends a compatible API version header.
+	defaultChain := rootHandler.
+		Add(routes.DefaultErrorRenderer).
+		Add(routes.WithVersion).
+		Add(routes.AsJSON).
+		Add(routes.CheckAPIVersion(version.Version))
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/oauth_callback")).
-		ToRoute(accessTokenRouteSet.Callback)
+	// Access Tokens
+	router.Methods("POST").Path("/access_tokens").HandlerFunc(
+		defaultChain.Resolve(accessTokenRouteSet.Create),
+	)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/access_tokens")).
-		Add(defaultChain).
-		ToRoute(accessTokenRouteSet.Create)
+	// Images
+	router.Methods("GET").Path("/images").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.List),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/images")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.List)
+	router.Methods("POST").Path("/images").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Create),
+	)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/images")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Create)
+	router.Methods("GET").Path("/images/{id}").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Get),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/images/{id}")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Get)
+	router.Methods("POST").Path("/images/{id}/done").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Done),
+	)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/images/{id}/done")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Done)
+	router.Methods("DELETE").Path("/images/{id}").HandlerFunc(
+		defaultChain.Resolve(imageRouteSet.Destroy),
+	)
 
-	chain.
-		FromRoute(router.Methods("DELETE").Path("/images/{id}")).
-		Add(defaultChain).
-		ToRoute(imageRouteSet.Destroy)
+	// Instances
+	router.Methods("GET").Path("/instances").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.List),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/instances")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.List)
+	router.Methods("POST").Path("/instances").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Create),
+	)
 
-	chain.
-		FromRoute(router.Methods("POST").Path("/instances")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Create)
+	router.Methods("GET").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Get),
+	)
 
-	chain.
-		FromRoute(router.Methods("GET").Path("/instances/{id}")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Get)
+	router.Methods("DELETE").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Destroy),
+	)
 
-	chain.
-		FromRoute(router.Methods("DELETE").Path("/instances/{id}")).
-		Add(defaultChain).
-		ToRoute(instanceRouteSet.Destroy)
+	router.Methods("DELETE").Path("/instances/{id}").HandlerFunc(
+		defaultChain.Resolve(instanceRouteSet.Destroy),
+	)
 
 	var g run.Group
 
@@ -230,4 +204,49 @@ func main() {
 	if err := g.Run(); err != nil {
 		logger.Fatal(err.Error())
 	}
+}
+
+func connectToDatabase(c Config, logger log.Logger) *sql.DB {
+	db, err := sql.Open("postgres", c.DatabaseUrl)
+	if err != nil {
+		logger.With("error", err.Error()).Fatal("Could not connect to database")
+	}
+	return db
+}
+
+func createOauthConfig(c Config) oauth2.Config {
+	return oauth2.Config{
+		ClientID:     c.OauthClientId,
+		ClientSecret: c.OauthClientSecret,
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
+		},
+		RedirectURL: c.OauthRedirectUrl,
+	}
+}
+
+func createAuthenticator(c Config, oauthConfig oauth2.Config) auth.Authenticator {
+	authenticator := auth.GoogleAuthenticator{
+		OAuthClient:            auth.GoogleOAuthClient{Config: &oauthConfig},
+		SharedSecret:           c.SharedSecret,
+		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
+	}
+	if c.Environment == "test" {
+		authenticator.OAuthClient = auth.FakeOAuthClient{}
+	}
+	return authenticator
+}
+
+func createImageStore(db *sql.DB) store.ImageStore {
+	return store.DBImageStore{DB: db}
+}
+
+func createInstanceStore(db *sql.DB) store.InstanceStore {
+	return store.DBInstanceStore{DB: db}
+}
+
+func createExecutor(c Config) exec.Executor {
+	return exec.OSExecutor{DataPath: c.DataPath}
 }

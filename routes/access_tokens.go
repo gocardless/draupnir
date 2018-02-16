@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/google/jsonapi"
 	"github.com/pkg/errors"
-	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
@@ -19,7 +19,6 @@ const OAUTH_CALLBACK_TIMEOUT = time.Minute
 type AccessTokens struct {
 	Callbacks map[string]chan OAuthCallback
 	Client    OAuthClient
-	Logger    log.Logger
 }
 
 type OAuthCallback struct {
@@ -35,7 +34,7 @@ type OAuthClient interface {
 	Exchange(context.Context, string) (*oauth2.Token, error)
 }
 
-func (a AccessTokens) Authenticate(w http.ResponseWriter, r *http.Request) {
+func (a AccessTokens) Authenticate(w http.ResponseWriter, r *http.Request) error {
 	r.ParseForm()
 	state := r.Form.Get("state")
 
@@ -43,6 +42,7 @@ func (a AccessTokens) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Location", url)
 	w.WriteHeader(http.StatusFound)
+	return nil
 }
 
 type createAccessTokenRequest struct {
@@ -64,13 +64,17 @@ type createAccessTokenRequest struct {
 // through the same channel (looking it up by the state).
 // Create will then receive the result through the channel, remove the channel
 // from the map, and serialise a result back to the client.
-func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
+func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 	var req createAccessTokenRequest
 
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		a.Logger.With("error", err.Error()).Info("failed to unmarshal request")
 		RenderError(w, http.StatusBadRequest, invalidJSONError)
-		return
+		return nil
 	}
 
 	state := req.State
@@ -82,19 +86,17 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) {
 	delete(a.Callbacks, state)
 
 	if err != nil {
-		a.Logger.With("error", err.Error()).Info("oauth request failed")
+		logger.With("error", err.Error()).Info("oauth request failed")
 		RenderError(w, http.StatusBadRequest, oauthError) // TODO: improve error
-		return
+		return nil
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(token)
 	if err != nil {
-		a.Logger.With("error", err.Error()).With("http_request", r).
-			Error("failed to encode access token")
-		RenderError(w, http.StatusInternalServerError, internalServerError)
-		return
+		return errors.Wrap(err, "failed to encode access token")
 	}
+	return nil
 }
 
 func waitForCallback(callbackChan chan OAuthCallback) (oauth2.Token, error) {
@@ -109,7 +111,12 @@ func waitForCallback(callbackChan chan OAuthCallback) (oauth2.Token, error) {
 	}
 }
 
-func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
+func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) error {
+	logger, err := GetLogger(r)
+	if err != nil {
+		return err
+	}
+
 	r.ParseForm()
 
 	respError := r.Form.Get("error")
@@ -118,24 +125,22 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 
 	callback := a.Callbacks[state]
 	if callback == nil {
-		a.Logger.With("state", state).Info("cannot find oauth callback for state")
-		return
+		logger.With("state", state).Info("cannot find oauth callback for state")
+		return nil
 	}
 
 	if respError != "" {
 		err := errors.New(respError)
 		callback <- OAuthCallback{Error: err}
-		a.Logger.With("http_request", r).Error(err)
-		oauthCallbackError(w, err)
-		return
+		return err
 	}
 
 	if respCode == "" {
 		err := fmt.Errorf("OAuth callback response code is empty")
 		callback <- OAuthCallback{Error: err}
-		a.Logger.With("state", state).With("http_request", r).Error("empty oauth response code")
-		oauthCallbackError(w, err)
-		return
+		// TODO: remove this and log the state earlier?
+		logger.With("state", state).Error("empty oauth response code")
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), TOKEN_EXCHANGE_TIMEOUT)
@@ -145,25 +150,30 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := errors.Wrap(err, "token exchange error")
 		callback <- OAuthCallback{Error: err}
-		a.Logger.With("http_request", r).Error(err.Error())
-		oauthCallbackError(w, err)
-		return
+		return err
 	}
 
 	callback <- OAuthCallback{Token: *token}
 
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte("<h1>Success!</h1><h3>You can close this tab</h3><script>window.close()</script>"))
+	return nil
 }
 
-func oauthCallbackError(w http.ResponseWriter, err error) {
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusInternalServerError)
-	response := fmt.Sprintf(
-		`<h1>Error</h1>
-		 <h3>There was an error. Please try again</h3>
-		 <pre>%s</pre>`,
-		err.Error(),
-	)
-	w.Write([]byte(response))
+func OauthErrorRenderer(next chain.Handler) chain.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		err := next(w, r)
+		if err != nil {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusInternalServerError)
+			response := fmt.Sprintf(
+				`<h1>Error</h1>
+				 <h3>There was an error. Please try again</h3>
+				 <pre>%s</pre>`,
+				err.Error(),
+			)
+			w.Write([]byte(response))
+		}
+		return err
+	}
 }

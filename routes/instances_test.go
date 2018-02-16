@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,17 +12,14 @@ import (
 	"github.com/gocardless/draupnir/models"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInstanceCreate(t *testing.T) {
-	recorder := httptest.NewRecorder()
-
-	request := CreateInstanceRequest{ImageID: "1"}
 	body := bytes.NewBuffer([]byte{})
+	request := CreateInstanceRequest{ImageID: "1"}
 	jsonapi.MarshalOnePayload(body, &request)
-	req := httptest.NewRequest("POST", "/instances", body)
+	req, recorder, _ := createRequest(t, "POST", "/instances", body)
 
 	instanceStore := FakeInstanceStore{
 		_Create: func(instance models.Instance) (models.Instance, error) {
@@ -45,7 +43,7 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateInstance: func(instanceID int, imageID int, port int) error {
+		_CreateInstance: func(ctx context.Context, instanceID int, imageID int, port int) error {
 			assert.Equal(t, 1, instanceID)
 			assert.Equal(t, 1, imageID)
 			return nil
@@ -57,25 +55,22 @@ func TestInstanceCreate(t *testing.T) {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: AllowAll{},
-		Logger:        log.NewNopLogger(),
 	}
-	routeSet.Create(recorder, req)
+	err := routeSet.Create(recorder, req)
 
 	var response jsonapi.OnePayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusCreated, recorder.Code)
 	assert.Equal(t, createInstanceFixture, response)
+	assert.Nil(t, err)
 }
 
 func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
-	recorder := httptest.NewRecorder()
-
-	request := CreateInstanceRequest{ImageID: "1"}
 	body := bytes.NewBuffer([]byte{})
+	request := CreateInstanceRequest{ImageID: "1"}
 	jsonapi.MarshalOnePayload(body, &request)
-
-	req := httptest.NewRequest("POST", "/instances", body)
+	req, recorder, _ := createRequest(t, "POST", "/instances", body)
 
 	instanceStore := FakeInstanceStore{
 		_Create: func(image models.Instance) (models.Instance, error) {
@@ -95,7 +90,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_CreateInstance: func(instanceID int, imageID int, port int) error {
+		_CreateInstance: func(ctx context.Context, instanceID int, imageID int, port int) error {
 			return nil
 		},
 	}
@@ -105,62 +100,62 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		ImageStore:    imageStore,
 		Executor:      executor,
 		Authenticator: AllowAll{},
-		Logger:        log.NewNopLogger(),
 	}
-	routeSet.Create(recorder, req)
+	err := routeSet.Create(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 	assert.Equal(t, unreadyImageError, response)
+	assert.Nil(t, err)
 }
 
 func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
+	// TODO: use createRequest here?
+	body := bytes.NewBuffer([]byte{})
 	recorder := httptest.NewRecorder()
 	request := map[string]string{"this is": "not a valid JSON API request payload"}
-	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(&request)
 	req := httptest.NewRequest("POST", "/instances", body)
-	logger, output := NewFakeLogger()
 
-	Instances{Authenticator: AllowAll{}, Logger: logger}.Create(recorder, req)
+	logger, logs := NewFakeLogger()
+	req = req.WithContext(context.WithValue(req.Context(), loggerKey, &logger))
+
+	err := Instances{Authenticator: AllowAll{}}.Create(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, invalidJSONError, response)
-	assert.Contains(t, output.String(), "not a jsonapi representation")
+	assert.Contains(t, logs.String(), "not a jsonapi representation")
 }
 
 func TestInstanceCreateWithInvalidImageID(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	request := CreateInstanceRequest{ImageID: "garbage"}
 	body := bytes.NewBuffer([]byte{})
+	request := CreateInstanceRequest{ImageID: "garbage"}
 	jsonapi.MarshalOnePayload(body, &request)
-	logger, output := NewFakeLogger()
-
-	req := httptest.NewRequest("POST", "/instances", body)
+	req, recorder, logs := createRequest(t, "POST", "/instances", body)
 
 	routeSet := Instances{
 		Executor:      FakeExecutor{},
 		Authenticator: AllowAll{},
-		Logger:        logger,
 	}
-	routeSet.Create(recorder, req)
+	err := routeSet.Create(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Equal(t, badImageIDError, response)
-	assert.Contains(t, output.String(), "parsing \\\"garbage\\\": invalid syntax")
+	assert.Contains(t, logs.String(), "parsing \\\"garbage\\\": invalid syntax")
+	assert.Nil(t, err)
 }
 
 func TestInstanceList(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/instances", nil)
+	req, recorder, _ := createRequest(t, "GET", "/instances", nil)
 
 	store := FakeInstanceStore{
 		_List: func() ([]models.Instance, error) {
@@ -186,18 +181,18 @@ func TestInstanceList(t *testing.T) {
 	}
 
 	routeSet := Instances{InstanceStore: store, Authenticator: AllowAll{}}
-	routeSet.List(recorder, req)
+	err := routeSet.List(recorder, req)
 
 	var response jsonapi.ManyPayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, listInstancesFixture, response)
+	assert.Nil(t, err)
 }
 
 func TestInstanceGet(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/instances/1", nil)
+	req, recorder, _ := createRequest(t, "GET", "/instances/1", nil)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -212,21 +207,22 @@ func TestInstanceGet(t *testing.T) {
 		},
 	}
 
+	errorHandler := FakeErrorHandler{}
 	routeSet := Instances{InstanceStore: store, Authenticator: AllowAll{}}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", routeSet.Get)
+	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
 	var response jsonapi.OnePayload
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, getInstanceFixture, response)
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestInstanceGetFromWrongUser(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/instances/1", nil)
+	req, recorder, _ := createRequest(t, "GET", "/instances/1", nil)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -248,20 +244,22 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 		InstanceStore: store,
 		Authenticator: AllowAll{},
 	}
+
+	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", routeSet.Get)
+	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestInstanceDestroy(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/instances/1", nil)
+	req, recorder, _ := createRequest(t, "DELETE", "/instances/1", nil)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -280,23 +278,25 @@ func TestInstanceDestroy(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}, Logger: log.NewNopLogger()}
+	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}
+
+	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", routeSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestInstanceDestroyFromWrongUser(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/instances/1", nil)
+	req, recorder, _ := createRequest(t, "DELETE", "/instances/1", nil)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -315,27 +315,29 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}
 
 	// AllowAll will return a user email of test@draupnir
 	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}
+
+	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", routeSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	var response APIError
-	decodeJSON(recorder.Body, &response)
+	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Equal(t, notFoundError, response)
+	assert.Nil(t, errorHandler.Error)
 }
 
 func TestInstanceDestroyFromUploadUser(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/instances/1", nil)
+	req, recorder, _ := createRequest(t, "DELETE", "/instances/1", nil)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -354,7 +356,7 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	}
 
 	executor := FakeExecutor{
-		_DestroyInstance: func(instanceID int) error {
+		_DestroyInstance: func(ctx context.Context, instanceID int) error {
 			return nil
 		},
 	}
@@ -365,11 +367,13 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: authenticator, Logger: log.NewNopLogger()}
+	errorHandler := FakeErrorHandler{}
+	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: authenticator}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", routeSet.Destroy).Methods("DELETE")
+	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 	assert.Equal(t, 0, len(recorder.Body.Bytes()))
+	assert.Nil(t, errorHandler.Error)
 }
