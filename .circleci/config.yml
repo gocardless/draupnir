@@ -92,6 +92,7 @@ jobs:
 
             if [[ $(git tag -l "${CURRENT_VERSION}") == "${CURRENT_VERSION}" ]]; then
               echo "Version ${CURRENT_VERSION} is already released"
+              exit 0
             fi
 
             go get -u github.com/goreleaser/goreleaser
