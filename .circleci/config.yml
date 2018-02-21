@@ -79,6 +79,28 @@ jobs:
           name: Run integration tests
           command: cp workspace/*.linux_amd64 ./ && make test-integration
 
+  release:
+    <<: *docker_build_image
+    environment:
+      GOPATH: /go
+    steps:
+      - checkout
+      - run:
+          name: Release
+          command: |
+            CURRENT_VERSION="v$(cat DRAUPNIR_VERSION)"
+
+            if [[ $(git tag -l "${CURRENT_VERSION}") == "${CURRENT_VERSION}" ]]; then
+              echo "Version ${CURRENT_VERSION} is already released"
+            fi
+
+            go get -u github.com/goreleaser/goreleaser
+
+            git tag "${CURRENT_VERSION}"
+            git push --tags
+
+            goreleaser --rm-dist
+
 workflows:
   version: 2
   build-integration:
@@ -87,4 +109,12 @@ workflows:
       - rubocop
       - build-linux
       - integration:
-          requires: [build-linux]
+          requires:
+            - build-linux
+      - release:
+          requires:
+            - integration
+          filters:
+            branches:
+              only:
+                - master

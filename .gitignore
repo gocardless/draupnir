@@ -8,3 +8,4 @@
 /.bundle
 /.kitchen
 /.env
+/dist
