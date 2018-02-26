@@ -23,8 +23,14 @@ sudo -u draupnir psql draupnir -f /workspace/structure.sql
 cp /workspace/spec/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem
 cp /workspace/spec/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem
 
-# Install scripts, boot draupnir
+# Install scripts
 find /workspace/cmd -type f -exec cp {} /usr/bin/ \;
+
+# Install config file
+mkdir -p /etc/draupnir
+cp /workspace/spec/fixtures/config.toml /etc/draupnir/config.toml
+
+# Boot draupnir
 /workspace/draupnir.linux_amd64 >/var/log/draupnir.log 2>&1 &
 timeout 5 bash <<POLL 1>&2
 until curl --silent https://localhost:8443/health_check; do

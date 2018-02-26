@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
+	"github.com/burntsushi/toml"
 	raven "github.com/getsentry/raven-go"
 	"github.com/prometheus/common/log"
 	"golang.org/x/oauth2"
@@ -17,33 +20,96 @@ import (
 	"github.com/gocardless/draupnir/store"
 	"github.com/gocardless/draupnir/version"
 	"github.com/gorilla/mux"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/oklog/run"
+	"github.com/pkg/errors"
 )
 
 type Config struct {
-	Port                   int    `required:"true"`
-	InsecurePort           int    `required:"false" default:"8080"`
-	DatabaseUrl            string `required:"true" split_words:"true"`
-	DataPath               string `required:"true" split_words:"true"`
-	Environment            string `required:"false"`
-	SharedSecret           string `required:"true" split_words:"true"`
-	OauthRedirectUrl       string `required:"true" split_words:"true"`
-	OauthClientId          string `required:"true" split_words:"true"`
-	OauthClientSecret      string `required:"true" split_words:"true"`
-	TlsCertificatePath     string `required:"true" split_words:"true"`
-	TlsPrivateKeyPath      string `required:"true" split_words:"true"`
-	TrustedUserEmailDomain string `required:"true" split_words:"true"`
-	SentryDsn              string `required:"false" split_words:"true"`
+	Port                   int    `toml:"port"`
+	InsecurePort           int    `toml:"insecure_port"`
+	DatabaseUrl            string `toml:"database_url"`
+	DataPath               string `toml:"data_path"`
+	Environment            string `toml:"environment"`
+	SharedSecret           string `toml:"shared_secret"`
+	OauthRedirectUrl       string `toml:"oauth_redirect_url"`
+	OauthClientId          string `toml:"oauth_client_id"`
+	OauthClientSecret      string `toml:"oauth_client_secret"`
+	TlsCertificatePath     string `toml:"tls_certificate_path"`
+	TlsPrivateKeyPath      string `toml:"tls_private_key_path"`
+	TrustedUserEmailDomain string `toml:"trusted_user_email_domain"`
+	SentryDsn              string `toml:"sentry_dsn"`
+}
+
+const ConfigFilePath = "/etc/draupnir/config.toml"
+
+func loadConfig(path string) (Config, error) {
+	var config Config
+	file, err := os.Open(path)
+	if err != nil {
+		return config, errors.Wrap(err, fmt.Sprintf("No configuration file found at %s", ConfigFilePath))
+	}
+
+	_, err = toml.DecodeReader(file, &config)
+	if err != nil {
+		return config, errors.Wrap(err, "Could not parse configuration file")
+	}
+
+	return config, validateConfig(config)
+}
+
+func validateConfig(config Config) error {
+	messages := make([]string, 0)
+
+	if config.Port == 0 {
+		messages = append(messages, "Invalid value for port: 0")
+	}
+	if config.InsecurePort == 0 {
+		messages = append(messages, "Invalid value for insecure_port: 0")
+	}
+	if config.DatabaseUrl == "" {
+		messages = append(messages, "Invalid value for database_url: ''")
+	}
+	if config.DataPath == "" {
+		messages = append(messages, "Invalid value for data_path: ''")
+	}
+	if config.Environment == "" {
+		messages = append(messages, "Invalid value for environment: ''")
+	}
+	if config.SharedSecret == "" {
+		messages = append(messages, "Invalid value for shared_secret: ''")
+	}
+	if config.OauthRedirectUrl == "" {
+		messages = append(messages, "Invalid value for oauth_redirect_url: ''")
+	}
+	if config.OauthClientId == "" {
+		messages = append(messages, "Invalid value for oauth_client_id: ''")
+	}
+	if config.OauthClientSecret == "" {
+		messages = append(messages, "Invalid value for oauth_client_secret: ''")
+	}
+	if config.TlsCertificatePath == "" {
+		messages = append(messages, "Invalid value for tls_certificate_path: ''")
+	}
+	if config.TlsPrivateKeyPath == "" {
+		messages = append(messages, "Invalid value for tls_private_key_path: ''")
+	}
+	if config.TrustedUserEmailDomain == "" {
+		messages = append(messages, "Invalid value for trusted_user_email_domain: ''")
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+
+	return errors.New(strings.Join(messages, "\n"))
 }
 
 func main() {
 	logger := log.With("app", "draupnir")
 
-	var c Config
-	err := envconfig.Process("draupnir", &c)
+	c, err := loadConfig(ConfigFilePath)
 	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not read config")
+		logger.With("error", err.Error()).Fatal("Could not load config")
 	}
 
 	logger = log.With("environment", c.Environment)
@@ -202,7 +268,7 @@ func main() {
 	)
 
 	if err := g.Run(); err != nil {
-		logger.Fatal(err.Error())
+		logger.Fatal(errors.Wrap(err, "could not start HTTP servers").Error())
 	}
 }
 

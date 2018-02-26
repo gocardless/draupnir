@@ -1,0 +1,12 @@
+port = 8443
+insecure_port = 8080
+database_url = "postgres://draupnir:draupnir@127.0.0.1/draupnir?sslmode=disable"
+data_path = "/draupnir"
+environment = "test"
+shared_secret = "thesharedsecret"
+oauth_redirect_url = "https://server.com/oauth_callback"
+oauth_client_id = "the_client_id"
+oauth_client_secret = "the_client_secret"
+tls_certificate_path = "/etc/ssl/certs/draupnir_cert.pem"
+tls_private_key_path = "/etc/ssl/certs/draupnir_key.pem"
+trusted_user_email_domain = "@gocardless.com"

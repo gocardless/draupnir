@@ -5,6 +5,7 @@ require "rspec"
 require "docker"
 require "rest-client"
 require "active_support/core_ext/module/delegation"
+require "pry"
 
 class Draupnir
   BOOTSTRAP = "/workspace/spec/fixtures/bootstrap"
@@ -17,7 +18,6 @@ class Draupnir
     end
   end
 
-  # rubocop:disable Metrics/MethodLength, Metrics/LineLength
   def self.create_from_container
     draupnir = Docker::Container.create(
       "Image" => "gocardless/draupnir-base",
@@ -27,20 +27,6 @@ class Draupnir
         "Binds" => ["#{`pwd`.chomp}:/workspace"],
         "PublishAllPorts" => true,
       },
-      "Env" => %w[
-        DRAUPNIR_DATABASE_URL=postgres://draupnir:draupnir@127.0.0.1/draupnir?sslmode=disable
-        DRAUPNIR_DATA_PATH=/draupnir
-        DRAUPNIR_ENVIRONMENT=test
-        DRAUPNIR_OAUTH_CLIENT_ID=the_client_id
-        DRAUPNIR_OAUTH_CLIENT_SECRET=the_client_secret
-        DRAUPNIR_OAUTH_REDIRECT_URL=https://server.com/oauth_callback
-        DRAUPNIR_PASSWORD=draupnir
-        DRAUPNIR_PORT=8443
-        DRAUPNIR_SHARED_SECRET=thesharedsecret
-        DRAUPNIR_TLS_CERTIFICATE_PATH=/etc/ssl/certs/draupnir_cert.pem
-        DRAUPNIR_TLS_PRIVATE_KEY_PATH=/etc/ssl/certs/draupnir_key.pem
-        DRAUPNIR_TRUSTED_USER_EMAIL_DOMAIN=@gocardless.com
-      ],
     )
 
     draupnir.start!
@@ -48,7 +34,6 @@ class Draupnir
 
     new(draupnir)
   end
-  # rubocop:enable Metrics/MethodLength, Metrics/LineLength
 
   def initialize(draupnir)
     @draupnir = draupnir
@@ -91,6 +76,10 @@ class Draupnir
       request(:delete, "/images/#{image['id']}")
     end
   end
+
+  def kill
+    @draupnir.kill!
+  end
 end
 
 RSpec.configure do |config|
@@ -110,13 +99,10 @@ RSpec.configure do |config|
     client.request(:delete, path)
   end
 
-  config.around do |example|
-    client.destroy_all_instances
-    client.destroy_all_images
-
-    example.run
-
+  config.after do
     client.destroy_all_instances
     client.destroy_all_images
   end
+
+  config.after(:suite) { client&.kill }
 end
