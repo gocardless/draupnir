@@ -169,21 +169,24 @@ Configuration
 ------------
 
 When draupnir boots it looks for a config file at `/etc/draupnir/config.toml`.
-This file is required and must specify all configuration variables in order for
-Draupnir to boot. The variables are as follows
+This file must specify all required configuration variables in order for
+Draupnir to boot. The variables are as follows:
 
-- `port`: The port that the HTTPS server will bind to.
-- `insecure_port`: The port that the HTTP server will bind to.
-- `tls_certificate_path`: The path to the TLS certificate file that the HTTPS server will use.
-- `tls_private_key_path`: The path to the TLS private key that the HTTPS server will use.
-- `database_url`: A postgresql [connection URI](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING) for draupnir's internal database.
-- `data_path`: The path to draupnir's data directory, where all images and instances will be stored.
-- `environment`: The environment. This can be any value, but if it is set to "test", draupnir will use a stubbed authentication client which allows all requests specifying an access token of `the-integration-access-token`. This is intended for integration tests - don't use it in production. The environment will be included in all log messages.
-- `shared_secret`: A hardcoded access token that can be used by automated scripts which can't authenticate via OAuth. At GoCardless we use this to automatically create new images.
-- `oauth_redirect_url`: The redirect URL for the OAuth flow.
-- `oauth_client_id`: The OAuth client ID.
-- `oauth_client_secret`: The OAuth client secret.
-- `trusted_user_email_domain`: The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
+| Field                      | Required | Description
+|----------------------------|----------|---------------------------------------|
+| `database_url`             | True     | A postgresql [connection URI](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING) for draupnir's internal database.
+| `data_path`                | True     | The path to draupnir's data directory, where all images and instances will be stored.
+| `environment`              | True     | The environment. This can be any value, but if it is set to "test", draupnir will use a stubbed authentication client which allows all requests specifying an access token of `the-integration-access-token`. This is intended for integration tests - don't use it in production. The environment will be included in all log messages.
+| `shared_secret`            | True     | A hardcoded access token that can be used by automated scripts which can't authenticate via OAuth. At GoCardless we use this to automatically create new images.
+| `trusted_user_email_domain`| True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
+| `sentry_dsn`               | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
+| `http.port`                | True     | The port that the HTTPS server will bind to.
+| `http.insecure_port`       | True     | The port that the HTTP server will bind to.
+| `http.tls_certificate`     | True     | The path to the TLS certificate file that the HTTPS server will use.
+| `http.tls_private_key`     | True     | The path to the TLS private key that the HTTPS server will use.
+| `oauth.redirect_url`       | True     | The redirect URL for the OAuth flow.
+| `oauth.client_id`          | True     | The OAuth client ID.
+| `oauth.client_secret`      | True     | The OAuth client secret.
 
 For a complete example of this file, see `spec/fixtures/config.toml`.
 
