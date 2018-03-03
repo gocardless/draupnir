@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
+	"reflect"
 
 	"github.com/burntsushi/toml"
 	raven "github.com/getsentry/raven-go"
@@ -37,7 +37,7 @@ type Config struct {
 	TlsCertificatePath     string `toml:"tls_certificate_path"`
 	TlsPrivateKeyPath      string `toml:"tls_private_key_path"`
 	TrustedUserEmailDomain string `toml:"trusted_user_email_domain"`
-	SentryDsn              string `toml:"sentry_dsn"`
+	SentryDsn              string `toml:"sentry_dsn" required:"false"`
 }
 
 const ConfigFilePath = "/etc/draupnir/config.toml"
@@ -57,51 +57,28 @@ func loadConfig(path string) (Config, error) {
 	return config, validateConfig(config)
 }
 
-func validateConfig(config Config) error {
-	messages := make([]string, 0)
+func validateConfig(cfg Config) error {
+	cfgValue := reflect.ValueOf(&cfg).Elem()
+	cfgType := reflect.TypeOf(cfg)
+	emptyFields := []string{}
 
-	if config.Port == 0 {
-		messages = append(messages, "Invalid value for port: 0")
-	}
-	if config.InsecurePort == 0 {
-		messages = append(messages, "Invalid value for insecure_port: 0")
-	}
-	if config.DatabaseUrl == "" {
-		messages = append(messages, "Invalid value for database_url: ''")
-	}
-	if config.DataPath == "" {
-		messages = append(messages, "Invalid value for data_path: ''")
-	}
-	if config.Environment == "" {
-		messages = append(messages, "Invalid value for environment: ''")
-	}
-	if config.SharedSecret == "" {
-		messages = append(messages, "Invalid value for shared_secret: ''")
-	}
-	if config.OauthRedirectUrl == "" {
-		messages = append(messages, "Invalid value for oauth_redirect_url: ''")
-	}
-	if config.OauthClientId == "" {
-		messages = append(messages, "Invalid value for oauth_client_id: ''")
-	}
-	if config.OauthClientSecret == "" {
-		messages = append(messages, "Invalid value for oauth_client_secret: ''")
-	}
-	if config.TlsCertificatePath == "" {
-		messages = append(messages, "Invalid value for tls_certificate_path: ''")
-	}
-	if config.TlsPrivateKeyPath == "" {
-		messages = append(messages, "Invalid value for tls_private_key_path: ''")
-	}
-	if config.TrustedUserEmailDomain == "" {
-		messages = append(messages, "Invalid value for trusted_user_email_domain: ''")
+	for i := 0; i < cfgValue.NumField(); i++ {
+		field := cfgValue.Field(i)
+		tag := cfgType.Field(i).Tag
+		empty := reflect.Zero(field.Type())
+		if tag.Get("required") == "false" {
+			continue
+		}
+		if reflect.DeepEqual(field.Interface(), empty.Interface()) {
+			emptyFields = append(emptyFields, tag.Get("toml"))
+		}
 	}
 
-	if len(messages) == 0 {
+	if len(emptyFields) == 0 {
 		return nil
 	}
 
-	return errors.New(strings.Join(messages, "\n"))
+	return fmt.Errorf("Missing required fields: %v", emptyFields)
 }
 
 func main() {
