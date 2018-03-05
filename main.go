@@ -24,22 +24,34 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Config struct {
-	Port                   int    `toml:"port"`
-	InsecurePort           int    `toml:"insecure_port"`
-	DatabaseUrl            string `toml:"database_url"`
-	DataPath               string `toml:"data_path"`
-	Environment            string `toml:"environment"`
-	SharedSecret           string `toml:"shared_secret"`
-	OauthRedirectUrl       string `toml:"oauth_redirect_url"`
-	OauthClientId          string `toml:"oauth_client_id"`
-	OauthClientSecret      string `toml:"oauth_client_secret"`
-	TlsCertificatePath     string `toml:"tls_certificate_path"`
-	TlsPrivateKeyPath      string `toml:"tls_private_key_path"`
-	TrustedUserEmailDomain string `toml:"trusted_user_email_domain"`
-	SentryDsn              string `toml:"sentry_dsn" required:"false"`
+// HTTPConfig holds Draupnir's HTTP configuration
+type HTTPConfig struct {
+	Port               int    `toml:"port"`
+	InsecurePort       int    `toml:"insecure_port"`
+	TLSCertificatePath string `toml:"tls_certificate"`
+	TLSPrivateKeyPath  string `toml:"tls_private_key"`
 }
 
+// OAuthConfig holds Draupnir's OAuth configuration
+type OAuthConfig struct {
+	RedirectURL  string `toml:"redirect_url"`
+	ClientID     string `toml:"client_id"`
+	ClientSecret string `toml:"client_secret"`
+}
+
+// Config holds all Draupnir configuration
+type Config struct {
+	DatabaseURL            string      `toml:"database_url"`
+	DataPath               string      `toml:"data_path"`
+	Environment            string      `toml:"environment"`
+	SharedSecret           string      `toml:"shared_secret"`
+	TrustedUserEmailDomain string      `toml:"trusted_user_email_domain"`
+	SentryDsn              string      `toml:"sentry_dsn" required:"false"`
+	HTTPConfig             HTTPConfig  `toml:"http"`
+	OAuthConfig            OAuthConfig `toml:"oauth"`
+}
+
+// ConfigFilePath is the expected path of the Draupnir configuration file
 const ConfigFilePath = "/etc/draupnir/config.toml"
 
 func loadConfig(path string) (Config, error) {
@@ -54,17 +66,30 @@ func loadConfig(path string) (Config, error) {
 		return config, errors.Wrap(err, "Could not parse configuration file")
 	}
 
-	return config, validateConfig(config)
+	err = validateConfig(config)
+	if err != nil {
+		return config, errors.Wrap(err, "Invalid configuration")
+	}
+
+	return config, nil
 }
 
 func validateConfig(cfg Config) error {
 	cfgValue := reflect.ValueOf(&cfg).Elem()
 	cfgType := reflect.TypeOf(cfg)
+	emptyFields := emptyConfigFields(cfgValue, cfgType)
+	if len(emptyFields) > 0 {
+		return fmt.Errorf("Missing required fields: %v", emptyFields)
+	}
+	return nil
+}
+
+func emptyConfigFields(val reflect.Value, ty reflect.Type) []string {
 	emptyFields := []string{}
 
-	for i := 0; i < cfgValue.NumField(); i++ {
-		field := cfgValue.Field(i)
-		tag := cfgType.Field(i).Tag
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		tag := ty.Field(i).Tag
 		empty := reflect.Zero(field.Type())
 		if tag.Get("required") == "false" {
 			continue
@@ -72,26 +97,30 @@ func validateConfig(cfg Config) error {
 		if reflect.DeepEqual(field.Interface(), empty.Interface()) {
 			emptyFields = append(emptyFields, tag.Get("toml"))
 		}
+		if field.Type().Kind() == reflect.Struct {
+			emptySubFields := emptyConfigFields(field, ty.Field(i).Type)
+			for i := 0; i < len(emptySubFields); i++ {
+				emptyFields = append(emptyFields, fmt.Sprintf("%s.%s", tag.Get("toml"), emptySubFields[i]))
+			}
+		}
 	}
 
-	if len(emptyFields) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf("Missing required fields: %v", emptyFields)
+	return emptyFields
 }
 
 func main() {
 	logger := log.With("app", "draupnir")
 
+	logger.Info("Loading config file ", ConfigFilePath)
 	c, err := loadConfig(ConfigFilePath)
 	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not load config")
+		logger.With("error", err.Error()).Fatal("Could not load configuration")
 	}
+	logger.Info("Configuration successfully loaded")
 
 	logger = log.With("environment", c.Environment)
 
-	oauthConfig := createOauthConfig(c)
+	oauthConfig := createOauthConfig(c.OAuthConfig)
 	authenticator := createAuthenticator(c, oauthConfig)
 
 	db := connectToDatabase(c, logger)
@@ -223,19 +252,21 @@ func main() {
 
 	// The default server for draupnir which will listen on TLS
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", c.Port),
+		Addr:    fmt.Sprintf(":%d", c.HTTPConfig.Port),
 		Handler: router,
 	}
 
 	g.Add(
-		func() error { return server.ListenAndServeTLS(c.TlsCertificatePath, c.TlsPrivateKeyPath) },
+		func() error {
+			return server.ListenAndServeTLS(c.HTTPConfig.TLSCertificatePath, c.HTTPConfig.TLSPrivateKeyPath)
+		},
 		func(error) { server.Shutdown(context.Background()) },
 	)
 
 	// We then listen for insecure connections on localhost, allowing connections from
 	// within the host without requiring the user to explicitly ignore certificates.
 	serverInsecure := http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", c.InsecurePort),
+		Addr:    fmt.Sprintf("127.0.0.1:%d", c.HTTPConfig.InsecurePort),
 		Handler: router,
 	}
 
@@ -250,23 +281,23 @@ func main() {
 }
 
 func connectToDatabase(c Config, logger log.Logger) *sql.DB {
-	db, err := sql.Open("postgres", c.DatabaseUrl)
+	db, err := sql.Open("postgres", c.DatabaseURL)
 	if err != nil {
 		logger.With("error", err.Error()).Fatal("Could not connect to database")
 	}
 	return db
 }
 
-func createOauthConfig(c Config) oauth2.Config {
+func createOauthConfig(c OAuthConfig) oauth2.Config {
 	return oauth2.Config{
-		ClientID:     c.OauthClientId,
-		ClientSecret: c.OauthClientSecret,
+		ClientID:     c.ClientID,
+		ClientSecret: c.ClientSecret,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
 			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
 		},
-		RedirectURL: c.OauthRedirectUrl,
+		RedirectURL: c.RedirectURL,
 	}
 }
 
