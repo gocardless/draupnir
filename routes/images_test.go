@@ -42,7 +42,7 @@ func TestGetImage(t *testing.T) {
 	}
 
 	errorHandler := FakeErrorHandler{}
-	routeSet := Images{ImageStore: store, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
@@ -52,26 +52,6 @@ func TestGetImage(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, getImageFixture, response)
-	assert.Nil(t, errorHandler.Error)
-}
-
-func TestGetImageWhenAuthenticationFails(t *testing.T) {
-	req, recorder, logs := createRequest(t, "GET", "/images/1", nil)
-
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
-			return "", errors.New("Invalid email address")
-		},
-	}
-
-	routeSet := Images{Authenticator: authenticator}
-	errorHandler := FakeErrorHandler{}
-
-	handler := http.HandlerFunc(errorHandler.Handle(routeSet.Get))
-	handler.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	assert.Contains(t, logs.String(), "Invalid email address")
 	assert.Nil(t, errorHandler.Error)
 }
 
@@ -92,7 +72,7 @@ func TestListImages(t *testing.T) {
 		},
 	}
 
-	handler := Images{ImageStore: store, Authenticator: AllowAll{}}.List
+	handler := Images{ImageStore: store}.List
 	err := handler(recorder, req)
 
 	var response jsonapi.ManyPayload
@@ -129,7 +109,7 @@ func TestCreateImage(t *testing.T) {
 		},
 	}
 
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor}
 	err := routeSet.Create(recorder, req)
 
 	var response jsonapi.OnePayload
@@ -148,8 +128,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	req = req.WithContext(context.WithValue(ctx, loggerKey, &logger))
 	recorder := httptest.NewRecorder()
 
-	routeSet := Images{Authenticator: AllowAll{}}
-	err := routeSet.Create(recorder, req)
+	err := Images{}.Create(recorder, req)
 
 	var response APIError
 	decodeJSON(t, recorder.Body, &response)
@@ -188,9 +167,8 @@ func TestImageCreateReturnsErrorWhenSubvolumeCreationFails(t *testing.T) {
 	}
 
 	routeSet := Images{
-		ImageStore:    store,
-		Executor:      executor,
-		Authenticator: AllowAll{},
+		ImageStore: store,
+		Executor:   executor,
 	}
 	err := routeSet.Create(recorder, req)
 
@@ -234,7 +212,7 @@ func TestImageDone(t *testing.T) {
 	}
 
 	errorHandler := FakeErrorHandler{}
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor}
 	router := mux.NewRouter()
 	router.HandleFunc("/images/{id}/done", errorHandler.Handle(routeSet.Done))
 	router.ServeHTTP(recorder, req)
@@ -252,9 +230,8 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 
 	errorHandler := FakeErrorHandler{}
 
-	routeSet := Images{Authenticator: AllowAll{}}
 	router := mux.NewRouter()
-	router.HandleFunc("/images/{id}/done", errorHandler.Handle(routeSet.Done))
+	router.HandleFunc("/images/{id}/done", errorHandler.Handle(Images{}.Done))
 	router.ServeHTTP(recorder, req)
 
 	var response APIError
@@ -299,7 +276,7 @@ func TestImageDestroy(t *testing.T) {
 	errorHandler := FakeErrorHandler{}
 
 	router := mux.NewRouter()
-	routeSet := Images{ImageStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Images{ImageStore: store, Executor: executor}
 	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
@@ -311,6 +288,9 @@ func TestImageDestroy(t *testing.T) {
 
 func TestImageDestroyFromUploadUser(t *testing.T) {
 	req, recorder, logs := createRequest(t, "DELETE", "/images/1", nil)
+	req = req.WithContext(
+		context.WithValue(req.Context(), authUserKey, auth.UPLOAD_USER_EMAIL),
+	)
 
 	image := models.Image{
 		ID:         1,
@@ -357,12 +337,6 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
-			return auth.UPLOAD_USER_EMAIL, nil
-		},
-	}
-
 	errorHandler := FakeErrorHandler{}
 
 	router := mux.NewRouter()
@@ -370,7 +344,6 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		ImageStore:    imageStore,
 		InstanceStore: instanceStore,
 		Executor:      executor,
-		Authenticator: authenticator,
 	}
 	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)

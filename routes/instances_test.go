@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/gocardless/draupnir/auth"
@@ -54,7 +53,6 @@ func TestInstanceCreate(t *testing.T) {
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
-		Authenticator: AllowAll{},
 	}
 	err := routeSet.Create(recorder, req)
 
@@ -99,7 +97,6 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
-		Authenticator: AllowAll{},
 	}
 	err := routeSet.Create(recorder, req)
 
@@ -112,17 +109,15 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 }
 
 func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
-	// TODO: use createRequest here?
 	body := bytes.NewBuffer([]byte{})
-	recorder := httptest.NewRecorder()
 	request := map[string]string{"this is": "not a valid JSON API request payload"}
 	json.NewEncoder(body).Encode(&request)
-	req := httptest.NewRequest("POST", "/instances", body)
+	req, recorder, _ := createRequest(t, "POST", "/instances", body)
 
 	logger, logs := NewFakeLogger()
 	req = req.WithContext(context.WithValue(req.Context(), loggerKey, &logger))
 
-	err := Instances{Authenticator: AllowAll{}}.Create(recorder, req)
+	err := Instances{}.Create(recorder, req)
 
 	var response APIError
 	decodeJSON(t, recorder.Body, &response)
@@ -140,8 +135,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	req, recorder, logs := createRequest(t, "POST", "/instances", body)
 
 	routeSet := Instances{
-		Executor:      FakeExecutor{},
-		Authenticator: AllowAll{},
+		Executor: FakeExecutor{},
 	}
 	err := routeSet.Create(recorder, req)
 
@@ -180,7 +174,7 @@ func TestInstanceList(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Authenticator: AllowAll{}}
+	routeSet := Instances{InstanceStore: store}
 	err := routeSet.List(recorder, req)
 
 	var response jsonapi.ManyPayload
@@ -208,7 +202,7 @@ func TestInstanceGet(t *testing.T) {
 	}
 
 	errorHandler := FakeErrorHandler{}
-	routeSet := Instances{InstanceStore: store, Authenticator: AllowAll{}}
+	routeSet := Instances{InstanceStore: store}
 	router := mux.NewRouter()
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
@@ -239,10 +233,8 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 		},
 	}
 
-	// AllowAll will return a user email of test@draupnir
 	routeSet := Instances{
 		InstanceStore: store,
-		Authenticator: AllowAll{},
 	}
 
 	errorHandler := FakeErrorHandler{}
@@ -283,7 +275,7 @@ func TestInstanceDestroy(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Instances{InstanceStore: store, Executor: executor}
 
 	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
@@ -320,8 +312,7 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 		},
 	}
 
-	// AllowAll will return a user email of test@draupnir
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: AllowAll{}}
+	routeSet := Instances{InstanceStore: store, Executor: executor}
 
 	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
@@ -338,6 +329,9 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 
 func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	req, recorder, _ := createRequest(t, "DELETE", "/instances/1", nil)
+	req = req.WithContext(
+		context.WithValue(req.Context(), authUserKey, auth.UPLOAD_USER_EMAIL),
+	)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -361,14 +355,8 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
-			return auth.UPLOAD_USER_EMAIL, nil
-		},
-	}
-
 	errorHandler := FakeErrorHandler{}
-	routeSet := Instances{InstanceStore: store, Executor: executor, Authenticator: authenticator}
+	routeSet := Instances{InstanceStore: store, Executor: executor}
 	router := mux.NewRouter()
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)

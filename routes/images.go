@@ -20,20 +20,12 @@ type Images struct {
 	ImageStore    store.ImageStore
 	InstanceStore store.InstanceStore
 	Executor      exec.Executor
-	Authenticator auth.Authenticator
 }
 
 func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
 	logger, err := GetLogger(r)
 	if err != nil {
 		return err
-	}
-
-	_, err = i.Authenticator.AuthenticateRequest(r)
-	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
@@ -59,18 +51,6 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Images) List(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
-	if err != nil {
-		return err
-	}
-
-	_, err = i.Authenticator.AuthenticateRequest(r)
-	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
-	}
-
 	images, err := i.ImageStore.List()
 	if err != nil {
 		return errors.Wrap(err, "failed to get images")
@@ -97,13 +77,6 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
 	logger, err := GetLogger(r)
 	if err != nil {
 		return err
-	}
-
-	_, err = i.Authenticator.AuthenticateRequest(r)
-	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
 	}
 
 	req := CreateImageRequest{}
@@ -135,13 +108,6 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
 	logger, err := GetLogger(r)
 	if err != nil {
 		return err
-	}
-
-	_, err = i.Authenticator.AuthenticateRequest(r)
-	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
@@ -184,11 +150,9 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, err := i.Authenticator.AuthenticateRequest(r)
+	email, err := GetAuthenticatedUser(r)
 	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
+		return err
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
