@@ -112,22 +112,22 @@ func main() {
 	logger := log.With("app", "draupnir")
 
 	logger.Info("Loading config file ", ConfigFilePath)
-	c, err := loadConfig(ConfigFilePath)
+	cfg, err := loadConfig(ConfigFilePath)
 	if err != nil {
 		logger.With("error", err.Error()).Fatal("Could not load configuration")
 	}
 	logger.Info("Configuration successfully loaded")
 
-	logger = log.With("environment", c.Environment)
+	logger = log.With("environment", cfg.Environment)
 
-	oauthConfig := createOauthConfig(c.OAuthConfig)
-	authenticator := createAuthenticator(c, oauthConfig)
+	oauthConfig := createOauthConfig(cfg.OAuthConfig)
+	authenticator := createAuthenticator(cfg, oauthConfig)
 
-	db := connectToDatabase(c, logger)
+	db := connectToDatabase(cfg, logger)
 	imageStore := createImageStore(db)
 	instanceStore := createInstanceStore(db)
 
-	executor := createExecutor(c)
+	executor := createExecutor(cfg)
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
@@ -156,8 +156,8 @@ func main() {
 
 	// If Sentry is available, attach the Sentry middleware
 	// This will report all errors to Sentry
-	if c.SentryDsn != "" {
-		sentryClient, err := raven.New(c.SentryDsn)
+	if cfg.SentryDsn != "" {
+		sentryClient, err := raven.New(cfg.SentryDsn)
 		if err != nil {
 			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
 		}
@@ -252,13 +252,13 @@ func main() {
 
 	// The default server for draupnir which will listen on TLS
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", c.HTTPConfig.Port),
+		Addr:    fmt.Sprintf(":%d", cfg.HTTPConfig.Port),
 		Handler: router,
 	}
 
 	g.Add(
 		func() error {
-			return server.ListenAndServeTLS(c.HTTPConfig.TLSCertificatePath, c.HTTPConfig.TLSPrivateKeyPath)
+			return server.ListenAndServeTLS(cfg.HTTPConfig.TLSCertificatePath, cfg.HTTPConfig.TLSPrivateKeyPath)
 		},
 		func(error) { server.Shutdown(context.Background()) },
 	)
@@ -266,7 +266,7 @@ func main() {
 	// We then listen for insecure connections on localhost, allowing connections from
 	// within the host without requiring the user to explicitly ignore certificates.
 	serverInsecure := http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", c.HTTPConfig.InsecurePort),
+		Addr:    fmt.Sprintf("127.0.0.1:%d", cfg.HTTPConfig.InsecurePort),
 		Handler: router,
 	}
 
