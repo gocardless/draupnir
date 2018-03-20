@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
+	"reflect"
 
+	"github.com/burntsushi/toml"
 	raven "github.com/getsentry/raven-go"
 	"github.com/prometheus/common/log"
 	"golang.org/x/oauth2"
@@ -17,45 +20,114 @@ import (
 	"github.com/gocardless/draupnir/store"
 	"github.com/gocardless/draupnir/version"
 	"github.com/gorilla/mux"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/oklog/run"
+	"github.com/pkg/errors"
 )
 
+// HTTPConfig holds Draupnir's HTTP configuration
+type HTTPConfig struct {
+	Port               int    `toml:"port"`
+	InsecurePort       int    `toml:"insecure_port"`
+	TLSCertificatePath string `toml:"tls_certificate"`
+	TLSPrivateKeyPath  string `toml:"tls_private_key"`
+}
+
+// OAuthConfig holds Draupnir's OAuth configuration
+type OAuthConfig struct {
+	RedirectURL  string `toml:"redirect_url"`
+	ClientID     string `toml:"client_id"`
+	ClientSecret string `toml:"client_secret"`
+}
+
+// Config holds all Draupnir configuration
 type Config struct {
-	Port                   int    `required:"true"`
-	InsecurePort           int    `required:"false" default:"8080"`
-	DatabaseUrl            string `required:"true" split_words:"true"`
-	DataPath               string `required:"true" split_words:"true"`
-	Environment            string `required:"false"`
-	SharedSecret           string `required:"true" split_words:"true"`
-	OauthRedirectUrl       string `required:"true" split_words:"true"`
-	OauthClientId          string `required:"true" split_words:"true"`
-	OauthClientSecret      string `required:"true" split_words:"true"`
-	TlsCertificatePath     string `required:"true" split_words:"true"`
-	TlsPrivateKeyPath      string `required:"true" split_words:"true"`
-	TrustedUserEmailDomain string `required:"true" split_words:"true"`
-	SentryDsn              string `required:"false" split_words:"true"`
+	DatabaseURL            string      `toml:"database_url"`
+	DataPath               string      `toml:"data_path"`
+	Environment            string      `toml:"environment"`
+	SharedSecret           string      `toml:"shared_secret"`
+	TrustedUserEmailDomain string      `toml:"trusted_user_email_domain"`
+	SentryDsn              string      `toml:"sentry_dsn" required:"false"`
+	HTTPConfig             HTTPConfig  `toml:"http"`
+	OAuthConfig            OAuthConfig `toml:"oauth"`
+}
+
+// ConfigFilePath is the expected path of the Draupnir configuration file
+const ConfigFilePath = "/etc/draupnir/config.toml"
+
+func loadConfig(path string) (Config, error) {
+	var config Config
+	file, err := os.Open(path)
+	if err != nil {
+		return config, errors.Wrap(err, fmt.Sprintf("No configuration file found at %s", ConfigFilePath))
+	}
+
+	_, err = toml.DecodeReader(file, &config)
+	if err != nil {
+		return config, errors.Wrap(err, "Could not parse configuration file")
+	}
+
+	err = validateConfig(config)
+	if err != nil {
+		return config, errors.Wrap(err, "Invalid configuration")
+	}
+
+	return config, nil
+}
+
+func validateConfig(cfg Config) error {
+	cfgValue := reflect.ValueOf(&cfg).Elem()
+	cfgType := reflect.TypeOf(cfg)
+	emptyFields := emptyConfigFields(cfgValue, cfgType)
+	if len(emptyFields) > 0 {
+		return fmt.Errorf("Missing required fields: %v", emptyFields)
+	}
+	return nil
+}
+
+func emptyConfigFields(val reflect.Value, ty reflect.Type) []string {
+	emptyFields := []string{}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		tag := ty.Field(i).Tag
+		empty := reflect.Zero(field.Type())
+		if tag.Get("required") == "false" {
+			continue
+		}
+		if reflect.DeepEqual(field.Interface(), empty.Interface()) {
+			emptyFields = append(emptyFields, tag.Get("toml"))
+		}
+		if field.Type().Kind() == reflect.Struct {
+			emptySubFields := emptyConfigFields(field, ty.Field(i).Type)
+			for i := 0; i < len(emptySubFields); i++ {
+				emptyFields = append(emptyFields, fmt.Sprintf("%s.%s", tag.Get("toml"), emptySubFields[i]))
+			}
+		}
+	}
+
+	return emptyFields
 }
 
 func main() {
 	logger := log.With("app", "draupnir")
 
-	var c Config
-	err := envconfig.Process("draupnir", &c)
+	logger.With("config", ConfigFilePath).Info("Loading config file")
+	cfg, err := loadConfig(ConfigFilePath)
 	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not read config")
+		logger.With("error", err.Error()).Fatal("Could not load configuration")
 	}
+	logger.Info("Configuration successfully loaded")
 
-	logger = log.With("environment", c.Environment)
+	logger = log.With("environment", cfg.Environment)
 
-	oauthConfig := createOauthConfig(c)
-	authenticator := createAuthenticator(c, oauthConfig)
+	oauthConfig := createOauthConfig(cfg.OAuthConfig)
+	authenticator := createAuthenticator(cfg, oauthConfig)
 
-	db := connectToDatabase(c, logger)
+	db := connectToDatabase(cfg, logger)
 	imageStore := createImageStore(db)
 	instanceStore := createInstanceStore(db)
 
-	executor := createExecutor(c)
+	executor := createExecutor(cfg)
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
@@ -84,8 +156,8 @@ func main() {
 
 	// If Sentry is available, attach the Sentry middleware
 	// This will report all errors to Sentry
-	if c.SentryDsn != "" {
-		sentryClient, err := raven.New(c.SentryDsn)
+	if cfg.SentryDsn != "" {
+		sentryClient, err := raven.New(cfg.SentryDsn)
 		if err != nil {
 			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
 		}
@@ -180,19 +252,21 @@ func main() {
 
 	// The default server for draupnir which will listen on TLS
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", c.Port),
+		Addr:    fmt.Sprintf(":%d", cfg.HTTPConfig.Port),
 		Handler: router,
 	}
 
 	g.Add(
-		func() error { return server.ListenAndServeTLS(c.TlsCertificatePath, c.TlsPrivateKeyPath) },
+		func() error {
+			return server.ListenAndServeTLS(cfg.HTTPConfig.TLSCertificatePath, cfg.HTTPConfig.TLSPrivateKeyPath)
+		},
 		func(error) { server.Shutdown(context.Background()) },
 	)
 
 	// We then listen for insecure connections on localhost, allowing connections from
 	// within the host without requiring the user to explicitly ignore certificates.
 	serverInsecure := http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", c.InsecurePort),
+		Addr:    fmt.Sprintf("127.0.0.1:%d", cfg.HTTPConfig.InsecurePort),
 		Handler: router,
 	}
 
@@ -202,28 +276,28 @@ func main() {
 	)
 
 	if err := g.Run(); err != nil {
-		logger.Fatal(err.Error())
+		logger.Fatal(errors.Wrap(err, "could not start HTTP servers"))
 	}
 }
 
 func connectToDatabase(c Config, logger log.Logger) *sql.DB {
-	db, err := sql.Open("postgres", c.DatabaseUrl)
+	db, err := sql.Open("postgres", c.DatabaseURL)
 	if err != nil {
 		logger.With("error", err.Error()).Fatal("Could not connect to database")
 	}
 	return db
 }
 
-func createOauthConfig(c Config) oauth2.Config {
+func createOauthConfig(c OAuthConfig) oauth2.Config {
 	return oauth2.Config{
-		ClientID:     c.OauthClientId,
-		ClientSecret: c.OauthClientSecret,
+		ClientID:     c.ClientID,
+		ClientSecret: c.ClientSecret,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
 			TokenURL: "https://www.googleapis.com/oauth2/v4/token",
 		},
-		RedirectURL: c.OauthRedirectUrl,
+		RedirectURL: c.RedirectURL,
 	}
 }
 
