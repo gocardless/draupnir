@@ -111,7 +111,7 @@ func emptyConfigFields(val reflect.Value, ty reflect.Type) []string {
 func main() {
 	logger := log.With("app", "draupnir")
 
-	logger.Info("Loading config file ", ConfigFilePath)
+	logger.With("config", ConfigFilePath).Info("Loading config file")
 	cfg, err := loadConfig(ConfigFilePath)
 	if err != nil {
 		logger.With("error", err.Error()).Fatal("Could not load configuration")
@@ -276,7 +276,7 @@ func main() {
 	)
 
 	if err := g.Run(); err != nil {
-		logger.Fatal(errors.Wrap(err, "could not start HTTP servers").Error())
+		logger.Fatal(errors.Wrap(err, "could not start HTTP servers"))
 	}
 }
 
