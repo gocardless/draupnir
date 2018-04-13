@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -121,12 +119,10 @@ func TestCreateImage(t *testing.T) {
 }
 
 func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
-	body := `{"this is": "not a valid JSON API request payload"}`
-	req := httptest.NewRequest("POST", "/images", strings.NewReader(body))
-	ctx := req.Context()
-	logger, logs := NewFakeLogger()
-	req = req.WithContext(context.WithValue(ctx, loggerKey, &logger))
-	recorder := httptest.NewRecorder()
+	body := bytes.NewBuffer([]byte{})
+	payload := map[string]string{"this is": "not a valid JSON API request payload"}
+	json.NewEncoder(body).Encode(&payload)
+	req, recorder, logs := createRequest(t, "POST", "/images", body)
 
 	err := Images{}.Create(recorder, req)
 
