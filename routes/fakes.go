@@ -107,12 +107,6 @@ func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) 
 	return f._AuthenticateRequest(r)
 }
 
-type AllowAll struct{}
-
-func (a AllowAll) AuthenticateRequest(r *http.Request) (string, error) {
-	return "test@draupnir", nil
-}
-
 type FakeOAuthClient struct {
 	_AuthCodeURL func(string, ...oauth2.AuthCodeOption) string
 	_Exchange    func(context.Context, string) (*oauth2.Token, error)
@@ -160,7 +154,7 @@ func createRequest(t *testing.T, method string, path string, body io.Reader) (*h
 	}
 
 	logger, output := NewFakeLogger()
-	ctx := req.Context()
-	req = req.WithContext(context.WithValue(ctx, loggerKey, &logger))
+	req = req.WithContext(context.WithValue(req.Context(), loggerKey, &logger))
+	req = req.WithContext(context.WithValue(req.Context(), authUserKey, "test@draupnir"))
 	return req, recorder, output
 }

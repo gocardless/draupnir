@@ -133,14 +133,12 @@ func main() {
 		ImageStore:    imageStore,
 		InstanceStore: instanceStore,
 		Executor:      executor,
-		Authenticator: authenticator,
 	}
 
 	instanceRouteSet := routes.Instances{
 		InstanceStore: instanceStore,
 		ImageStore:    imageStore,
 		Executor:      executor,
-		Authenticator: authenticator,
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
@@ -199,7 +197,8 @@ func main() {
 		Add(routes.DefaultErrorRenderer).
 		Add(routes.WithVersion).
 		Add(routes.AsJSON).
-		Add(routes.CheckAPIVersion(version.Version))
+		Add(routes.CheckAPIVersion(version.Version)).
+		Add(routes.Authenticate(authenticator))
 
 	// Access Tokens
 	router.Methods("POST").Path("/access_tokens").HandlerFunc(

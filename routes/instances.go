@@ -21,7 +21,6 @@ type Instances struct {
 	InstanceStore store.InstanceStore
 	ImageStore    store.ImageStore
 	Executor      exec.Executor
-	Authenticator auth.Authenticator
 }
 
 type CreateInstanceRequest struct {
@@ -34,11 +33,9 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, err := i.Authenticator.AuthenticateRequest(r)
+	email, err := GetAuthenticatedUser(r)
 	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
+		return err
 	}
 
 	req := CreateInstanceRequest{}
@@ -95,16 +92,9 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Instances) List(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	email, err := GetAuthenticatedUser(r)
 	if err != nil {
 		return err
-	}
-
-	email, err := i.Authenticator.AuthenticateRequest(r)
-	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
 	}
 
 	instances, err := i.InstanceStore.List()
@@ -133,11 +123,9 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, err := i.Authenticator.AuthenticateRequest(r)
+	email, err := GetAuthenticatedUser(r)
 	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
+		return err
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
@@ -171,11 +159,9 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, err := i.Authenticator.AuthenticateRequest(r)
+	email, err := GetAuthenticatedUser(r)
 	if err != nil {
-		logger.Info(err.Error())
-		RenderError(w, http.StatusUnauthorized, unauthorizedError)
-		return nil
+		return err
 	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
