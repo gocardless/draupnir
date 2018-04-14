@@ -34,7 +34,7 @@ deb: build-production
 		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance
 
 clean:
-	-rm -f draupnir draupnir.linux_amd64 *.deb
+	-rm -f draupnir draupnir.*_amd64 *.deb
 
 publish-base-dockerfile:
 	docker build -t gocardless/draupnir-base . \
