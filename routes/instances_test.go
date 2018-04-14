@@ -9,6 +9,7 @@ import (
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/routes/chain"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -112,10 +113,7 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 	body := bytes.NewBuffer([]byte{})
 	request := map[string]string{"this is": "not a valid JSON API request payload"}
 	json.NewEncoder(body).Encode(&request)
-	req, recorder, _ := createRequest(t, "POST", "/instances", body)
-
-	logger, logs := NewFakeLogger()
-	req = req.WithContext(context.WithValue(req.Context(), loggerKey, &logger))
+	req, recorder, logs := createRequest(t, "POST", "/instances", body)
 
 	err := Instances{}.Create(recorder, req)
 
@@ -329,9 +327,6 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 
 func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	req, recorder, _ := createRequest(t, "DELETE", "/instances/1", nil)
-	req = req.WithContext(
-		context.WithValue(req.Context(), authUserKey, auth.UPLOAD_USER_EMAIL),
-	)
 
 	store := FakeInstanceStore{
 		_Get: func(id int) (models.Instance, error) {
@@ -355,10 +350,19 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
+	authenticator := FakeAuthenticator{
+		_AuthenticateRequest: func(r *http.Request) (string, error) {
+			return auth.UPLOAD_USER_EMAIL, nil
+		},
+	}
+
 	errorHandler := FakeErrorHandler{}
 	routeSet := Instances{InstanceStore: store, Executor: executor}
 	router := mux.NewRouter()
-	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
+	route := chain.New(errorHandler.Handle).
+		Add(Authenticate(authenticator)).
+		Resolve(routeSet.Destroy)
+	router.HandleFunc("/instances/{id}", route).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
