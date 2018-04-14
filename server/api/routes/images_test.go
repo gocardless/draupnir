@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/api/chain"
 	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/gocardless/draupnir/server/api/middleware"
-	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -129,7 +129,7 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	err := Images{}.Create(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -233,7 +233,7 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 	router.HandleFunc("/images/{id}/done", errorHandler.Handle(Images{}.Done))
 	router.ServeHTTP(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)

@@ -329,7 +329,7 @@ func (c Client) authorizationHeader() string {
 // parseError takes an io.Reader containing an API error response
 // and converts it to an error
 func parseError(r io.Reader) error {
-	var apiError apiErrors.APIError
+	var apiError apiErrors.Error
 	err := json.NewDecoder(r).Decode(&apiError)
 	if err != nil {
 		return err

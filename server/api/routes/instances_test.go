@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/api/chain"
 	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/gocardless/draupnir/server/api/middleware"
-	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -103,7 +103,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	}
 	err := routeSet.Create(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
@@ -119,7 +119,7 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	err := Instances{}.Create(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Nil(t, err)
@@ -139,7 +139,7 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	}
 	err := routeSet.Create(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -242,7 +242,7 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
@@ -319,7 +319,7 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
-	var response apiErrors.APIError
+	var response apiErrors.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)

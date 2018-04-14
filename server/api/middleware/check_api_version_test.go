@@ -30,21 +30,21 @@ func TestCheckApiVersion(t *testing.T) {
 		name          string
 		headerVersion string
 		handler       chain.Handler
-		apiError      apiErrors.APIError
+		apiError      apiErrors.Error
 		code          int
 	}{
 		{
 			"when version matches, calls handler",
 			"1.1.0",
 			respondsWithStatus(http.StatusAccepted),
-			apiErrors.APIError{},
+			apiErrors.Error{},
 			http.StatusAccepted,
 		},
 		{
 			"when minor is lower, calls handler",
 			"1.0.0",
 			respondsWithStatus(http.StatusAccepted),
-			apiErrors.APIError{},
+			apiErrors.Error{},
 			http.StatusAccepted,
 		},
 		{
@@ -82,7 +82,7 @@ func TestCheckApiVersion(t *testing.T) {
 			CheckAPIVersion("1.1.0")(tc.handler)(recorder, req)
 
 			if tc.apiError.ID != "" {
-				var response apiErrors.APIError
+				var response apiErrors.Error
 				err := json.NewDecoder(recorder.Body).Decode(&response)
 
 				assert.Nil(t, err, "failed to decode response into APIError")
