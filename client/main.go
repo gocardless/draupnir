@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -11,49 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/burntsushi/toml"
+	"github.com/gocardless/draupnir/client/config"
 	"github.com/gocardless/draupnir/models"
 	clientPkg "github.com/gocardless/draupnir/server/api/client"
 	"github.com/gocardless/draupnir/version"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"golang.org/x/oauth2"
 )
-
-type Config struct {
-	Domain   string
-	Token    oauth2.Token
-	Database string
-}
-
-func LoadConfig() (Config, error) {
-	config := Config{Domain: "set-me-to-a-real-domain"}
-	file, err := os.Open(os.Getenv("HOME") + "/.draupnir")
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = nil
-			err = StoreConfig(config)
-			return config, err
-		}
-		return config, err
-	}
-	_, err = toml.DecodeReader(file, &config)
-	if err != nil {
-		// Older versions of .draupnir were JSON formatted
-		file.Seek(0, 0)
-		err = json.NewDecoder(file).Decode(&config)
-	}
-	return config, err
-}
-
-func StoreConfig(config Config) error {
-	file, err := os.Create(os.Getenv("HOME") + "/.draupnir")
-	if err != nil {
-		return err
-	}
-	err = toml.NewEncoder(file).Encode(config)
-	return err
-}
 
 const quickStart string = `
 QUICK START:
@@ -63,7 +26,8 @@ QUICK START:
 `
 
 func main() {
-	CONFIG, err := LoadConfig()
+	configFilePath := os.Getenv("HOME") + "/.draupnir"
+	CONFIG, err := config.Load(configFilePath)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
@@ -135,10 +99,10 @@ func main() {
 						switch strings.ToLower(key) {
 						case "domain":
 							CONFIG.Domain = val
-							StoreConfig(CONFIG)
+							config.Store(CONFIG, configFilePath)
 						case "database":
 							CONFIG.Database = val
-							StoreConfig(CONFIG)
+							config.Store(CONFIG, configFilePath)
 						default:
 							fmt.Printf("Invalid key %s\n", key)
 						}
@@ -173,7 +137,7 @@ func main() {
 
 				CONFIG.Token = token
 
-				err = StoreConfig(CONFIG)
+				err = config.Store(CONFIG, configFilePath)
 				if err != nil {
 					fmt.Printf("error: %s\n", err)
 					return err
@@ -421,7 +385,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func showExportCommand(config Config, instance models.Instance) {
+func showExportCommand(config config.Config, instance models.Instance) {
 	// The database precedence is config -> environment variable -> 'postgres'
 	database := config.Database
 	if database == "" {

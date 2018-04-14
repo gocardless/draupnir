@@ -36,7 +36,7 @@ type Config struct {
 	OAuthConfig            OAuthConfig `toml:"oauth"`
 }
 
-// Load parses and validates the config file located at `path`
+// Load parses and validates the server config file located at `path`
 func Load(path string) (Config, error) {
 	var config Config
 	file, err := os.Open(path)
