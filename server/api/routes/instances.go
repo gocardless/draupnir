@@ -43,25 +43,25 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 	req := CreateInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusBadRequest, api.InvalidJSONError)
+		api.InvalidJSONError.Render(w, http.StatusBadRequest)
 		return nil
 	}
 
 	imageID, err := strconv.Atoi(req.ImageID)
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusBadRequest, api.BadImageIDError)
+		api.BadImageIDError.Render(w, http.StatusBadRequest)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(imageID)
 	if err != nil {
-		api.RenderError(w, http.StatusNotFound, api.ImageNotFoundError)
+		api.ImageNotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	if !image.Ready {
-		api.RenderError(w, http.StatusUnprocessableEntity, api.UnreadyImageError)
+		api.UnreadyImageError.Render(w, http.StatusUnprocessableEntity)
 		return nil
 	}
 
@@ -73,7 +73,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
 			logger.Info(err.Error())
-			api.RenderError(w, http.StatusNotFound, api.ImageNotFoundError)
+			api.ImageNotFoundError.Render(w, http.StatusNotFound)
 			return nil
 		}
 
@@ -133,19 +133,19 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		logger.With("instance", id).Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	if email != instance.UserEmail {
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -169,19 +169,19 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		logger.With("instance", id).Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	if email != auth.UPLOAD_USER_EMAIL && email != instance.UserEmail {
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 

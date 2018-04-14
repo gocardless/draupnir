@@ -24,7 +24,7 @@ func DefaultErrorRenderer(next chain.Handler) chain.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		err := next(w, r)
 		if err != nil {
-			api.RenderError(w, http.StatusInternalServerError, api.InternalServerError)
+			api.InternalServerError.Render(w, http.StatusInternalServerError)
 		}
 		return err
 	}

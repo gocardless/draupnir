@@ -28,7 +28,7 @@ func Authenticate(authenticator auth.Authenticator) chain.Middleware {
 			email, err := authenticator.AuthenticateRequest(r)
 			if err != nil {
 				logger.Info(err.Error())
-				api.RenderError(w, http.StatusUnauthorized, api.UnauthorizedError)
+				api.UnauthorizedError.Render(w, http.StatusUnauthorized)
 				return nil
 			}
 

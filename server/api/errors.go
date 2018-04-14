@@ -22,10 +22,9 @@ type ErrorSource struct {
 	Parameter string `json:"parameter,omitempty"`
 }
 
-// TODO: rename to Render
-func RenderError(w http.ResponseWriter, statuscode int, err Error) {
+func (e Error) Render(w http.ResponseWriter, statuscode int) {
 	w.WriteHeader(statuscode)
-	json.NewEncoder(w).Encode(err)
+	json.NewEncoder(w).Encode(e)
 }
 
 var InternalServerError = Error{

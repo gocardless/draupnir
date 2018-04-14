@@ -75,7 +75,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		api.RenderError(w, http.StatusBadRequest, api.InvalidJSONError)
+		api.InvalidJSONError.Render(w, http.StatusBadRequest)
 		return nil
 	}
 
@@ -89,7 +89,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 
 	if err != nil {
 		logger.With("error", err.Error()).Info("oauth request failed")
-		api.RenderError(w, http.StatusBadRequest, api.OauthError) // TODO: improve error
+		api.OauthError.Render(w, http.StatusBadRequest) // TODO: improve error
 		return nil
 	}
 

@@ -19,7 +19,7 @@ func CheckAPIVersion(serverVersion string) chain.Middleware {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			versions := r.Header["Draupnir-Version"]
 			if len(versions) == 0 {
-				api.RenderError(w, http.StatusBadRequest, api.MissingApiVersion)
+				api.MissingApiVersion.Render(w, http.StatusBadRequest)
 				return nil
 			}
 
@@ -32,7 +32,7 @@ func CheckAPIVersion(serverVersion string) chain.Middleware {
 				requestMajor, requestMinor, _, err := version.ParseSemver(requestVersion)
 
 				if err != nil || major != requestMajor || minor < requestMinor {
-					api.RenderError(w, http.StatusBadRequest, api.InvalidApiVersion(requestVersion))
+					api.InvalidApiVersion(requestVersion).Render(w, http.StatusBadRequest)
 					return nil
 				}
 			}

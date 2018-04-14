@@ -33,14 +33,14 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -84,7 +84,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
 	req := CreateImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusBadRequest, api.InvalidJSONError)
+		api.InvalidJSONError.Render(w, http.StatusBadRequest)
 		return nil
 	}
 
@@ -115,14 +115,14 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -160,14 +160,14 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		api.RenderError(w, http.StatusNotFound, api.NotFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -195,11 +195,7 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
 			logger.With("image", id).Info("cannot destroy image with instances")
-			api.RenderError(
-				w,
-				http.StatusUnprocessableEntity,
-				api.CannotDeleteImageWithInstancesError,
-			)
+			api.CannotDeleteImageWithInstancesError.Render(w, http.StatusUnprocessableEntity)
 			return nil
 		}
 
