@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api/routes/chain"
 	"github.com/gocardless/draupnir/version"
 )
 
