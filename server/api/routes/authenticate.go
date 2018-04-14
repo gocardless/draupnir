@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gocardless/draupnir/auth"
+	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/gocardless/draupnir/server/api/routes/chain"
 )
 

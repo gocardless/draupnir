@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"

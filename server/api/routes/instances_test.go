@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/gocardless/draupnir/server/api/routes/chain"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"

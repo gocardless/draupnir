@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	raven "github.com/getsentry/raven-go"
-	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/server/api/routes"
+	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/gocardless/draupnir/server/api/routes/chain"
 	"github.com/gocardless/draupnir/server/config"
 	"github.com/gocardless/draupnir/store"
