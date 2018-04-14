@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/gocardless/draupnir/server/api/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/prometheus/common/log"
 )
 

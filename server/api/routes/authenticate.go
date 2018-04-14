@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gocardless/draupnir/server/api/routes/auth"
-	"github.com/gocardless/draupnir/server/api/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 )
 
 const authUserKey key = 2

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gocardless/draupnir/server/api/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/google/jsonapi"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"

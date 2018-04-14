@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/server/api/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 )
 
 func NewFakeLogger() (log.Logger, *bytes.Buffer) {

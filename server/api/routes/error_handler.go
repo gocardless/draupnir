@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	raven "github.com/getsentry/raven-go"
-	"github.com/gocardless/draupnir/server/api/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/prometheus/common/log"
 )
 
