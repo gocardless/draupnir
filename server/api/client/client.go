@@ -238,9 +238,14 @@ func (c Client) FinaliseImage(imageID int) (models.Image, error) {
 
 	resp, err := c.post(fmt.Sprintf("/images/%d/done", imageID), &emptyPayload)
 	if err != nil {
-		err = jsonapi.UnmarshalPayload(resp.Body, &image)
+		return image, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return image, parseError(resp.Body)
+	}
+
+	err = jsonapi.UnmarshalPayload(resp.Body, &image)
 	return image, err
 }
 
