@@ -107,7 +107,12 @@ func main() {
 					UsageText: "draupnir config show",
 					Action: func(c *cli.Context) error {
 						fmt.Printf("Domain: %s\n", CONFIG.Domain)
-						fmt.Printf("Access Token: %s****\n", CONFIG.Token.AccessToken[0:10])
+						// Go doesn't appear to have a safe subslice operation...
+						if len(CONFIG.Token.AccessToken) < 10 {
+							fmt.Printf("Access Token: %s\n", CONFIG.Token.AccessToken)
+						} else {
+							fmt.Printf("Access Token: %s****\n", CONFIG.Token.AccessToken[0:10])
+						}
 						fmt.Printf("Database: %s\n", CONFIG.Database)
 						return nil
 					},

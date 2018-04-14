@@ -31,7 +31,7 @@ mkdir -p /etc/draupnir
 cp /workspace/spec/fixtures/config.toml /etc/draupnir/config.toml
 
 # Boot draupnir
-/workspace/draupnir.linux_amd64 >/var/log/draupnir.log 2>&1 &
+/workspace/draupnir.linux_amd64 server >/var/log/draupnir.log 2>&1 &
 timeout 5 bash <<POLL 1>&2
 until curl --silent https://localhost:8443/health_check; do
   sleep 0.2
