@@ -12,9 +12,11 @@ import (
 
 	"github.com/gocardless/draupnir/client/config"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server"
 	clientPkg "github.com/gocardless/draupnir/server/api/client"
 	"github.com/gocardless/draupnir/version"
 	"github.com/pkg/errors"
+	"github.com/prometheus/common/log"
 	"github.com/urfave/cli"
 )
 
@@ -26,14 +28,8 @@ QUICK START:
 `
 
 func main() {
-	configFilePath := os.Getenv("HOME") + "/.draupnir"
-	CONFIG, err := config.Load(configFilePath)
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return
-	}
-
-	var client clientPkg.Client
+	logger := log.With("app", "draupnir")
+	var err error
 
 	app := cli.NewApp()
 	app.Name = "draupnir"
@@ -47,18 +43,16 @@ func main() {
 		},
 	}
 
-	// Construct a client before we run any of our commands
-	app.Before = func(c *cli.Context) error {
-		client = clientPkg.NewClient(
-			fmt.Sprintf("https://%s", CONFIG.Domain),
-			CONFIG.Token,
-			c.GlobalBool("insecure"),
-		)
-
-		return nil
-	}
-
 	app.Commands = []cli.Command{
+		{
+			Name:  "server",
+			Usage: "start the draupnir server",
+			Action: func(c *cli.Context) error {
+				server.Run(logger)
+				// TODO: maybe return fatal errors from Run?
+				return nil
+			},
+		},
 		{
 			Name:        "config",
 			Aliases:     []string{},
@@ -70,14 +64,20 @@ func main() {
 					Usage:     "show the current configuration",
 					UsageText: "draupnir config show",
 					Action: func(c *cli.Context) error {
-						fmt.Printf("Domain: %s\n", CONFIG.Domain)
-						// Go doesn't appear to have a safe subslice operation...
-						if len(CONFIG.Token.AccessToken) < 10 {
-							fmt.Printf("Access Token: %s\n", CONFIG.Token.AccessToken)
+						cfg := loadConfig(logger)
+
+						domain := cfg.Domain
+						accessToken := cfg.Token.AccessToken
+						database := cfg.Database
+
+						fmt.Printf("Domain: %s\n", domain)
+						if len(accessToken) < 10 {
+							// Go doesn't appear to have a safe subslice operation...
+							fmt.Printf("Access Token: %s\n", accessToken)
 						} else {
-							fmt.Printf("Access Token: %s****\n", CONFIG.Token.AccessToken[0:10])
+							fmt.Printf("Access Token: %s****\n", accessToken[0:10])
 						}
-						fmt.Printf("Database: %s\n", CONFIG.Database)
+						fmt.Printf("Database: %s\n", database)
 						return nil
 					},
 				},
@@ -96,13 +96,15 @@ func main() {
 						}
 						key := c.Args().First()
 						val := c.Args()[1]
+
+						cfg := loadConfig(logger)
 						switch strings.ToLower(key) {
 						case "domain":
-							CONFIG.Domain = val
-							config.Store(CONFIG, configFilePath)
+							cfg.Domain = val
+							storeConfig(cfg, logger)
 						case "database":
-							CONFIG.Database = val
-							config.Store(CONFIG, configFilePath)
+							cfg.Database = val
+							storeConfig(cfg, logger)
 						default:
 							fmt.Printf("Invalid key %s\n", key)
 						}
@@ -116,14 +118,17 @@ func main() {
 			Aliases: []string{},
 			Usage:   "authenticate with google",
 			Action: func(c *cli.Context) error {
-				if CONFIG.Token.RefreshToken != "" {
+				cfg := loadConfig(logger)
+				client := NewClient(c, logger)
+
+				if cfg.Token.RefreshToken != "" {
 					fmt.Printf("You're already authenticated.\n")
 					return nil
 				}
 
 				state := fmt.Sprintf("%d", rand.Int31())
 
-				url := fmt.Sprintf("https://%s/authenticate?state=%s", CONFIG.Domain, state)
+				url := fmt.Sprintf("https://%s/authenticate?state=%s", cfg.Domain, state)
 				err := exec.Command("open", url).Run()
 				if err != nil {
 					fmt.Printf("Visit this link in your browser: %s\n", url)
@@ -135,13 +140,9 @@ func main() {
 					return err
 				}
 
-				CONFIG.Token = token
+				cfg.Token = token
+				storeConfig(cfg, logger)
 
-				err = config.Store(CONFIG, configFilePath)
-				if err != nil {
-					fmt.Printf("error: %s\n", err)
-					return err
-				}
 				fmt.Println("Successfully authenticated.")
 				return nil
 			},
@@ -155,6 +156,8 @@ func main() {
 					Name:  "list",
 					Usage: "list your instances",
 					Action: func(c *cli.Context) error {
+						client := NewClient(c, logger)
+
 						instances, err := client.ListInstances()
 						if err != nil {
 							fmt.Printf("error: %s\n", err)
@@ -171,6 +174,7 @@ func main() {
 					Usage: "create a new instance",
 					Action: func(c *cli.Context) error {
 						var image models.Image
+						client := NewClient(c, logger)
 
 						if c.NArg() == 0 {
 							image, err = client.GetLatestImage()
@@ -204,6 +208,8 @@ func main() {
 							return nil
 						}
 
+						client := NewClient(c, logger)
+
 						instance, err := client.GetInstance(id)
 						if err != nil {
 							fmt.Printf("error: %s\n", err)
@@ -231,6 +237,8 @@ func main() {
 					Name:  "list",
 					Usage: "list available images",
 					Action: func(c *cli.Context) error {
+						client := NewClient(c, logger)
+
 						images, err := client.ListImages()
 
 						if err != nil {
@@ -252,6 +260,7 @@ func main() {
 [anonyimse.sql] path to an anonymisation script that will be run on image finalisation`,
 					Action: func(c *cli.Context) error {
 						var image models.Image
+						client := NewClient(c, logger)
 
 						if len(c.Args()) != 2 {
 							println(c.Command.UsageText)
@@ -289,6 +298,7 @@ func main() {
 [id] the image ID to finalise`,
 					Action: func(c *cli.Context) error {
 						var image models.Image
+						client := NewClient(c, logger)
 
 						if len(c.Args()) != 1 {
 							println(c.Command.UsageText)
@@ -320,6 +330,8 @@ func main() {
 							return nil
 						}
 
+						client := NewClient(c, logger)
+
 						image, err := client.GetImage(id)
 						if err != nil {
 							fmt.Printf("error: %s\n", err)
@@ -349,13 +361,15 @@ func main() {
 					return nil
 				}
 
+				client := NewClient(c, logger)
+
 				instance, err := client.GetInstance(id)
 				if err != nil {
 					fmt.Printf("error: %s\n", err)
 					return err
 				}
 
-				showExportCommand(CONFIG, instance)
+				showExportCommand(loadConfig(logger), instance)
 				return nil
 			},
 		},
@@ -364,6 +378,8 @@ func main() {
 			Aliases: []string{},
 			Usage:   "show the environment variables to a newly created instance",
 			Action: func(c *cli.Context) error {
+				client := NewClient(c, logger)
+
 				image, err := client.GetLatestImage()
 				if err != nil {
 					fmt.Printf("error: %s\n", err)
@@ -376,7 +392,7 @@ func main() {
 					return err
 				}
 
-				showExportCommand(CONFIG, instance)
+				showExportCommand(loadConfig(logger), instance)
 				return nil
 			},
 		},
@@ -408,4 +424,28 @@ func ImageToString(i models.Image) string {
 
 func InstanceToString(i models.Instance) string {
 	return fmt.Sprintf("%2d [ PORT: %d - %s ]", i.ID, i.Port, i.CreatedAt.Format(time.RFC3339))
+}
+
+func loadConfig(logger log.Logger) config.Config {
+	cfg, err := config.Load()
+	if err != nil {
+		logger.With("error", err.Error()).Fatal("Could not load configuration")
+	}
+	return cfg
+}
+
+func storeConfig(cfg config.Config, logger log.Logger) {
+	err := config.Store(cfg)
+	if err != nil {
+		logger.With("error", err.Error()).Fatal("Could not store configuration")
+	}
+}
+
+func NewClient(c *cli.Context, logger log.Logger) clientPkg.Client {
+	cfg := loadConfig(logger)
+	return clientPkg.NewClient(
+		fmt.Sprintf("https://%s", cfg.Domain),
+		cfg.Token,
+		c.GlobalBool("insecure"),
+	)
 }

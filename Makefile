@@ -22,7 +22,7 @@ test-integration:
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
-	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client cli/*.go
+	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client client/*.go
 
 deb: build-production
 	fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
