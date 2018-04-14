@@ -8,10 +8,10 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gocardless/draupnir/exec"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/server/api/routes"
-	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/config"
 	"github.com/gocardless/draupnir/store"
 	"github.com/gocardless/draupnir/version"
@@ -82,7 +82,7 @@ func Run(logger log.Logger) {
 	}
 
 	// Healthcheck
-	// We don't enforce a particulate API version on this route, because it should
+	// We don't enforce a particular API version on this route, because it should
 	// be easy to hit to monitor the health of the system.
 	router.Methods("GET").Path("/health_check").HandlerFunc(
 		rootHandler.
