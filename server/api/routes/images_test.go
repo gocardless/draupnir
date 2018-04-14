@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api"
 	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/api/chain"
-	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
@@ -129,11 +129,11 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	err := Images{}.Create(recorder, req)
 
-	var response apiErrors.Error
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	assert.Equal(t, apiErrors.InvalidJSONError, response)
+	assert.Equal(t, api.InvalidJSONError, response)
 	assert.Contains(t, logs.String(), "data is not a jsonapi representation")
 	assert.Nil(t, err)
 }
@@ -233,11 +233,11 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 	router.HandleFunc("/images/{id}/done", errorHandler.Handle(Images{}.Done))
 	router.ServeHTTP(recorder, req)
 
-	var response apiErrors.Error
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, apiErrors.NotFoundError, response)
+	assert.Equal(t, api.NotFoundError, response)
 	assert.Contains(t, logs.String(), "invalid syntax")
 	assert.Nil(t, errorHandler.Error)
 }

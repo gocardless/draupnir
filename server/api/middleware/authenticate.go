@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gocardless/draupnir/server/api/chain"
-	apiErrors "github.com/gocardless/draupnir/server/api/errors"
+	"github.com/gocardless/draupnir/server/api"
 	"github.com/gocardless/draupnir/server/api/auth"
+	"github.com/gocardless/draupnir/server/api/chain"
 )
 
 // This, sadly is exported so we can inject fake loggers in tests.
@@ -28,7 +28,7 @@ func Authenticate(authenticator auth.Authenticator) chain.Middleware {
 			email, err := authenticator.AuthenticateRequest(r)
 			if err != nil {
 				logger.Info(err.Error())
-				apiErrors.RenderError(w, http.StatusUnauthorized, apiErrors.UnauthorizedError)
+				api.RenderError(w, http.StatusUnauthorized, api.UnauthorizedError)
 				return nil
 			}
 

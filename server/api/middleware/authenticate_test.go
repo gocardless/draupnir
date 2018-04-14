@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gocardless/draupnir/server/api"
 	"github.com/gocardless/draupnir/server/api/auth"
-	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )
@@ -59,9 +59,9 @@ func TestAuthenticateFailure(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
-	var response apiErrors.Error
+	var response api.Error
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 
 	assert.Nil(t, err, "failed to decode response into APIError")
-	assert.EqualValues(t, apiErrors.UnauthorizedError, response)
+	assert.EqualValues(t, api.UnauthorizedError, response)
 }

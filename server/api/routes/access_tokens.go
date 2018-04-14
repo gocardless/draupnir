@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gocardless/draupnir/server/api"
 	"github.com/gocardless/draupnir/server/api/chain"
-	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/google/jsonapi"
 	"github.com/pkg/errors"
@@ -75,7 +75,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.InvalidJSONError)
+		api.RenderError(w, http.StatusBadRequest, api.InvalidJSONError)
 		return nil
 	}
 
@@ -89,7 +89,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 
 	if err != nil {
 		logger.With("error", err.Error()).Info("oauth request failed")
-		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.OauthError) // TODO: improve error
+		api.RenderError(w, http.StatusBadRequest, api.OauthError) // TODO: improve error
 		return nil
 	}
 
