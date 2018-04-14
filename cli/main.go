@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/burntsushi/toml"
-	clientPkg "github.com/gocardless/draupnir/client"
 	"github.com/gocardless/draupnir/models"
+	clientPkg "github.com/gocardless/draupnir/server/api/client"
 	"github.com/gocardless/draupnir/version"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"

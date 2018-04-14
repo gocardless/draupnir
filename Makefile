@@ -5,6 +5,7 @@ BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Versi
 
 build:
 	$(BUILD_COMMAND) -o draupnir *.go
+	$(BUILD_COMMAND) -o draupnir-client cli/*.go
 
 migrate:
 	vendor/bin/sql-migrate up
@@ -21,8 +22,6 @@ test-integration:
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
-
-client: test
 	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client cli/*.go
 
 deb: build-production

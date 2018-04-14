@@ -9,7 +9,7 @@ import (
 
 	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api/routes/chain"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
