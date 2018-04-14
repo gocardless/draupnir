@@ -15,7 +15,6 @@ import (
 	"github.com/gocardless/draupnir/server"
 	clientPkg "github.com/gocardless/draupnir/server/api/client"
 	"github.com/gocardless/draupnir/version"
-	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	"github.com/urfave/cli"
 )
@@ -51,9 +50,8 @@ func main() {
 				err := server.Run(logger)
 				if err != nil {
 					logger.With("error", err.Error()).Fatal("Failed to start server")
-					cli.OsExiter(1)
 				}
-				return err
+				return nil
 			},
 		},
 		{
@@ -94,8 +92,8 @@ func main() {
     database: The default database to connect to. If not set, defaults to the PGDATABASE environment variable.`,
 					Action: func(c *cli.Context) error {
 						if len(c.Args()) != 2 {
-							println(c.Command.UsageText)
-							return errors.New("Invalid arguments")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Invalid arguments")
 						}
 						key := c.Args().First()
 						val := c.Args()[1]
@@ -109,7 +107,7 @@ func main() {
 							cfg.Database = val
 							storeConfig(cfg, logger)
 						default:
-							fmt.Printf("Invalid key %s\n", key)
+							logger.With("key", key).Fatal("Invalid key")
 						}
 						return nil
 					},
@@ -125,7 +123,7 @@ func main() {
 				client := NewClient(c, logger)
 
 				if cfg.Token.RefreshToken != "" {
-					fmt.Printf("You're already authenticated.\n")
+					logger.Info("You're already authenticated")
 					return nil
 				}
 
@@ -139,14 +137,13 @@ func main() {
 
 				token, err := client.CreateAccessToken(state)
 				if err != nil {
-					fmt.Printf("error creating access token: %s\n", err.Error())
-					return err
+					logger.With("error", err).Fatal("Could not create access token")
 				}
 
 				cfg.Token = token
 				storeConfig(cfg, logger)
 
-				fmt.Println("Successfully authenticated.")
+				logger.Info("Successfully authenticated.")
 				return nil
 			},
 		},
@@ -163,8 +160,7 @@ func main() {
 
 						instances, err := client.ListInstances()
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not fetch instances")
 						}
 						for _, instance := range instances {
 							fmt.Println(InstanceToString(instance))
@@ -186,17 +182,15 @@ func main() {
 						}
 
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not fetch image")
 						}
 
 						instance, err := client.CreateInstance(image)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not create instance")
 						}
 
-						fmt.Printf("Created with image ID: %d\n", image.ID)
+						logger.With("id", instance.ID).With("image", image.ID).Info("Created instance")
 						fmt.Println(InstanceToString(instance))
 						return nil
 					},
@@ -207,25 +201,22 @@ func main() {
 					Action: func(c *cli.Context) error {
 						id := c.Args().First()
 						if id == "" {
-							fmt.Println("error: must supply an instance id")
-							return nil
+							logger.Fatal("Must supply an instance id")
 						}
 
 						client := NewClient(c, logger)
 
 						instance, err := client.GetInstance(id)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not fetch instance")
 						}
 
 						err = client.DestroyInstance(instance)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not destroy instance")
 						}
 
-						fmt.Printf("Destroyed %d\n", instance.ID)
+						logger.With("id", instance.ID).Info("Destroyed instance")
 						return nil
 					},
 				},
@@ -245,8 +236,7 @@ func main() {
 						images, err := client.ListImages()
 
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not fetch images")
 						}
 						for _, image := range images {
 							fmt.Println(ImageToString(image))
@@ -266,27 +256,26 @@ func main() {
 						client := NewClient(c, logger)
 
 						if len(c.Args()) != 2 {
-							println(c.Command.UsageText)
-							return errors.New("Invalid arguments")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Invalid command arguments")
 						}
 
 						backedUpAt, err := time.Parse(time.RFC3339, c.Args().Get(0))
 						if err != nil {
-							println(c.Command.UsageText)
-							return errors.Wrap(err, "Invalid backedUpAt timestamp")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Invalid backedUpAt timestamp")
 						}
 
 						anonPath := c.Args().Get(1)
 						anon, err := ioutil.ReadFile(anonPath)
 						if err != nil {
-							println(c.Command.UsageText)
-							return errors.Wrap(err, "Invalid anon script")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Invalid anon script")
 						}
 
 						image, err = client.CreateImage(backedUpAt, anon)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not create image")
 						}
 
 						fmt.Println(ImageToString(image))
@@ -304,19 +293,19 @@ func main() {
 						client := NewClient(c, logger)
 
 						if len(c.Args()) != 1 {
-							println(c.Command.UsageText)
-							return errors.New("Missing image ID argument")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Invalid command arguments")
 						}
 
 						imageID, err := strconv.Atoi(c.Args().First())
 						if err != nil {
-							println(c.Command.UsageText)
-							return errors.Wrap(err, "Invalid image ID")
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.With("error", err).Fatal("Invalid image ID")
 						}
 
 						image, err = client.FinaliseImage(imageID)
 						if err != nil {
-							return errors.Wrap(err, "Could not finalise image")
+							logger.With("error", err).Fatal("Could not finalise image")
 						}
 
 						fmt.Println(ImageToString(image))
@@ -329,47 +318,46 @@ func main() {
 					Action: func(c *cli.Context) error {
 						id := c.Args().First()
 						if id == "" {
-							fmt.Println("error: must supply an image id")
-							return nil
+							cli.ShowCommandHelp(c, c.Command.Name)
+							logger.Fatal("Must supply an image id")
 						}
 
 						client := NewClient(c, logger)
 
 						image, err := client.GetImage(id)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not fetch image")
 						}
 
 						err = client.DestroyImage(image)
 						if err != nil {
-							fmt.Printf("error: %s\n", err)
-							return err
+							logger.With("error", err).Fatal("Could not destroy image")
 						}
 
-						fmt.Printf("Destroyed %d\n", image.ID)
+						logger.With("id", image.ID).Info("Destroyed image")
 						return nil
 					},
 				},
 			},
 		},
 		{
-			Name:    "env",
-			Aliases: []string{},
-			Usage:   "show the environment variables to connect to an instance",
+			Name:  "env",
+			Usage: "show the environment variables to connect to an instance",
+			UsageText: `draupnir env [id]
+
+[id] the instance ID to connect to`,
 			Action: func(c *cli.Context) error {
 				id := c.Args().First()
 				if id == "" {
-					fmt.Println("error: must supply an instance id")
-					return nil
+					cli.ShowCommandHelp(c, c.Command.Name)
+					logger.Fatal("Must supply an instance id")
 				}
 
 				client := NewClient(c, logger)
 
 				instance, err := client.GetInstance(id)
 				if err != nil {
-					fmt.Printf("error: %s\n", err)
-					return err
+					logger.With("error", err).Fatal("Could not fetch instance")
 				}
 
 				showExportCommand(loadConfig(logger), instance)
@@ -379,20 +367,18 @@ func main() {
 		{
 			Name:    "new",
 			Aliases: []string{},
-			Usage:   "show the environment variables to a newly created instance",
+			Usage:   "create a new instance",
 			Action: func(c *cli.Context) error {
 				client := NewClient(c, logger)
 
 				image, err := client.GetLatestImage()
 				if err != nil {
-					fmt.Printf("error: %s\n", err)
-					return err
+					logger.With("error", err).Fatal("Could not fetch image")
 				}
 
 				instance, err := client.CreateInstance(image)
 				if err != nil {
-					fmt.Printf("error: %s\n", err)
-					return err
+					logger.With("error", err).Fatal("Could not create instance")
 				}
 
 				showExportCommand(loadConfig(logger), instance)
