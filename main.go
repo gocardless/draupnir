@@ -48,9 +48,12 @@ func main() {
 			Name:  "server",
 			Usage: "start the draupnir server",
 			Action: func(c *cli.Context) error {
-				server.Run(logger)
-				// TODO: maybe return fatal errors from Run?
-				return nil
+				err := server.Run(logger)
+				if err != nil {
+					logger.With("error", err.Error()).Fatal("Failed to start server")
+					cli.OsExiter(1)
+				}
+				return err
 			},
 		},
 		{

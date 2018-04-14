@@ -26,11 +26,12 @@ import (
 const ConfigFilePath = "/etc/draupnir/config.toml"
 
 // Run starts the draupnir server
-func Run(logger log.Logger) {
+// Any error returned is fatal
+func Run(logger log.Logger) error {
 	logger.With("config", ConfigFilePath).Info("Loading config file")
 	cfg, err := config.Load(ConfigFilePath)
 	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not load configuration")
+		return errors.Wrap(err, "Could not load configuration")
 	}
 	logger.Info("Configuration successfully loaded")
 
@@ -40,7 +41,10 @@ func Run(logger log.Logger) {
 	authenticator := createAuthenticator(cfg, oauthConfig)
 	executor := createExecutor(cfg)
 
-	db := connectToDatabase(cfg, logger)
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		return errors.Wrap(err, "Could not connect to database")
+	}
 	imageStore := createImageStore(db)
 	instanceStore := createInstanceStore(db)
 
@@ -74,7 +78,7 @@ func Run(logger log.Logger) {
 	if cfg.SentryDsn != "" {
 		sentryClient, err := raven.New(cfg.SentryDsn)
 		if err != nil {
-			logger.With("error", err.Error()).Fatal("Could not initialise sentry-raven client")
+			return errors.Wrap(err, "Could not initialise sentry-raven client")
 		}
 
 		rootHandler = rootHandler.
@@ -197,16 +201,9 @@ func Run(logger log.Logger) {
 	)
 
 	if err := g.Run(); err != nil {
-		logger.Fatal(errors.Wrap(err, "could not start HTTP servers"))
+		return errors.Wrap(err, "could not start HTTP servers")
 	}
-}
-
-func connectToDatabase(c config.Config, logger log.Logger) *sql.DB {
-	db, err := sql.Open("postgres", c.DatabaseURL)
-	if err != nil {
-		logger.With("error", err.Error()).Fatal("Could not connect to database")
-	}
-	return db
+	return nil
 }
 
 func createOauthConfig(c config.OAuthConfig) oauth2.Config {
