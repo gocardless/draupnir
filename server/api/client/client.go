@@ -17,6 +17,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
+	apiErrors "github.com/gocardless/draupnir/server/api/errors"
 	"github.com/gocardless/draupnir/server/api/routes"
 	"github.com/gocardless/draupnir/version"
 	"github.com/google/jsonapi"
@@ -328,7 +329,7 @@ func (c Client) authorizationHeader() string {
 // parseError takes an io.Reader containing an API error response
 // and converts it to an error
 func parseError(r io.Reader) error {
-	var apiError routes.APIError
+	var apiError apiErrors.APIError
 	err := json.NewDecoder(r).Decode(&apiError)
 	if err != nil {
 		return err

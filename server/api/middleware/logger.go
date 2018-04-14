@@ -1,4 +1,4 @@
-package routes
+package middleware
 
 import (
 	"context"
@@ -14,7 +14,9 @@ import (
 
 type key int
 
-const loggerKey key = 1
+// This, sadly is exported so we can inject fake loggers in tests.
+// See routes.createRequest in server/api/routes/fakes.go
+const LoggerKey key = 1
 
 func NewRequestLogger(logger log.Logger) chain.Middleware {
 	return func(next chain.Handler) chain.Handler {
@@ -26,7 +28,7 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			scopedLogger := logger.With("http_request", r)
 
 			// Inject the logger into the request's context
-			r = r.WithContext(context.WithValue(r.Context(), loggerKey, &scopedLogger))
+			r = r.WithContext(context.WithValue(r.Context(), LoggerKey, &scopedLogger))
 
 			// Call the next middleware and time it
 			start := time.Now()
@@ -60,7 +62,7 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 }
 
 func GetLogger(r *http.Request) (log.Logger, error) {
-	logger, ok := r.Context().Value(loggerKey).(*log.Logger)
+	logger, ok := r.Context().Value(LoggerKey).(*log.Logger)
 	if !ok {
 		return nil, errors.New("Could not acquire logger")
 	}

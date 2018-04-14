@@ -8,9 +8,10 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gocardless/draupnir/exec"
+	"github.com/gocardless/draupnir/server/api/chain"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/server/api/routes"
 	"github.com/gocardless/draupnir/server/api/routes/auth"
-	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/gocardless/draupnir/server/config"
 	"github.com/gocardless/draupnir/store"
 	"github.com/gocardless/draupnir/version"
@@ -65,8 +66,8 @@ func Run(logger log.Logger) {
 	// Every request will be logged, and any error raised in serving the request
 	// will also be logged.
 	rootHandler := chain.
-		New(routes.NewErrorHandler(logger)).
-		Add(routes.NewRequestLogger(logger))
+		New(middleware.NewErrorHandler(logger)).
+		Add(middleware.NewRequestLogger(logger))
 
 	// If Sentry is available, attach the Sentry middleware
 	// This will report all errors to Sentry
@@ -77,7 +78,7 @@ func Run(logger log.Logger) {
 		}
 
 		rootHandler = rootHandler.
-			Add(routes.NewSentryReporter(sentryClient))
+			Add(middleware.NewSentryReporter(sentryClient))
 	}
 
 	// Healthcheck
@@ -85,8 +86,8 @@ func Run(logger log.Logger) {
 	// be easy to hit to monitor the health of the system.
 	router.Methods("GET").Path("/health_check").HandlerFunc(
 		rootHandler.
-			Add(routes.WithVersion).
-			Add(routes.AsJSON).
+			Add(middleware.WithVersion).
+			Add(middleware.AsJSON).
 			Resolve(routes.HealthCheck),
 	)
 
@@ -108,11 +109,11 @@ func Run(logger log.Logger) {
 	// These routes all accept and return JSON, and will enforce that the client
 	// sends a compatible API version header.
 	defaultChain := rootHandler.
-		Add(routes.DefaultErrorRenderer).
-		Add(routes.WithVersion).
-		Add(routes.AsJSON).
-		Add(routes.CheckAPIVersion(version.Version)).
-		Add(routes.Authenticate(authenticator))
+		Add(middleware.DefaultErrorRenderer).
+		Add(middleware.WithVersion).
+		Add(middleware.AsJSON).
+		Add(middleware.CheckAPIVersion(version.Version)).
+		Add(middleware.Authenticate(authenticator))
 
 	// Access Tokens
 	// This route is hit before the user is authenticated, so we don't use the
@@ -228,7 +229,7 @@ func createAuthenticator(c config.Config, oauthConfig oauth2.Config) auth.Authen
 		TrustedUserEmailDomain: c.TrustedUserEmailDomain,
 	}
 	if c.Environment == "test" {
-		authenticator.OAuthClient = auth.FakeOAuthClient{}
+		authenticator.OAuthClient = auth.IntegrationTestOAuthClient{}
 	}
 	return authenticator
 }

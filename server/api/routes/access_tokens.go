@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gocardless/draupnir/server/api/chain"
+	apiErrors "github.com/gocardless/draupnir/server/api/errors"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/google/jsonapi"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -67,13 +69,13 @@ type createAccessTokenRequest struct {
 func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 	var req createAccessTokenRequest
 
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
 
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
-		RenderError(w, http.StatusBadRequest, invalidJSONError)
+		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.InvalidJSONError)
 		return nil
 	}
 
@@ -87,7 +89,7 @@ func (a AccessTokens) Create(w http.ResponseWriter, r *http.Request) error {
 
 	if err != nil {
 		logger.With("error", err.Error()).Info("oauth request failed")
-		RenderError(w, http.StatusBadRequest, oauthError) // TODO: improve error
+		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.OauthError) // TODO: improve error
 		return nil
 	}
 
@@ -112,7 +114,7 @@ func waitForCallback(callbackChan chan OAuthCallback) (oauth2.Token, error) {
 }
 
 func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}

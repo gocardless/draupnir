@@ -11,6 +11,8 @@ import (
 
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
+	apiErrors "github.com/gocardless/draupnir/server/api/errors"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/gocardless/draupnir/store"
 	"github.com/google/jsonapi"
@@ -28,12 +30,12 @@ type CreateInstanceRequest struct {
 }
 
 func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
 
-	email, err := GetAuthenticatedUser(r)
+	email, err := middleware.GetAuthenticatedUser(r)
 	if err != nil {
 		return err
 	}
@@ -41,25 +43,25 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 	req := CreateInstanceRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusBadRequest, invalidJSONError)
+		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.InvalidJSONError)
 		return nil
 	}
 
 	imageID, err := strconv.Atoi(req.ImageID)
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusBadRequest, badImageIDError)
+		apiErrors.RenderError(w, http.StatusBadRequest, apiErrors.BadImageIDError)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(imageID)
 	if err != nil {
-		RenderError(w, http.StatusNotFound, imageNotFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.ImageNotFoundError)
 		return nil
 	}
 
 	if !image.Ready {
-		RenderError(w, http.StatusUnprocessableEntity, unreadyImageError)
+		apiErrors.RenderError(w, http.StatusUnprocessableEntity, apiErrors.UnreadyImageError)
 		return nil
 	}
 
@@ -71,7 +73,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
 			logger.Info(err.Error())
-			RenderError(w, http.StatusNotFound, imageNotFoundError)
+			apiErrors.RenderError(w, http.StatusNotFound, apiErrors.ImageNotFoundError)
 			return nil
 		}
 
@@ -92,7 +94,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Instances) List(w http.ResponseWriter, r *http.Request) error {
-	email, err := GetAuthenticatedUser(r)
+	email, err := middleware.GetAuthenticatedUser(r)
 	if err != nil {
 		return err
 	}
@@ -118,12 +120,12 @@ func (i Instances) List(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
 
-	email, err := GetAuthenticatedUser(r)
+	email, err := middleware.GetAuthenticatedUser(r)
 	if err != nil {
 		return err
 	}
@@ -131,19 +133,19 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		logger.With("instance", id).Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 
 	if email != instance.UserEmail {
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 
@@ -154,12 +156,12 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
 
-	email, err := GetAuthenticatedUser(r)
+	email, err := middleware.GetAuthenticatedUser(r)
 	if err != nil {
 		return err
 	}
@@ -167,19 +169,19 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 
 	instance, err := i.InstanceStore.Get(id)
 	if err != nil {
 		logger.With("instance", id).Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 
 	if email != auth.UPLOAD_USER_EMAIL && email != instance.UserEmail {
-		RenderError(w, http.StatusNotFound, notFoundError)
+		apiErrors.RenderError(w, http.StatusNotFound, apiErrors.NotFoundError)
 		return nil
 	}
 

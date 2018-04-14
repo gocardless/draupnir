@@ -1,4 +1,4 @@
-package routes
+package middleware
 
 import (
 	"net/http"

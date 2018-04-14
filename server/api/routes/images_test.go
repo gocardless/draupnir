@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api/chain"
+	apiErrors "github.com/gocardless/draupnir/server/api/errors"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
@@ -126,11 +129,11 @@ func TestImageCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	err := Images{}.Create(recorder, req)
 
-	var response APIError
+	var response apiErrors.APIError
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	assert.Equal(t, invalidJSONError, response)
+	assert.Equal(t, apiErrors.InvalidJSONError, response)
 	assert.Contains(t, logs.String(), "data is not a jsonapi representation")
 	assert.Nil(t, err)
 }
@@ -230,11 +233,11 @@ func TestImageDoneWithNonNumericID(t *testing.T) {
 	router.HandleFunc("/images/{id}/done", errorHandler.Handle(Images{}.Done))
 	router.ServeHTTP(recorder, req)
 
-	var response APIError
+	var response apiErrors.APIError
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, notFoundError, response)
+	assert.Equal(t, apiErrors.NotFoundError, response)
 	assert.Contains(t, logs.String(), "invalid syntax")
 	assert.Nil(t, errorHandler.Error)
 }
@@ -284,9 +287,6 @@ func TestImageDestroy(t *testing.T) {
 
 func TestImageDestroyFromUploadUser(t *testing.T) {
 	req, recorder, logs := createRequest(t, "DELETE", "/images/1", nil)
-	req = req.WithContext(
-		context.WithValue(req.Context(), authUserKey, auth.UPLOAD_USER_EMAIL),
-	)
 
 	image := models.Image{
 		ID:         1,
@@ -333,6 +333,12 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
+	authenticator := auth.FakeAuthenticator{
+		MockAuthenticateRequest: func(r *http.Request) (string, error) {
+			return auth.UPLOAD_USER_EMAIL, nil
+		},
+	}
+
 	errorHandler := FakeErrorHandler{}
 
 	router := mux.NewRouter()
@@ -341,7 +347,10 @@ func TestImageDestroyFromUploadUser(t *testing.T) {
 		InstanceStore: instanceStore,
 		Executor:      executor,
 	}
-	router.HandleFunc("/images/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
+	route := chain.New(errorHandler.Handle).
+		Add(middleware.Authenticate(authenticator)).
+		Resolve(routeSet.Destroy)
+	router.HandleFunc("/images/{id}", route).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)

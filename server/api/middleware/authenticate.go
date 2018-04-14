@@ -1,15 +1,18 @@
-package routes
+package middleware
 
 import (
 	"context"
 	"errors"
 	"net/http"
 
-	"github.com/gocardless/draupnir/server/api/routes/auth"
 	"github.com/gocardless/draupnir/server/api/chain"
+	apiErrors "github.com/gocardless/draupnir/server/api/errors"
+	"github.com/gocardless/draupnir/server/api/routes/auth"
 )
 
-const authUserKey key = 2
+// This, sadly is exported so we can inject fake loggers in tests.
+// See routes.createRequest in server/api/routes/fakes.go
+const AuthUserKey key = 2
 
 // Authenticate uses the provided authenticator to authenticate the request.
 // On success, it yields to the next handler in the chain.
@@ -25,18 +28,18 @@ func Authenticate(authenticator auth.Authenticator) chain.Middleware {
 			email, err := authenticator.AuthenticateRequest(r)
 			if err != nil {
 				logger.Info(err.Error())
-				RenderError(w, http.StatusUnauthorized, unauthorizedError)
+				apiErrors.RenderError(w, http.StatusUnauthorized, apiErrors.UnauthorizedError)
 				return nil
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), authUserKey, email))
+			r = r.WithContext(context.WithValue(r.Context(), AuthUserKey, email))
 			return next(w, r)
 		}
 	}
 }
 
 func GetAuthenticatedUser(r *http.Request) (string, error) {
-	user, ok := r.Context().Value(authUserKey).(string)
+	user, ok := r.Context().Value(AuthUserKey).(string)
 	if !ok {
 		return "", errors.New("Could not acquire authenticated user")
 	}
