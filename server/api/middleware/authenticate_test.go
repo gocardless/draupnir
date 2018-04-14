@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	apiErrors "github.com/gocardless/draupnir/server/api/errors"
-	"github.com/gocardless/draupnir/server/api/routes/auth"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )

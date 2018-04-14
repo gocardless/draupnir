@@ -11,7 +11,7 @@ import (
 	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/server/api/routes"
-	"github.com/gocardless/draupnir/server/api/routes/auth"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gocardless/draupnir/server/config"
 	"github.com/gocardless/draupnir/store"
 	"github.com/gocardless/draupnir/version"
