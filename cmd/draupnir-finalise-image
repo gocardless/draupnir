@@ -27,6 +27,7 @@ if ! [[ "$#" -eq 4 ]]; then
 fi
 
 PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
+VACUUMDB=/usr/lib/postgresql/9.4/bin/vacuumdb
 PSQL=/usr/bin/psql
 
 ROOT=$1
@@ -102,6 +103,17 @@ sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
 # Anonymise
 echo "Executing anonymisation script $ANON_FILE"
 sudo cat "$ANON_FILE" | sudo -u draupnir "$PSQL" -p "$PORT" --username=draupnir postgres
+
+echo "Vacuum all the databases in the cluster"
+sudo -u postgres bash <<BASH
+export PGPORT="$PORT"
+for database in \$(psql -t -c "select datname from pg_database where not datname like 'template%';");
+do
+  echo ">> vacuuming \$database"
+  psql --dbname "\$database" -t -c "select table_name from information_schema.tables where table_schema='public';" \
+    | xargs -P5 -n1 "$VACUUMDB" --dbname "\$database" --table
+done
+BASH
 
 echo "Turning back on fsync and hot_standby wal level"
 sed -i \
