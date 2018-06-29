@@ -82,8 +82,15 @@ ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
 ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
 temp_file_limit = 5242880 # 5GiB
 work_mem = '128MB'
-hot_standby = 'on'
-wal_level = 'hot_standby'
+
+# Turn off hot standby as we won't ever need to run queries against this
+# database while it's in recovery. We also want to reduce- as much as is
+# possible- the amount of WAL we write during finalisation, as this step usually
+# requires a significant amount of IO. Similarly, fsync should be turned off
+# during finalisation.
+hot_standby = 'off'
+wal_level = 'minimal'
+fsync = 'off'
 EOF
 
 # Start postgres
@@ -94,8 +101,12 @@ sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
 
 # Anonymise
 echo "Executing anonymisation script $ANON_FILE"
-sudo cat "$ANON_FILE"
 sudo cat "$ANON_FILE" | sudo -u draupnir "$PSQL" -p "$PORT" --username=draupnir postgres
+
+echo "Turning back on fsync and hot_standby wal level"
+sed -i \
+  "s/wal_level = 'off'/wal_level = 'hot_standby'/; s/fsync = 'off'/fsync = 'on'/" \
+  "${UPLOAD_PATH}/postgresql.conf"
 
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -w stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
