@@ -4,6 +4,11 @@ Changelog
 Unreleased
 ----------
 
+Nothing
+
+2.0.0
+-----
+
 - Replace environment variable configuration with a configuration file installed
   at /etc/draupnir/config.toml. Proxy settings are still configured via the
   HTTP_PROXY and HTTPS_PROXY environment variables, but everything else is
