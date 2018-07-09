@@ -8,6 +8,9 @@ Unreleased
   at /etc/draupnir/config.toml. Proxy settings are still configured via the
   HTTP_PROXY and HTTPS_PROXY environment variables, but everything else is
   configured using the config file. The format is documented in the README.
+- Vacuum databases by default after the anonymisation step, to avoid the vacuum
+  processes starting in all instances of a draupnir database and causing large
+  amounts of exclusive data to be generated per snapshot
 
 1.7.0
 -----
