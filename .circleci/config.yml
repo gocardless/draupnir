@@ -95,12 +95,10 @@ jobs:
               exit 0
             fi
 
-            go get -u github.com/goreleaser/goreleaser
-
             git tag "${CURRENT_VERSION}"
             git push --tags
 
-            goreleaser --rm-dist
+            curl -sL https://git.io/goreleaser | bash
 
 workflows:
   version: 2
