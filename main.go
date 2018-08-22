@@ -201,8 +201,15 @@ func main() {
 		Add(routes.Authenticate(authenticator))
 
 	// Access Tokens
+	// This route is hit before the user is authenticated, so we don't use the
+	// Authenticate middleware
 	router.Methods("POST").Path("/access_tokens").HandlerFunc(
-		defaultChain.Resolve(accessTokenRouteSet.Create),
+		rootHandler.
+			Add(routes.DefaultErrorRenderer).
+			Add(routes.WithVersion).
+			Add(routes.AsJSON).
+			Add(routes.CheckAPIVersion(version.Version)).
+			Resolve(accessTokenRouteSet.Create),
 	)
 
 	// Images
