@@ -6,6 +6,12 @@ Unreleased
 
 Nothing
 
+2.0.1
+-----
+
+- Fix bug where the `POST /access_tokens` route was behind authentication,
+  preventing users from authenticating for the first time.
+
 2.0.0
 -----
 
