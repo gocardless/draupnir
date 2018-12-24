@@ -7,7 +7,7 @@ set -o pipefail
 if ! [[ "$#" -eq 4 ]]; then
   echo """
   Desc:  Prepares an image for launching instances
-  Usage: $(basename "$0") ROOT INSTANCE_ID PORT ANON_FILE
+  Usage: $(basename "$0") ROOT IMAGE_ID PORT ANON_FILE
   Example:
 
       $(basename "$0") /draupnir 999 6543 anon.sql
@@ -124,15 +124,7 @@ echo "Executing anonymisation script $ANON_FILE"
 sudo cat "$ANON_FILE" | sudo -u draupnir "$PSQL" -p "$PORT" --username=draupnir postgres
 
 echo "Vacuum all the databases in the cluster"
-sudo -u postgres bash <<BASH
-export PGPORT="$PORT"
-for database in \$(psql -t -c "select datname from pg_database where not datname like 'template%';");
-do
-  echo ">> vacuuming \$database"
-  psql --dbname "\$database" -t -c "select table_name from information_schema.tables where table_schema='public';" \
-    | xargs -P5 -n1 "$VACUUMDB" --dbname "\$database" --table
-done
-BASH
+sudo -u postgres $VACUUMDB --all --port="$PORT" --jobs="$(nproc)"
 
 echo "Turning back on fsync and hot_standby wal level"
 sed -i \
