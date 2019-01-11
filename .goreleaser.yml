@@ -12,7 +12,7 @@ brew:
   commit_author:
     name: GoCardless Engineering
     email: engineering@gocardless.com
-  install: bin.install "draupnir-client"
+  install: bin.install "draupnir"
   description: Client for the draupnir database service
   folder: Formula
   test: system "draupnir-client help"
@@ -24,13 +24,6 @@ builds:
       - linux
       - darwin
     ldflags: -s -w -X github.com/gocardless/draupnir/version.Version={{.Version}} -X main.commit={{.Commit}}
-  -
-    binary: draupnir-client
-    main: ./cli/main.go
-    ldflags: -s -w -X github.com/gocardless/draupnir/version.Version={{.Version}} -X main.commit={{.Commit}}
-    goos:
-      - linux
-      - darwin
 archive:
   format: tar.gz
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
