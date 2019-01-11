@@ -17,7 +17,8 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/routes"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/routes"
 	"github.com/gocardless/draupnir/version"
 	"github.com/google/jsonapi"
 )
@@ -237,9 +238,14 @@ func (c Client) FinaliseImage(imageID int) (models.Image, error) {
 
 	resp, err := c.post(fmt.Sprintf("/images/%d/done", imageID), &emptyPayload)
 	if err != nil {
-		err = jsonapi.UnmarshalPayload(resp.Body, &image)
+		return image, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return image, parseError(resp.Body)
+	}
+
+	err = jsonapi.UnmarshalPayload(resp.Body, &image)
 	return image, err
 }
 
@@ -328,7 +334,7 @@ func (c Client) authorizationHeader() string {
 // parseError takes an io.Reader containing an API error response
 // and converts it to an error
 func parseError(r io.Reader) error {
-	var apiError routes.APIError
+	var apiError api.Error
 	err := json.NewDecoder(r).Decode(&apiError)
 	if err != nil {
 		return err

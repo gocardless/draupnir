@@ -1,4 +1,4 @@
-package routes
+package api
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/gocardless/draupnir/version"
 )
 
-type APIError struct {
+type Error struct {
 	ID     string      `json:"id"`
 	Status string      `json:"status"`
 	Code   string      `json:"code"`
@@ -22,12 +22,12 @@ type ErrorSource struct {
 	Parameter string `json:"parameter,omitempty"`
 }
 
-func RenderError(w http.ResponseWriter, statuscode int, err APIError) {
+func (e Error) Render(w http.ResponseWriter, statuscode int) {
 	w.WriteHeader(statuscode)
-	json.NewEncoder(w).Encode(err)
+	json.NewEncoder(w).Encode(e)
 }
 
-var internalServerError = APIError{
+var InternalServerError = Error{
 	ID:     "internal_server_error",
 	Code:   "internal_server_error",
 	Status: "500",
@@ -35,7 +35,7 @@ var internalServerError = APIError{
 	Detail: "Something went wrong :(",
 }
 
-var missingApiVersion = APIError{
+var MissingApiVersion = Error{
 	ID:     "missing_api_version_header",
 	Code:   "missing_api_version_header",
 	Status: "400",
@@ -43,8 +43,8 @@ var missingApiVersion = APIError{
 	Detail: "No API version specified in Draupnir-Version header",
 }
 
-func invalidApiVersion(v string) APIError {
-	return APIError{
+func InvalidApiVersion(v string) Error {
+	return Error{
 		ID:     "invalid_api_version",
 		Code:   "invalid_api_version",
 		Status: "400",
@@ -53,7 +53,7 @@ func invalidApiVersion(v string) APIError {
 	}
 }
 
-var notFoundError = APIError{
+var NotFoundError = Error{
 	ID:     "resource_not_found",
 	Code:   "resource_not_found",
 	Status: "404",
@@ -61,7 +61,7 @@ var notFoundError = APIError{
 	Detail: "The resource you requested could not be found",
 }
 
-var unauthorizedError = APIError{
+var UnauthorizedError = Error{
 	ID:     "unauthorized",
 	Code:   "unauthorized",
 	Status: "401",
@@ -69,7 +69,7 @@ var unauthorizedError = APIError{
 	Detail: "You do not have permission to view this resource",
 }
 
-var imageNotFoundError = APIError{
+var ImageNotFoundError = Error{
 	ID:     "resource_not_found",
 	Code:   "resource_not_found",
 	Status: "404",
@@ -77,7 +77,7 @@ var imageNotFoundError = APIError{
 	Detail: "The image you specified could not be found",
 }
 
-var badImageIDError = APIError{
+var BadImageIDError = Error{
 	ID:     "bad_request",
 	Code:   "bad_request",
 	Status: "400",
@@ -88,7 +88,7 @@ var badImageIDError = APIError{
 	},
 }
 
-var unreadyImageError = APIError{
+var UnreadyImageError = Error{
 	ID:     "unprocessable_entity",
 	Code:   "unprocessable_entity",
 	Status: "422",
@@ -99,7 +99,7 @@ var unreadyImageError = APIError{
 	},
 }
 
-var cannotDeleteImageWithInstancesError = APIError{
+var CannotDeleteImageWithInstancesError = Error{
 	ID:     "unprocessable_entity",
 	Code:   "unprocessable_entity",
 	Status: "422",
@@ -107,7 +107,7 @@ var cannotDeleteImageWithInstancesError = APIError{
 	Detail: "Cannot delete an image that has instances",
 }
 
-var invalidJSONError = APIError{
+var InvalidJSONError = Error{
 	ID:     "bad_request",
 	Code:   "bad_request",
 	Status: "400",
@@ -115,7 +115,7 @@ var invalidJSONError = APIError{
 	Detail: "Your JSON is malformed",
 }
 
-var oauthError = APIError{
+var OauthError = Error{
 	ID:     "bad_request",
 	Code:   "bad_request",
 	Status: "400",

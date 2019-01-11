@@ -1,4 +1,4 @@
-package routes
+package middleware
 
 import (
 	"encoding/json"
@@ -7,16 +7,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )
+
+type FailureAuthenticator struct{}
+
+func (f FailureAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
+	return "", errors.New("could not authenticate")
+}
 
 func TestAuthenticateSuccess(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/", nil)
 
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
+	authenticator := auth.FakeAuthenticator{
+		MockAuthenticateRequest: func(r *http.Request) (string, error) {
 			return "some_user@domain.org", nil
 		},
 	}
@@ -36,8 +44,8 @@ func TestAuthenticateFailure(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	logger := log.NewNopLogger()
 
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
+	authenticator := auth.FakeAuthenticator{
+		MockAuthenticateRequest: func(r *http.Request) (string, error) {
 			return "", errors.New("could not authenticate")
 		},
 	}
@@ -51,9 +59,9 @@ func TestAuthenticateFailure(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 
-	var response APIError
+	var response api.Error
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 
 	assert.Nil(t, err, "failed to decode response into APIError")
-	assert.EqualValues(t, unauthorizedError, response)
+	assert.EqualValues(t, api.UnauthorizedError, response)
 }

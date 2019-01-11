@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/gocardless/draupnir/server/api/auth"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 
@@ -20,7 +21,7 @@ func TestAuthenticate(t *testing.T) {
 
 	routeSet := AccessTokens{
 		Callbacks: make(map[string]chan OAuthCallback),
-		Client:    fakeOauthConfig(),
+		Client:    auth.FakeOauthConfig(),
 	}
 
 	errorHandler := FakeErrorHandler{}
@@ -57,8 +58,8 @@ func TestCallback(t *testing.T) {
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	oauthClient := FakeOAuthClient{
-		_Exchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
+	oauthClient := auth.FakeOAuthClient{
+		MockExchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
 			assert.Equal(t, code, _code)
 			return &oauth2.Token{AccessToken: "the-access-token"}, nil
 		},
@@ -184,8 +185,8 @@ func TestCallbackWithFailedTokenExchange(t *testing.T) {
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	oauthClient := FakeOAuthClient{
-		_Exchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
+	oauthClient := auth.FakeOAuthClient{
+		MockExchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
 			assert.Equal(t, code, _code)
 			return &oauth2.Token{}, errors.New("token exchange failed")
 		},
@@ -235,8 +236,8 @@ func TestCallbackWithTimedOutTokenExchange(t *testing.T) {
 	callbacks := make(map[string]chan OAuthCallback)
 	callbacks[state] = callback
 
-	oauthClient := FakeOAuthClient{
-		_Exchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
+	oauthClient := auth.FakeOAuthClient{
+		MockExchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
 			assert.Equal(t, code, _code)
 			select {
 			case <-ctx.Done():

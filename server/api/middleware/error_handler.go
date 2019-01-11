@@ -1,10 +1,11 @@
-package routes
+package middleware
 
 import (
 	"net/http"
 
 	raven "github.com/getsentry/raven-go"
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/prometheus/common/log"
 )
 
@@ -23,7 +24,7 @@ func DefaultErrorRenderer(next chain.Handler) chain.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		err := next(w, r)
 		if err != nil {
-			RenderError(w, http.StatusInternalServerError, internalServerError)
+			api.InternalServerError.Render(w, http.StatusInternalServerError)
 		}
 		return err
 	}

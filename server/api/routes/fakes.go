@@ -9,10 +9,10 @@ import (
 
 	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
 
 	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
+	"github.com/gocardless/draupnir/server/api/middleware"
 )
 
 func NewFakeLogger() (log.Logger, *bytes.Buffer) {
@@ -99,40 +99,6 @@ func (e FakeExecutor) DestroyInstance(ctx context.Context, id int) error {
 	return e._DestroyInstance(ctx, id)
 }
 
-type FakeAuthenticator struct {
-	_AuthenticateRequest func(r *http.Request) (string, error)
-}
-
-func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
-	return f._AuthenticateRequest(r)
-}
-
-type FakeOAuthClient struct {
-	_AuthCodeURL func(string, ...oauth2.AuthCodeOption) string
-	_Exchange    func(context.Context, string) (*oauth2.Token, error)
-}
-
-func (c *FakeOAuthClient) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
-	return c._AuthCodeURL(state, opts...)
-}
-
-func (c *FakeOAuthClient) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
-	return c._Exchange(ctx, code)
-}
-
-func fakeOauthConfig() *oauth2.Config {
-	return &oauth2.Config{
-		ClientID:     "the-client-id",
-		ClientSecret: "the-client-secret",
-		Scopes:       []string{"the-scope"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://example.org/auth",
-			TokenURL: "https://example.org/token",
-		},
-		RedirectURL: "https://draupnir.org/redirect",
-	}
-}
-
 type FakeErrorHandler struct {
 	Error error
 }
@@ -154,7 +120,7 @@ func createRequest(t *testing.T, method string, path string, body io.Reader) (*h
 	}
 
 	logger, output := NewFakeLogger()
-	req = req.WithContext(context.WithValue(req.Context(), loggerKey, &logger))
-	req = req.WithContext(context.WithValue(req.Context(), authUserKey, "test@draupnir"))
+	req = req.WithContext(context.WithValue(req.Context(), middleware.LoggerKey, &logger))
+	req = req.WithContext(context.WithValue(req.Context(), middleware.AuthUserKey, "test@draupnir"))
 	return req, recorder, output
 }

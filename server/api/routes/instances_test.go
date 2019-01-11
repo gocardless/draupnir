@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/auth"
+	"github.com/gocardless/draupnir/server/api/chain"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -101,11 +103,11 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 	}
 	err := routeSet.Create(recorder, req)
 
-	var response APIError
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
-	assert.Equal(t, unreadyImageError, response)
+	assert.Equal(t, api.UnreadyImageError, response)
 	assert.Nil(t, err)
 }
 
@@ -117,12 +119,12 @@ func TestInstanceCreateReturnsErrorWithInvalidPayload(t *testing.T) {
 
 	err := Instances{}.Create(recorder, req)
 
-	var response APIError
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	assert.Equal(t, invalidJSONError, response)
+	assert.Equal(t, api.InvalidJSONError, response)
 	assert.Contains(t, logs.String(), "not a jsonapi representation")
 }
 
@@ -137,11 +139,11 @@ func TestInstanceCreateWithInvalidImageID(t *testing.T) {
 	}
 	err := routeSet.Create(recorder, req)
 
-	var response APIError
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	assert.Equal(t, badImageIDError, response)
+	assert.Equal(t, api.BadImageIDError, response)
 	assert.Contains(t, logs.String(), "parsing \\\"garbage\\\": invalid syntax")
 	assert.Nil(t, err)
 }
@@ -240,11 +242,11 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
-	var response APIError
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, notFoundError, response)
+	assert.Equal(t, api.NotFoundError, response)
 	assert.Nil(t, errorHandler.Error)
 }
 
@@ -317,11 +319,11 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Destroy)).Methods("DELETE")
 	router.ServeHTTP(recorder, req)
 
-	var response APIError
+	var response api.Error
 	decodeJSON(t, recorder.Body, &response)
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
-	assert.Equal(t, notFoundError, response)
+	assert.Equal(t, api.NotFoundError, response)
 	assert.Nil(t, errorHandler.Error)
 }
 
@@ -350,8 +352,8 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 		},
 	}
 
-	authenticator := FakeAuthenticator{
-		_AuthenticateRequest: func(r *http.Request) (string, error) {
+	authenticator := auth.FakeAuthenticator{
+		MockAuthenticateRequest: func(r *http.Request) (string, error) {
 			return auth.UPLOAD_USER_EMAIL, nil
 		},
 	}
@@ -360,7 +362,7 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	routeSet := Instances{InstanceStore: store, Executor: executor}
 	router := mux.NewRouter()
 	route := chain.New(errorHandler.Handle).
-		Add(Authenticate(authenticator)).
+		Add(middleware.Authenticate(authenticator)).
 		Resolve(routeSet.Destroy)
 	router.HandleFunc("/instances/{id}", route).Methods("DELETE")
 	router.ServeHTTP(recorder, req)

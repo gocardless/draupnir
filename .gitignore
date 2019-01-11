@@ -3,7 +3,7 @@
 /chef/nodes/vagrant.json
 /draupnir
 /draupnir-client
-*.linux_amd64
+*.*_amd64
 *.deb
 /.bundle
 /.kitchen

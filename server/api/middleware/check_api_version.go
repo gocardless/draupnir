@@ -1,9 +1,10 @@
-package routes
+package middleware
 
 import (
 	"net/http"
 
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/gocardless/draupnir/version"
 )
 
@@ -18,7 +19,7 @@ func CheckAPIVersion(serverVersion string) chain.Middleware {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			versions := r.Header["Draupnir-Version"]
 			if len(versions) == 0 {
-				RenderError(w, http.StatusBadRequest, missingApiVersion)
+				api.MissingApiVersion.Render(w, http.StatusBadRequest)
 				return nil
 			}
 
@@ -31,7 +32,7 @@ func CheckAPIVersion(serverVersion string) chain.Middleware {
 				requestMajor, requestMinor, _, err := version.ParseSemver(requestVersion)
 
 				if err != nil || major != requestMajor || minor < requestMinor {
-					RenderError(w, http.StatusBadRequest, invalidApiVersion(requestVersion))
+					api.InvalidApiVersion(requestVersion).Render(w, http.StatusBadRequest)
 					return nil
 				}
 			}

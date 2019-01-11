@@ -84,10 +84,10 @@ func (g GoogleOAuthClient) LookupAccessToken(refreshToken string) (string, error
 	return tokenInfo.Email, nil
 }
 
-// FakeOAuthClient is used for integration tests
-type FakeOAuthClient struct{}
+// IntegrationTestOAuthClient is used for integration tests
+type IntegrationTestOAuthClient struct{}
 
-func (f FakeOAuthClient) LookupAccessToken(accessToken string) (string, error) {
+func (f IntegrationTestOAuthClient) LookupAccessToken(accessToken string) (string, error) {
 	if accessToken == "the-integration-access-token" {
 		return "integration-test@gocardless.com", nil
 	}

@@ -8,9 +8,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gocardless/draupnir/auth"
 	"github.com/gocardless/draupnir/exec"
 	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/auth"
+	"github.com/gocardless/draupnir/server/api/middleware"
 	"github.com/gocardless/draupnir/store"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
@@ -23,7 +25,7 @@ type Images struct {
 }
 
 func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
@@ -31,14 +33,14 @@ func (i Images) Get(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -74,7 +76,7 @@ type CreateImageRequest struct {
 }
 
 func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
@@ -82,7 +84,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
 	req := CreateImageRequest{}
 	if err := jsonapi.UnmarshalPayload(r.Body, &req); err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusBadRequest, invalidJSONError)
+		api.InvalidJSONError.Render(w, http.StatusBadRequest)
 		return nil
 	}
 
@@ -105,7 +107,7 @@ func (i Images) Create(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
@@ -113,14 +115,14 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -145,12 +147,12 @@ func (i Images) Done(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
-	logger, err := GetLogger(r)
+	logger, err := middleware.GetLogger(r)
 	if err != nil {
 		return err
 	}
 
-	email, err := GetAuthenticatedUser(r)
+	email, err := middleware.GetAuthenticatedUser(r)
 	if err != nil {
 		return err
 	}
@@ -158,14 +160,14 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
 	image, err := i.ImageStore.Get(id)
 	if err != nil {
 		logger.Info(err.Error())
-		RenderError(w, http.StatusNotFound, notFoundError)
+		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
 
@@ -193,11 +195,7 @@ func (i Images) Destroy(w http.ResponseWriter, r *http.Request) error {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
 			logger.With("image", id).Info("cannot destroy image with instances")
-			RenderError(
-				w,
-				http.StatusUnprocessableEntity,
-				cannotDeleteImageWithInstancesError,
-			)
+			api.CannotDeleteImageWithInstancesError.Render(w, http.StatusUnprocessableEntity)
 			return nil
 		}
 

@@ -1,4 +1,4 @@
-package routes
+package middleware
 
 import (
 	"encoding/json"
@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,42 +30,42 @@ func TestCheckApiVersion(t *testing.T) {
 		name          string
 		headerVersion string
 		handler       chain.Handler
-		apiError      APIError
+		apiError      api.Error
 		code          int
 	}{
 		{
 			"when version matches, calls handler",
 			"1.1.0",
 			respondsWithStatus(http.StatusAccepted),
-			APIError{},
+			api.Error{},
 			http.StatusAccepted,
 		},
 		{
 			"when minor is lower, calls handler",
 			"1.0.0",
 			respondsWithStatus(http.StatusAccepted),
-			APIError{},
+			api.Error{},
 			http.StatusAccepted,
 		},
 		{
 			"when minor is higher, responds with error",
 			"1.2.0",
 			shouldNeverBeCalled(t),
-			invalidApiVersion("1.2.0"),
+			api.InvalidApiVersion("1.2.0"),
 			http.StatusBadRequest,
 		},
 		{
 			"when header major version is different, responds with error",
 			"0.1.0",
 			shouldNeverBeCalled(t),
-			invalidApiVersion("0.1.0"),
+			api.InvalidApiVersion("0.1.0"),
 			http.StatusBadRequest,
 		},
 		{
 			"when header is missing, responds with error",
 			"",
 			shouldNeverBeCalled(t),
-			missingApiVersion,
+			api.MissingApiVersion,
 			http.StatusBadRequest,
 		},
 	}
@@ -81,7 +82,7 @@ func TestCheckApiVersion(t *testing.T) {
 			CheckAPIVersion("1.1.0")(tc.handler)(recorder, req)
 
 			if tc.apiError.ID != "" {
-				var response APIError
+				var response api.Error
 				err := json.NewDecoder(recorder.Body).Decode(&response)
 
 				assert.Nil(t, err, "failed to decode response into APIError")

@@ -17,12 +17,8 @@ RSpec.describe "/health_check" do
 
   context "with old client version" do
     it "responds with 'Bad Request'" do
-      begin
-        client.request(:get, "/images", nil, draupnir_version: "0.0.0")
-        raise "didn't throw 400 Bad Request"
-      rescue RestClient::BadRequest => err
-        expect(err.http_code).to be(400)
-      end
+      expect { client.request(:get, "/images", nil, draupnir_version: "0.0.0") }.
+        to raise_error(RestClient::BadRequest) { |err| expect(err.http_code).to be(400) }
     end
   end
 end

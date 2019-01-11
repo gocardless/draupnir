@@ -21,9 +21,7 @@ test-integration:
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
-
-client: test
-	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir-client cli/*.go
+	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.darwin_amd64 *.go
 
 deb: build-production
 	fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
@@ -36,7 +34,7 @@ deb: build-production
 		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance
 
 clean:
-	-rm -f draupnir draupnir.linux_amd64 *.deb
+	-rm -f draupnir draupnir.*_amd64 *.deb
 
 publish-base-dockerfile:
 	docker build -t gocardless/draupnir-base . \

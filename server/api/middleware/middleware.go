@@ -1,9 +1,9 @@
-package routes
+package middleware
 
 import (
 	"net/http"
 
-	"github.com/gocardless/draupnir/routes/chain"
+	"github.com/gocardless/draupnir/server/api/chain"
 	"github.com/gocardless/draupnir/version"
 )
 
