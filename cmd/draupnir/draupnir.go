@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocardless/draupnir/client/config"
-	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/server"
-	clientPkg "github.com/gocardless/draupnir/server/api/client"
-	"github.com/gocardless/draupnir/version"
+	"github.com/gocardless/draupnir/pkg/client/config"
+	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/gocardless/draupnir/pkg/server"
+	clientPkg "github.com/gocardless/draupnir/pkg/server/api/client"
+	"github.com/gocardless/draupnir/pkg/version"
 	"github.com/prometheus/common/log"
 	"github.com/urfave/cli"
 )

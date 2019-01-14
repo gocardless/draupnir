@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 
-	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/pkg/models"
 	_ "github.com/lib/pq" // used to setup the PG driver
 )
 

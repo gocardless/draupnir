@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gocardless/draupnir/server/api/auth"
+	"github.com/gocardless/draupnir/pkg/server/api/auth"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 

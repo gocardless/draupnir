@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/gocardless/draupnir/server/api/chain"
-	"github.com/gocardless/draupnir/version"
+	"github.com/gocardless/draupnir/pkg/server/api/chain"
+	"github.com/gocardless/draupnir/pkg/version"
 )
 
 func AsJSON(next chain.Handler) chain.Handler {
