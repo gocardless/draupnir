@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gocardless/draupnir/server/api"
-	"github.com/gocardless/draupnir/server/api/auth"
+	"github.com/gocardless/draupnir/pkg/server/api"
+	"github.com/gocardless/draupnir/pkg/server/api/auth"
 	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 )

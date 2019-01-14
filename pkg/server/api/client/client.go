@@ -16,10 +16,10 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/server/api"
-	"github.com/gocardless/draupnir/server/api/routes"
-	"github.com/gocardless/draupnir/version"
+	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/gocardless/draupnir/pkg/server/api"
+	"github.com/gocardless/draupnir/pkg/server/api/routes"
+	"github.com/gocardless/draupnir/pkg/version"
 	"github.com/google/jsonapi"
 )
 

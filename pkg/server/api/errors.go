@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gocardless/draupnir/version"
+	"github.com/gocardless/draupnir/pkg/version"
 )
 
 type Error struct {

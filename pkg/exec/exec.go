@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/gocardless/draupnir/models"
+	"github.com/gocardless/draupnir/pkg/models"
 	"github.com/prometheus/common/log"
 )
 

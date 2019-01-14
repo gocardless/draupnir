@@ -10,9 +10,9 @@ import (
 	"github.com/prometheus/common/log"
 	"golang.org/x/net/context"
 
-	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/server/api/chain"
-	"github.com/gocardless/draupnir/server/api/middleware"
+	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/gocardless/draupnir/pkg/server/api/chain"
+	"github.com/gocardless/draupnir/pkg/server/api/middleware"
 )
 
 func NewFakeLogger() (log.Logger, *bytes.Buffer) {

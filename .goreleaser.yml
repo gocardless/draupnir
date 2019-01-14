@@ -18,7 +18,7 @@ brew:
   test: system "draupnir-client help"
 builds:
   -
-    main: ./main.go
+    main: cmd/draupnir/draupnir.go
     binary: draupnir
     goos:
       - linux

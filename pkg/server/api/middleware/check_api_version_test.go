@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gocardless/draupnir/server/api"
-	"github.com/gocardless/draupnir/server/api/chain"
+	"github.com/gocardless/draupnir/pkg/server/api"
+	"github.com/gocardless/draupnir/pkg/server/api/chain"
 	"github.com/stretchr/testify/assert"
 )
 

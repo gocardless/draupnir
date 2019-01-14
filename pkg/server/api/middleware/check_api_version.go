@@ -3,9 +3,9 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/gocardless/draupnir/server/api"
-	"github.com/gocardless/draupnir/server/api/chain"
-	"github.com/gocardless/draupnir/version"
+	"github.com/gocardless/draupnir/pkg/server/api"
+	"github.com/gocardless/draupnir/pkg/server/api/chain"
+	"github.com/gocardless/draupnir/pkg/version"
 )
 
 // CheckAPIVersion checks that the request has a Draupnir-Version header with a

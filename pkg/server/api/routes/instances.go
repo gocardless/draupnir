@@ -9,12 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gocardless/draupnir/exec"
-	"github.com/gocardless/draupnir/models"
-	"github.com/gocardless/draupnir/server/api"
-	"github.com/gocardless/draupnir/server/api/auth"
-	"github.com/gocardless/draupnir/server/api/middleware"
-	"github.com/gocardless/draupnir/store"
+	"github.com/gocardless/draupnir/pkg/exec"
+	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/gocardless/draupnir/pkg/server/api"
+	"github.com/gocardless/draupnir/pkg/server/api/auth"
+	"github.com/gocardless/draupnir/pkg/server/api/middleware"
+	"github.com/gocardless/draupnir/pkg/store"
 	"github.com/google/jsonapi"
 	"github.com/gorilla/mux"
 )

@@ -1,10 +1,10 @@
 VERSION="$(shell cat DRAUPNIR_VERSION)"
-BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/version.Version=$(VERSION)"
+BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/pkg/version.Version=$(VERSION)"
 
 .PHONY: build client clean test test-integration dump-schema publish-circleci-dockerfile
 
 build:
-	$(BUILD_COMMAND) -o draupnir *.go
+	$(BUILD_COMMAND) -o draupnir cmd/draupnir/draupnir.go
 
 migrate:
 	vendor/bin/sql-migrate up
@@ -20,8 +20,8 @@ test-integration:
 	bundle exec rspec
 
 build-production: test
-	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 *.go
-	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.darwin_amd64 *.go
+	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 cmd/draupnir/draupnir.go
+	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.darwin_amd64 cmd/draupnir/draupnir.go
 
 deb: build-production
 	fpm -f -s dir -t $@ -n draupnir -v $(VERSION) \
