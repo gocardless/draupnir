@@ -193,37 +193,36 @@ For a complete example of this file, see `spec/fixtures/config.toml`.
 CLI
 ---
 
-Draupnir comes with a command-line client, `draupnir-client`. Once you
-authenticate via OAuth, you can use it to manage your instances.
+Draupnir ships as a single binary which can be used to run the server or use as a client
+to manage your instances.
 
-The CLI has built-in help (`draupnir-client help`). For help on sub-commands,
-use an invocation like `draupnir-client images help` instead of
-`draupnir-client help images`.
+The CLI has built-in help (`draupnir help`). For help on sub-commands, use an invocation
+like `draupnir images help` instead of `draupnir help images`.
 
 #### Authenticate
 ```
-draupnir-client authenticate
+draupnir authenticate
 ```
 
 #### List Images
 ```
-draupnir-client images list
+draupnir images list
 ```
 
 #### Create an instance of Image 3
 ```
-draupnir-client instances create 3
+draupnir instances create 3
 ```
 
 #### Connect to instance 4
 ```
-eval $(draupnir-client env 4)
+eval $(draupnir env 4)
 psql
 ```
 
 #### Destroy instance 4
 ```
-draupnir-client instances destroy 4
+draupnir instances destroy 4
 ```
 
 API

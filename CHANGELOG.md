@@ -6,6 +6,11 @@ Unreleased
 
 Nothing
 
+3.0.0
+-----
+
+- Merge client and server binaries into one. Now you use `draupnir` to do everything.
+
 2.0.1
 -----
 
