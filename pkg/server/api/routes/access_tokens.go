@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gocardless/draupnir/pkg/server/api"
@@ -147,10 +148,9 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) error {
 
 	ctx, cancel := context.WithTimeout(r.Context(), TOKEN_EXCHANGE_TIMEOUT)
 	defer cancel()
-	token, err := a.Client.Exchange(ctx, respCode)
 
+	token, err := ExchangeAuthCodeForToken(ctx, respCode, a.Client)
 	if err != nil {
-		err := errors.Wrap(err, "token exchange error")
 		callback <- OAuthCallback{Error: err}
 		return err
 	}
@@ -160,6 +160,49 @@ func (a AccessTokens) Callback(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte("<h1>Success!</h1><h3>You can close this tab</h3><script>window.close()</script>"))
 	return nil
+}
+
+// TODO: push token revocation into the oauthClient - right now this code is
+// Google-specific.
+func ExchangeAuthCodeForToken(ctx context.Context, code string, oauthClient OAuthClient) (*oauth2.Token, error) {
+	var token *oauth2.Token
+	token, err := oauthClient.Exchange(ctx, code)
+
+	if err != nil {
+		err := errors.Wrap(err, "token exchange error")
+		return token, err
+	}
+
+	// If the token we've received from the Exchange is not a refresh token, assume that the
+	// user has already authenticated. In order to get a new refresh token, we first revoke
+	// the token we just received. Ideally we'd then repeat the exchange to get a new token,
+	// but you can't use an auth code more than once. Instead, we return an error to the
+	// user and ask them to try authenticating a second time.
+	if token.RefreshToken == "" {
+		path := fmt.Sprintf("https://accounts.google.com/o/oauth2/revoke?token=%s", token.AccessToken)
+		req, err := http.NewRequest("GET", path, strings.NewReader(""))
+
+		if err != nil {
+			err := errors.Wrap(err, "error constructing token revocation request")
+			return token, err
+		}
+
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		client := &http.Client{}
+		resp, err := client.Do(req)
+
+		if err != nil {
+			err := errors.Wrap(err, "error sending token revocation request")
+			return token, err
+		}
+
+		if resp.StatusCode != 200 {
+			err := errors.New("existing access token was not revoked")
+			return token, err
+		}
+		return token, errors.New("existing token revoked - please try authenticating again")
+	}
+	return token, err
 }
 
 func OauthErrorRenderer(next chain.Handler) chain.Handler {
