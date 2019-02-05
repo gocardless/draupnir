@@ -21,8 +21,8 @@ import (
 
 const quickStart string = `
 QUICK START:
-		draupnir-client authenticate
-		eval $(draupnir-client new)
+		draupnir authenticate
+		eval $(draupnir new)
 		psql
 `
 
