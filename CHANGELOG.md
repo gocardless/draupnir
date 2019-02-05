@@ -6,6 +6,11 @@ Unreleased
 
 Nothing
 
+3.0.1
+-----
+
+- Wait for Postgres to boot fully during image finalisation.
+
 3.0.0
 -----
 
