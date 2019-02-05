@@ -94,8 +94,26 @@ wal_level = 'minimal'
 fsync = 'off'
 EOF
 
+LOG_FILE="/var/log/postgresql/image_${ID}"
+
 # Start postgres
-sudo -u postgres $PG_CTL -w -D "$UPLOAD_PATH" -o "-p $PORT" -l "/var/log/postgresql/image_$ID" start
+sudo -u postgres $PG_CTL -w -D "$UPLOAD_PATH" -o "-p $PORT" -l "${LOG_FILE}" start
+
+# We need to wait for postgres to boot and announce that the recovery has
+# completed. Ideally WAL recovery shouldn't take long, but for high volume
+# databases Postgres needs a window to catch-up from the last checkpoint.
+TIMEOUT=300 # 5m
+sudo -u postgres touch "${LOG_FILE}" # otherwise we'll fail grep'ing the file
+until grep "archive recovery complete" "${LOG_FILE}"
+do
+  if [ $(( TIMEOUT-- )) -eq 0 ];
+  then
+    cat "${LOG_FILE}" >&2
+    echo "Postgres recovery failed, timed out waiting for recovery" >&2
+    exit 255
+  fi
+  sleep 1
+done
 
 # Create a user
 sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
