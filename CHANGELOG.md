@@ -6,6 +6,11 @@ Unreleased
 
 Nothing
 
+3.0.3
+-----
+
+- Actually fix the version passed to ldflags this time.
+
 3.0.2
 -----
 

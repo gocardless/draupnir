@@ -23,7 +23,7 @@ builds:
     goos:
       - linux
       - darwin
-    ldflags: -s -w -X github.com/gocardless/pkg/draupnir/version.Version={{.Version}} -X main.commit={{.Commit}}
+    ldflags: -s -w -X github.com/gocardless/draupnir/pkg/version.Version={{.Version}} -X main.commit={{.Commit}}
 archive:
   format: tar.gz
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
