@@ -17,7 +17,7 @@ if ! [[ "$#" -eq 2 ]]; then
   exit 1
 fi
 
-PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
+PG_CTL=/usr/lib/postgresql/11/bin/pg_ctl
 
 ROOT=$1
 ID=$2
