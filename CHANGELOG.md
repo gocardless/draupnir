@@ -6,6 +6,11 @@ Unreleased
 
 Nothing
 
+3.1.0
+-----
+
+- Upgrade to PostgreSQL 11
+
 3.0.3
 -----
 

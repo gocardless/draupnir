@@ -26,8 +26,8 @@ if ! [[ "$#" -eq 4 ]]; then
   exit 1
 fi
 
-PG_CTL=/usr/lib/postgresql/9.4/bin/pg_ctl
-VACUUMDB=/usr/lib/postgresql/9.4/bin/vacuumdb
+PG_CTL=/usr/lib/postgresql/11/bin/pg_ctl
+VACUUMDB=/usr/lib/postgresql/11/bin/vacuumdb
 PSQL=/usr/bin/psql
 
 ROOT=$1
@@ -51,7 +51,7 @@ if sudo sh -c "ls ${UPLOAD_PATH}/*.tar*"; then
 	sudo sh -c "rm -f ${UPLOAD_PATH}/*.tar*" # remove the compressed backup file(s)
 fi
 
-if ! sudo -u postgres /usr/lib/postgresql/9.4/bin/pg_controldata "${UPLOAD_PATH}"; then
+if ! sudo -u postgres /usr/lib/postgresql/11/bin/pg_controldata "${UPLOAD_PATH}"; then
 	echo "image upload is not valid postgresql data directory"
 	exit 255
 fi
@@ -90,6 +90,7 @@ work_mem = '128MB'
 # requires a significant amount of IO. Similarly, fsync should be turned off
 # during finalisation.
 hot_standby = 'off'
+max_wal_senders = 0
 wal_level = 'minimal'
 fsync = 'off'
 EOF
