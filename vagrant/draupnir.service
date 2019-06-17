@@ -1,0 +1,9 @@
+[Unit]
+Description = Draupnir
+After = network.target
+
+[Service]
+User = draupnir
+ExecStart = /draupnir/draupnir.linux_amd64 server
+Restart = always
+KillMode = process

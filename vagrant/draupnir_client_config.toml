@@ -1,0 +1,3 @@
+Domain = "localhost:8443"
+[Token]
+  RefreshToken = "the_shared_secret"

@@ -1,0 +1,4 @@
+draupnir ALL=(root) NOPASSWD:/usr/local/bin/draupnir-finalise-image *
+draupnir ALL=(root) NOPASSWD:/usr/local/bin/draupnir-create-instance *
+draupnir ALL=(root) NOPASSWD:/usr/local/bin/draupnir-destroy-image *
+draupnir ALL=(root) NOPASSWD:/usr/local/bin/draupnir-destroy-instance *
