@@ -30,6 +30,37 @@ Migrate the database
 make migrate
 ```
 
+Development (Vagrant VM)
+------------------------
+
+It will often be desirable to run a full virtual machine, with btrfs, in order
+to test the complete Draupnir flow. This can be achieved via the included
+Vagrant configuration.
+
+Install prerequisites:
+```
+brew cask install virtualbox vagrant
+```
+
+Build the Linux binary
+```
+make build-linux
+```
+
+Boot Vagrant VM:
+```
+vagrant up
+```
+
+Login and use Draupnir
+```
+vagrant ssh
+$ sudo su -
+# eval $(/draupnir/draupnir.linux_amd64 --insecure new)
+# export PGHOST=localhost
+# psql
+```
+
 Tests
 -----
 

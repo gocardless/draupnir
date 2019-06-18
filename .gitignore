@@ -5,6 +5,7 @@
 /draupnir-client
 *.*_amd64
 *.deb
+*.log
 /.bundle
 /.kitchen
 /.env

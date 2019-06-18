@@ -1,0 +1,16 @@
+database_url = "host=/run/postgresql user=draupnir dbname=draupnir"
+data_path = "/data"
+environment = "development"
+shared_secret = "the_shared_secret"
+trusted_user_email_domain = "@gocardless.com"
+
+[http]
+port = 8443
+insecure_port = 8080
+tls_certificate = "/etc/ssl/certs/ssl-cert-snakeoil.pem"
+tls_private_key = "/etc/ssl/private/ssl-cert-snakeoil.key"
+
+[oauth]
+redirect_url = "https://example.com/oauth_callback"
+client_id = "client_id"
+client_secret = "client_secret"

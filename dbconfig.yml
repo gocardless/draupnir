@@ -1,4 +1,10 @@
+---
 development:
   dialect: postgres
   datasource: dbname=draupnir sslmode=disable
+  dir: migrations
+
+vagrant:
+  dialect: postgres
+  datasource: host=/run/postgresql dbname=draupnir sslmode=disable
   dir: migrations

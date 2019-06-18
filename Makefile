@@ -3,11 +3,17 @@ BUILD_COMMAND=go build -ldflags "-X github.com/gocardless/draupnir/pkg/version.V
 
 .PHONY: build client clean test test-integration dump-schema publish-circleci-dockerfile
 
-build:
-	$(BUILD_COMMAND) -o draupnir cmd/draupnir/draupnir.go
+build-linux:
+	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 cmd/draupnir/draupnir.go
+
+build-osx:
+	GOOS=darwin GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.darwin_amd64 cmd/draupnir/draupnir.go
+
+build: build-linux build-osx
 
 migrate:
-	vendor/bin/sql-migrate up
+	# https://github.com/rubenv/sql-migrate
+	sql-migrate up
 
 dump-schema:
 	pg_dump -sxOf structure.sql draupnir
