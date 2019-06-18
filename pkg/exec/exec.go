@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 )
 
@@ -17,6 +18,7 @@ type Executor interface {
 	CreateBtrfsSubvolume(ctx context.Context, id int) error
 	FinaliseImage(ctx context.Context, image models.Image) error
 	CreateInstance(ctx context.Context, imageID int, instanceID int, port int) error
+	RetrieveInstanceCredentials(ctx context.Context, id int) (map[string][]byte, error)
 	DestroyImage(ctx context.Context, id int) error
 	DestroyInstance(ctx context.Context, id int) error
 }
@@ -122,6 +124,29 @@ func (e OSExecutor) CreateInstance(ctx context.Context, imageID int, instanceID 
 
 	logger.With("output", output).Info("Creating instance")
 	return err
+}
+
+// RetrieveInstanceCredentials reads the certificate and key files from the
+// instance directory and returns them in a map
+func (e OSExecutor) RetrieveInstanceCredentials(ctx context.Context, id int) (map[string][]byte, error) {
+	logger := GetLogger(ctx).With("imageID", id)
+
+	basePath := filepath.Join(e.DataPath, "instances", fmt.Sprintf("%d", id))
+
+	files := []string{"client.key", "client.crt", "ca.crt"}
+	fileContents := make(map[string][]byte)
+
+	for _, fileName := range files {
+		bytes, err := ioutil.ReadFile(filepath.Join(basePath, fileName))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read credentials file %s", fileName)
+		}
+
+		fileContents[fileName] = bytes
+	}
+
+	logger.Info("Successfully retrieved instance credentials")
+	return fileContents, nil
 }
 
 func (e OSExecutor) DestroyImage(ctx context.Context, id int) error {

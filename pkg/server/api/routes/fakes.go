@@ -72,11 +72,12 @@ func (s FakeInstanceStore) Destroy(instance models.Instance) error {
 }
 
 type FakeExecutor struct {
-	_CreateBtrfsSubvolume func(ctx context.Context, id int) error
-	_FinaliseImage        func(ctx context.Context, image models.Image) error
-	_CreateInstance       func(ctx context.Context, imageID int, instanceID int, port int) error
-	_DestroyImage         func(ctx context.Context, id int) error
-	_DestroyInstance      func(ctx context.Context, id int) error
+	_CreateBtrfsSubvolume        func(ctx context.Context, id int) error
+	_FinaliseImage               func(ctx context.Context, image models.Image) error
+	_CreateInstance              func(ctx context.Context, imageID int, instanceID int, port int) error
+	_RetrieveInstanceCredentials func(ctx context.Context, id int) (map[string][]byte, error)
+	_DestroyImage                func(ctx context.Context, id int) error
+	_DestroyInstance             func(ctx context.Context, id int) error
 }
 
 func (e FakeExecutor) CreateBtrfsSubvolume(ctx context.Context, id int) error {
@@ -89,6 +90,10 @@ func (e FakeExecutor) FinaliseImage(ctx context.Context, image models.Image) err
 
 func (e FakeExecutor) CreateInstance(ctx context.Context, imageID int, instanceID int, port int) error {
 	return e._CreateInstance(ctx, imageID, instanceID, port)
+}
+
+func (e FakeExecutor) RetrieveInstanceCredentials(ctx context.Context, id int) (map[string][]byte, error) {
+	return e._RetrieveInstanceCredentials(ctx, id)
 }
 
 func (e FakeExecutor) DestroyImage(ctx context.Context, id int) error {
