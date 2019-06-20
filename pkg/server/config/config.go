@@ -35,6 +35,7 @@ type Config struct {
 	SentryDsn              string      `toml:"sentry_dsn" required:"false"`
 	HTTPConfig             HTTPConfig  `toml:"http"`
 	OAuthConfig            OAuthConfig `toml:"oauth"`
+	CleanInterval          string      `toml:"clean_interval"`
 }
 
 // Load parses and validates the server config file located at `path`

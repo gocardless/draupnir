@@ -87,7 +87,8 @@ CREATE TABLE instances (
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
     port integer NOT NULL,
-    user_email text
+    user_email text,
+    refresh_token text
 );
 
 

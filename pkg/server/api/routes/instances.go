@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"math/rand"
 	"net/http"
 	"regexp"
@@ -65,11 +66,16 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	instance := models.NewInstance(imageID, email)
+	refreshToken, ok := r.Context().Value(middleware.RefreshTokenKey).(string)
+	if !ok {
+		log.Fatal("Access token key is missing from context")
+	}
+
+	instance := models.NewInstance(imageID, email, refreshToken)
 	instance.Port = generateRandomPort()
 	instance, err = i.InstanceStore.Create(instance)
-	if err != nil {
 
+	if err != nil {
 		match, err := regexp.MatchString("instances_image_id_fkey", err.Error())
 		if err == nil && match == true {
 			logger.Info(err.Error())
@@ -79,7 +85,6 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 
 		return errors.Wrap(err, "failed to create instance")
 	}
-
 	if err := i.Executor.CreateInstance(r.Context(), imageID, instance.ID, instance.Port); err != nil {
 		return errors.Wrap(err, "failed to create instance")
 	}

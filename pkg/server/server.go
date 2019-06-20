@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gocardless/draupnir/pkg/exec"
@@ -74,16 +75,15 @@ func Run(logger log.Logger) error {
 		Add(middleware.NewRequestLogger(logger))
 
 	// If Sentry is available, attach the Sentry middleware
+	// If the SentryDsn is not set then a no-op client will be returned
 	// This will report all errors to Sentry
-	if cfg.SentryDsn != "" {
-		sentryClient, err := raven.New(cfg.SentryDsn)
-		if err != nil {
-			return errors.Wrap(err, "Could not initialise sentry-raven client")
-		}
-
-		rootHandler = rootHandler.
-			Add(middleware.NewSentryReporter(sentryClient))
+	sentryClient, err := raven.New(cfg.SentryDsn)
+	if err != nil {
+		return errors.Wrap(err, "Could not initialise sentry-raven client")
 	}
+
+	rootHandler = rootHandler.
+		Add(middleware.NewSentryReporter(sentryClient))
 
 	// Healthcheck
 	// We don't enforce a particular API version on this route, because it should
@@ -199,6 +199,27 @@ func Run(logger log.Logger) error {
 		func() error { return serverInsecure.ListenAndServe() },
 		func(error) { serverInsecure.Shutdown(context.Background()) },
 	)
+
+	{
+		// We clean out old instances that have invalid tokens periodically as access
+		// to the PostgreSQL instances only relies on certificate authentication. This
+		// means that is situations, such as a user being offboarded, they will lose
+		// access to the draupnir, but not their instances.
+		logger = logger.With("component", "cleaner")
+
+		instanceCleaner := NewInstanceCleaner(logger, sentryClient, instanceStore, executor, authenticator)
+		cleanInterval, err := time.ParseDuration(cfg.CleanInterval)
+		if err != nil {
+			return errors.Wrap(err, "invalid clean interval")
+		}
+
+		cleanerCtx, cleanerCancel := context.WithCancel(context.Background())
+
+		g.Add(
+			func() error { return instanceCleaner.Start(cleanerCtx, cleanInterval) },
+			func(error) { cleanerCancel() },
+		)
+	}
 
 	if err := g.Run(); err != nil {
 		return errors.Wrap(err, "could not start HTTP servers")
