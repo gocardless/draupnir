@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/gocardless/draupnir/pkg/models"
+	"github.com/gocardless/draupnir/pkg/server/api/middleware"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 )
@@ -27,14 +28,36 @@ type OSExecutor struct {
 	DataPath string
 }
 
-const loggerKey = 1
-
 func GetLogger(ctx context.Context) log.Logger {
-	if logger, ok := ctx.Value(loggerKey).(*log.Logger); ok {
-		return *logger
+	logger, ok := ctx.Value(middleware.LoggerKey).(*log.Logger)
+	if !ok {
+		// Only a programming bug should cause this scenario, so exit the program
+		// if it occurs.
+		log.Fatal("Unable to retrieve logger from context, log lines will be missing")
 	}
+	return *logger
+}
 
-	return log.NewNopLogger()
+func runCommandAndLog(logger log.Logger, message string, command *exec.Cmd) error {
+	// Execute our command, which gives us stdout and an exit error
+	outputBytes, err := command.Output()
+	// Always log stdout
+	logger = logger.With("stdout", string(outputBytes))
+
+	if err != nil {
+		// Even though the error string is passed back up the stack and printed
+		// there, output it here anyway so that we have all the relevant fields in
+		// a single log entry
+		logger = logger.With("error", err.Error())
+
+		// If we can get stderr, by casting to an exit error, then log that too
+		if ee, ok := err.(*exec.ExitError); ok {
+			logger = logger.With("stderr", string(ee.Stderr))
+		}
+	}
+	logger.Info(message)
+
+	return err
 }
 
 // CreateBtrfsSubvolume creates a BTRFS subvolume in $(DataPath)/image_uploads
@@ -42,13 +65,13 @@ func GetLogger(ctx context.Context) log.Logger {
 func (e OSExecutor) CreateBtrfsSubvolume(ctx context.Context, id int) error {
 	name := fmt.Sprintf("%d", id)
 	path := filepath.Join(e.DataPath, "image_uploads", name)
-	output, err := exec.CommandContext(ctx, "btrfs", "subvolume", "create", path).Output()
+	logger := GetLogger(ctx).With("imageID", id).With("path", path)
+
+	cmd := exec.CommandContext(ctx, "btrfs", "subvolume", "create", path)
+	err := runCommandAndLog(logger, "Created btrfs subvolume", cmd)
 	if err != nil {
 		return err
 	}
-
-	logger := GetLogger(ctx).With("imageID", id).With("path", path)
-	logger.With("output", output).Info("Created btrfs subvolume")
 
 	perms := os.ModeDir | 0775
 	err = os.Chmod(path, perms)
@@ -56,7 +79,7 @@ func (e OSExecutor) CreateBtrfsSubvolume(ctx context.Context, id int) error {
 		return err
 	}
 
-	logger.Info("Set permissions")
+	logger.Info("Set subvolume permissions")
 
 	return nil
 }
@@ -91,7 +114,7 @@ func (e OSExecutor) FinaliseImage(ctx context.Context, image models.Image) error
 
 	logger := GetLogger(ctx).With("imageID", image.ID)
 
-	output, err := exec.CommandContext(
+	cmd := exec.CommandContext(
 		ctx,
 		"sudo",
 		"draupnir-finalise-image",
@@ -99,9 +122,9 @@ func (e OSExecutor) FinaliseImage(ctx context.Context, image models.Image) error
 		fmt.Sprintf("%d", image.ID),
 		fmt.Sprintf("%d", 5432+image.ID),
 		anonFile.Name(),
-	).Output()
+	)
 
-	logger.With("output", output).Info("Finalising image")
+	err = runCommandAndLog(logger, "Finalised image", cmd)
 	if err != nil {
 		return err
 	}
@@ -113,17 +136,16 @@ func (e OSExecutor) FinaliseImage(ctx context.Context, image models.Image) error
 func (e OSExecutor) CreateInstance(ctx context.Context, imageID int, instanceID int, port int) error {
 	logger := GetLogger(ctx).With("imageID", imageID).With("instanceID", instanceID).With("port", port)
 
-	output, err := exec.Command(
+	cmd := exec.Command(
 		"sudo",
 		"draupnir-create-instance",
 		e.DataPath,
 		fmt.Sprintf("%d", imageID),
 		fmt.Sprintf("%d", instanceID),
 		fmt.Sprintf("%d", port),
-	).Output()
+	)
 
-	logger.With("output", output).Info("Creating instance")
-	return err
+	return runCommandAndLog(logger, "Creating instance", cmd)
 }
 
 // RetrieveInstanceCredentials reads the certificate and key files from the
@@ -152,28 +174,26 @@ func (e OSExecutor) RetrieveInstanceCredentials(ctx context.Context, id int) (ma
 func (e OSExecutor) DestroyImage(ctx context.Context, id int) error {
 	logger := GetLogger(ctx).With("imageID", id)
 
-	output, err := exec.Command(
+	cmd := exec.Command(
 		"sudo",
 		"draupnir-destroy-image",
 		e.DataPath,
 		fmt.Sprintf("%d", id),
-	).Output()
+	)
 
-	logger.With("output", output).Info("Destroying image")
-	return err
+	return runCommandAndLog(logger, "Destroyed image", cmd)
 }
 
 func (e OSExecutor) DestroyInstance(ctx context.Context, id int) error {
 	logger := GetLogger(ctx).With("instanceID", id)
 
-	output, err := exec.CommandContext(
+	cmd := exec.CommandContext(
 		ctx,
 		"sudo",
 		"draupnir-destroy-instance",
 		e.DataPath,
 		fmt.Sprintf("%d", id),
-	).Output()
+	)
 
-	logger.With("output", output).Info("Destroying instance")
-	return err
+	return runCommandAndLog(logger, "Destroyed instance", cmd)
 }
