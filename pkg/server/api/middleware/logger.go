@@ -32,7 +32,7 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 
 			// Call the next middleware and time it
 			start := time.Now()
-			next(recorder, r)
+			err := next(recorder, r)
 			duration := time.Since(start)
 
 			requestLine := fmt.Sprintf(
@@ -56,7 +56,7 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			}
 			w.WriteHeader(recorder.Code)
 			recorder.Body.WriteTo(w)
-			return nil
+			return err
 		}
 	}
 }
