@@ -436,7 +436,7 @@ func setupClientEnvironment(config config.Config, instance models.Instance) erro
 	// https://www.postgresql.org/docs/current/libpq-envars.html
 	fmt.Printf(
 		"export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD='' PGDATABASE=%s PGSSLMODE=verify-ca PGSSLROOTCERT='%s' PGSSLCERT='%s' PGSSLKEY='%s'\n",
-		config.Domain,
+		instance.Hostname,
 		instance.Port,
 		database,
 		caCertPath,

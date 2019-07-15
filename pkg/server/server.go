@@ -46,7 +46,7 @@ func Run(logger log.Logger) error {
 		return errors.Wrap(err, "Could not connect to database")
 	}
 	imageStore := createImageStore(db)
-	instanceStore := createInstanceStore(db)
+	instanceStore := createInstanceStore(db, cfg)
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
@@ -235,8 +235,8 @@ func createImageStore(db *sql.DB) store.ImageStore {
 	return store.DBImageStore{DB: db}
 }
 
-func createInstanceStore(db *sql.DB) store.InstanceStore {
-	return store.DBInstanceStore{DB: db}
+func createInstanceStore(db *sql.DB, cfg config.Config) store.InstanceStore {
+	return store.DBInstanceStore{DB: db, PublicHostname: cfg.PublicHostname}
 }
 
 func createExecutor(c config.Config) exec.Executor {

@@ -5,8 +5,9 @@ import (
 )
 
 type Instance struct {
-	ID        int `jsonapi:"primary,instances"`
-	ImageID   int `jsonapi:"attr,image_id"`
+	ID        int    `jsonapi:"primary,instances"`
+	Hostname  string `jsonapi:"attr,hostname"`
+	ImageID   int    `jsonapi:"attr,image_id"`
 	UserEmail string
 	CreatedAt time.Time `jsonapi:"attr,created_at,iso8601"`
 	UpdatedAt time.Time `jsonapi:"attr,updated_at,iso8601"`

@@ -31,6 +31,7 @@ type Config struct {
 	Environment            string      `toml:"environment"`
 	SharedSecret           string      `toml:"shared_secret"`
 	TrustedUserEmailDomain string      `toml:"trusted_user_email_domain"`
+	PublicHostname         string      `toml:"public_hostname"`
 	SentryDsn              string      `toml:"sentry_dsn" required:"false"`
 	HTTPConfig             HTTPConfig  `toml:"http"`
 	OAuthConfig            OAuthConfig `toml:"oauth"`

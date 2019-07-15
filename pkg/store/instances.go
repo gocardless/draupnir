@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+
 	"github.com/gocardless/draupnir/pkg/models"
 	_ "github.com/lib/pq" // used to setup the PG driver
 )
@@ -14,7 +15,8 @@ type InstanceStore interface {
 }
 
 type DBInstanceStore struct {
-	DB *sql.DB
+	DB             *sql.DB
+	PublicHostname string
 }
 
 func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, error) {
@@ -30,6 +32,7 @@ func (s DBInstanceStore) Create(instance models.Instance) (models.Instance, erro
 	)
 
 	err := row.Scan(&instance.ID)
+	instance.Hostname = s.PublicHostname
 
 	return instance, err
 }
@@ -63,6 +66,7 @@ func (s DBInstanceStore) List() ([]models.Instance, error) {
 			return instances, err
 		}
 
+		instance.Hostname = s.PublicHostname
 		instances = append(instances, instance)
 	}
 
@@ -90,6 +94,7 @@ func (s DBInstanceStore) Get(id int) (models.Instance, error) {
 		return instance, err
 	}
 
+	instance.Hostname = s.PublicHostname
 	return instance, nil
 }
 

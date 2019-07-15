@@ -3,6 +3,7 @@ data_path = "/data"
 environment = "development"
 shared_secret = "the_shared_secret"
 trusted_user_email_domain = "@gocardless.com"
+public_hostname = "localhost"
 
 [http]
 port = 8443

@@ -84,6 +84,7 @@ RSpec.describe "/instances" do
           "id" => String,
           "type" => "instances",
           "attributes" => {
+            "hostname" => "localhost",
             "image_id" => image_id.to_i,
             "port" => Numeric,
             "created_at" => String,
@@ -127,6 +128,7 @@ RSpec.describe "/instances" do
             "id" => instance_id,
             "type" => "instances",
             "attributes" => {
+              "hostname" => "localhost",
               "image_id" => image_id.to_i,
               "port" => Numeric,
               "updated_at" => String,
@@ -151,6 +153,7 @@ RSpec.describe "/instances" do
           "id" => String,
           "type" => "instances",
           "attributes" => {
+            "hostname" => "localhost",
             "image_id" => image_id.to_i,
             "port" => Numeric,
             "updated_at" => String,

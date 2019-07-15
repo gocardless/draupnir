@@ -36,6 +36,7 @@ func TestInstanceCreate(t *testing.T) {
 			assert.True(t, instance.Port < 6000, "port is less than 6000")
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				CreatedAt: timestamp(),
 				UpdatedAt: timestamp(),
@@ -87,6 +88,7 @@ func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
 		_Create: func(image models.Instance) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				CreatedAt: timestamp(),
 				UpdatedAt: timestamp(),
@@ -166,6 +168,7 @@ func TestInstanceList(t *testing.T) {
 			return []models.Instance{
 				models.Instance{
 					ID:        1,
+					Hostname:  "draupnir-server.example.com",
 					ImageID:   1,
 					Port:      5432,
 					CreatedAt: timestamp(),
@@ -174,6 +177,7 @@ func TestInstanceList(t *testing.T) {
 				},
 				models.Instance{
 					ID:        2,
+					Hostname:  "draupnir-server.example.com",
 					ImageID:   1,
 					Port:      5433,
 					CreatedAt: timestamp(),
@@ -202,6 +206,7 @@ func TestInstanceGet(t *testing.T) {
 		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
@@ -244,6 +249,7 @@ func TestInstanceGetFromWrongUser(t *testing.T) {
 
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
@@ -277,6 +283,7 @@ func TestInstanceDestroy(t *testing.T) {
 		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
@@ -314,6 +321,7 @@ func TestInstanceDestroyFromWrongUser(t *testing.T) {
 		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
@@ -354,6 +362,7 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 		_Get: func(id int) (models.Instance, error) {
 			return models.Instance{
 				ID:        1,
+				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				Port:      5432,
 				CreatedAt: timestamp(),
