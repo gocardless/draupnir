@@ -89,7 +89,26 @@ RSpec.describe "/instances" do
             "created_at" => String,
             "updated_at" => String,
           },
+          "relationships" => {
+            "credentials" => {
+              "data" => {
+                "type" => "credentials",
+                "id" => String,
+              },
+            },
+          },
         },
+        "included" => [
+          {
+            "type" => "credentials",
+            "id" => String,
+            "attributes" => {
+              "ca_certificate" => String,
+              "client_certificate" => String,
+              "client_key" => String,
+            },
+          },
+        ],
       )
     end
   end
@@ -137,8 +156,49 @@ RSpec.describe "/instances" do
             "updated_at" => String,
             "created_at" => String,
           },
+          "relationships" => {
+            "credentials" => {
+              "data" => {
+                "type" => "credentials",
+                "id" => String,
+              },
+            },
+          },
         },
+        "included" => [
+          {
+            "type" => "credentials",
+            "id" => String,
+            "attributes" => {
+              "ca_certificate" => String,
+              "client_certificate" => String,
+              "client_key" => String,
+            },
+          },
+        ],
       )
+    end
+
+    it "returns the correct credentials for a given instance" do
+      image_id = create_ready_image
+      instance_id = create_instance(image_id)
+
+      response = get("/instances/#{instance_id}")
+      expect(response.code).to eq(200)
+      expect(response.headers[:content_type]).to eq("application/json")
+
+      body = JSON.parse(response.body)
+      creds = body["included"][0]["attributes"]
+
+      ca_cert = OpenSSL::X509::Certificate.new(creds["ca_certificate"])
+      client_cert = OpenSSL::X509::Certificate.new(creds["client_certificate"])
+      key = OpenSSL::PKey.read(creds["client_key"])
+
+      # client certificate should have been issued by the CA that was served
+      expect(client_cert.issuer).to eq(ca_cert.subject)
+
+      # client key should be the private key for the certificate that was served
+      expect(client_cert.check_private_key(key)).to be true
     end
   end
 

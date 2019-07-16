@@ -135,8 +135,18 @@ sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -w stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
 sudo rm -f "${UPLOAD_PATH}/postmaster.opts"
 
-# Install our own pg_hba.conf
-printf "local\tall\tall\t\ttrust\nhost\tall\tall\t0.0.0.0/0\ttrust\n" | sudo tee "${UPLOAD_PATH}/pg_hba.conf"
+# Install our own pg_hba.conf, and ensure that it cannot be modified
+cat > "${UPLOAD_PATH}/pg_hba.conf" <<EOF
+# NOTE: The clientcert=1 option is essential - without this the Draupnir
+# instance will be accessible to anyone with knowledge of the host and port.
+# Do not edit this unless you are absolutely certain of the consequences.
+local   all     all                     trust
+hostssl all     all     0.0.0.0/0       trust   clientcert=1
+EOF
+
+chown root:postgres "${UPLOAD_PATH}/pg_hba.conf"
+chmod 640 "${UPLOAD_PATH}/pg_hba.conf"
+chattr +i "${UPLOAD_PATH}/pg_hba.conf"
 
 btrfs subvolume snapshot "$UPLOAD_PATH" "$SNAPSHOT_PATH"
 

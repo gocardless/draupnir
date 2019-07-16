@@ -66,7 +66,9 @@ var createInstanceFixture = jsonapi.OnePayload{
 			"updated_at": "2016-01-01T12:33:44Z",
 			"port":       float64(0),
 		},
+		Relationships: relationshipsFixture,
 	},
+	Included: []*jsonapi.Node{credentialsFixture},
 }
 
 var listInstancesFixture = jsonapi.ManyPayload{
@@ -93,6 +95,27 @@ var getInstanceFixture = jsonapi.OnePayload{
 			"created_at": "2016-01-01T12:33:44Z",
 			"port":       float64(5432),
 			"updated_at": "2016-01-01T12:33:44Z",
+		},
+		Relationships: relationshipsFixture,
+	},
+	Included: []*jsonapi.Node{credentialsFixture},
+}
+
+var credentialsFixture = &jsonapi.Node{
+	Type: "credentials",
+	ID:   "1",
+	Attributes: map[string]interface{}{
+		"ca_certificate":     "-----BEGIN CERTIFICATE-----CA...",
+		"client_certificate": "-----BEGIN CERTIFICATE-----client...",
+		"client_key":         "-----BEGIN PRIVATE KEY-----client...",
+	},
+}
+
+var relationshipsFixture = map[string]interface{}{
+	"credentials": map[string]interface{}{
+		"data": map[string]interface{}{
+			"id":   "1",
+			"type": "credentials",
 		},
 	},
 }

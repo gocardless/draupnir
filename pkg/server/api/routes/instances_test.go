@@ -17,6 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fakeCredentialsMap = map[string][]byte{
+	"ca.crt":     []byte("-----BEGIN CERTIFICATE-----CA..."),
+	"client.crt": []byte("-----BEGIN CERTIFICATE-----client..."),
+	"client.key": []byte("-----BEGIN PRIVATE KEY-----client..."),
+}
+
 func TestInstanceCreate(t *testing.T) {
 	body := bytes.NewBuffer([]byte{})
 	request := CreateInstanceRequest{ImageID: "1"}
@@ -49,6 +55,10 @@ func TestInstanceCreate(t *testing.T) {
 			assert.Equal(t, 1, instanceID)
 			assert.Equal(t, 1, imageID)
 			return nil
+		},
+		_RetrieveInstanceCredentials: func(ctx context.Context, id int) (map[string][]byte, error) {
+			assert.Equal(t, 1, id)
+			return fakeCredentialsMap, nil
 		},
 	}
 
@@ -201,8 +211,18 @@ func TestInstanceGet(t *testing.T) {
 		},
 	}
 
+	executor := FakeExecutor{
+		_RetrieveInstanceCredentials: func(ctx context.Context, id int) (map[string][]byte, error) {
+			assert.Equal(t, 1, id)
+			return fakeCredentialsMap, nil
+		},
+	}
+
 	errorHandler := FakeErrorHandler{}
-	routeSet := Instances{InstanceStore: store}
+	routeSet := Instances{
+		InstanceStore: store,
+		Executor:      executor,
+	}
 	router := mux.NewRouter()
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)

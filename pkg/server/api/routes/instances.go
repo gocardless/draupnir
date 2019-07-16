@@ -84,6 +84,21 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to create instance")
 	}
 
+	files, err := i.Executor.RetrieveInstanceCredentials(r.Context(), instance.ID)
+	if err != nil {
+		logger.With("instance", instance.ID).Info(
+			errors.Wrap(err, "failed to retrieve instance credentials"),
+		)
+		api.InternalServerError.Render(w, http.StatusInternalServerError)
+		return nil
+	}
+
+	creds := models.NewInstanceCredentials(
+		instance.ID,
+		string(files["ca.crt"]), string(files["client.crt"]), string(files["client.key"]),
+	)
+	instance.Credentials = &creds
+
 	w.WriteHeader(http.StatusCreated)
 	err = jsonapi.MarshalOnePayload(w, &instance)
 	if err != nil {
@@ -148,6 +163,21 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 		api.NotFoundError.Render(w, http.StatusNotFound)
 		return nil
 	}
+
+	files, err := i.Executor.RetrieveInstanceCredentials(r.Context(), instance.ID)
+	if err != nil {
+		logger.With("instance", id).Info(
+			errors.Wrap(err, "failed to retrieve instance credentials"),
+		)
+		api.InternalServerError.Render(w, http.StatusInternalServerError)
+		return nil
+	}
+
+	creds := models.NewInstanceCredentials(
+		instance.ID,
+		string(files["ca.crt"]), string(files["client.crt"]), string(files["client.key"]),
+	)
+	instance.Credentials = &creds
 
 	return errors.Wrap(
 		jsonapi.MarshalOnePayload(w, &instance),

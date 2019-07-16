@@ -517,3 +517,41 @@ scripts in the `cmd` directory - read them if you want to know more.
 Right now modifications to images (creation, finalisation, deletion) are
 restricted to a single "upload" user, who authenticates with the API via a
 shared secret.
+
+## Security model
+
+Draupnir has been designed to be deployed on a publicly-accessible instance, but
+restrict access to the potentially sensitive data in the Draupnir images to
+authorised users only.
+
+### API access
+
+Access to the API is secured via Google OAuth. A user must have a valid token in
+order to create, retrieve or destroy a Draupnir instance.
+
+### Connecting to Draupnir Postgres instances
+
+Access to a Draupnir Postgres instance is secured via a client-authenticated TLS
+connection.
+The client certificate and key are served via the API and then
+stored in a secure temporary location on the client machine. The paths to these
+files are then used to set `PGSSLCERT` and `PGSSLKEY`.
+
+Additionally, `PGSSLMODE` is set to `verify-ca`, meaning that the Postgres
+client will *only* attempt to connect via TLS, and will also only successfully
+connect to the instance if it provides the expected CA certificate.
+
+On the server side, when an image is finalised the `pg_hba.conf` file is setup
+so that the only method of access is client-authenticated TLS, and this
+therefore propagates to every instance created from the image.
+This property ensures that even if a user was to login as a Postgres superuser
+on their instance and set a blank password for a given database user, then still
+nobody would be able to connect without a valid client certificate and key.
+
+Each instance has a unique CA, server and client certificate, all generated at
+creation time, meaning that certificates and keys cannot be reused across
+instances and that once the instance is created the locally-stored credentials
+are useless.
+Given that an instance's details (and therefore credentials) can only
+be retrieved by the user that created that instance, it also means that only the
+owning user has access to connect to the instance.

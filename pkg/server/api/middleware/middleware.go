@@ -10,15 +10,13 @@ import (
 func AsJSON(next chain.Handler) chain.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "application/json")
-		next(w, r)
-		return nil
+		return next(w, r)
 	}
 }
 
 func WithVersion(next chain.Handler) chain.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Draupnir-Version", version.Version)
-		next(w, r)
-		return nil
+		return next(w, r)
 	}
 }

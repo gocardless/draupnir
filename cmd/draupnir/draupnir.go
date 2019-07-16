@@ -6,9 +6,12 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/gocardless/draupnir/pkg/client/config"
 	"github.com/gocardless/draupnir/pkg/models"
@@ -360,8 +363,7 @@ func main() {
 					logger.With("error", err).Fatal("Could not fetch instance")
 				}
 
-				showExportCommand(loadConfig(logger), instance)
-				return nil
+				return setupClientEnvironment(loadConfig(logger), instance)
 			},
 		},
 		{
@@ -381,8 +383,7 @@ func main() {
 					logger.With("error", err).Fatal("Could not create instance")
 				}
 
-				showExportCommand(loadConfig(logger), instance)
-				return nil
+				return setupClientEnvironment(loadConfig(logger), instance)
 			},
 		},
 	}
@@ -390,7 +391,38 @@ func main() {
 	app.Run(os.Args)
 }
 
-func showExportCommand(config config.Config, instance models.Instance) {
+func setupClientEnvironment(config config.Config, instance models.Instance) error {
+	if instance.Credentials == nil {
+		return errors.New("database credentials are not available")
+	}
+
+	// We use an OS-defined private temporary directory for storing the
+	// certficates and keys, rather than creating a directory such as:
+	// `~/.draupnir.d/$INSTANCE_ID/`.
+	// The advantage of this is that we do not have to write custom logic to
+	// clean-up old key data, instead we can rely on the OS to do this for us.
+	// On MacOS, where this client will be primarily run, the temp files are
+	// cleaned up if they have not been accessed in 3 days, which is perfect for
+	// this use case: https://superuser.com/a/187105
+	dir, err := ioutil.TempDir("", fmt.Sprintf("draupnir-%d-", instance.ID))
+	if err != nil {
+		return errors.Wrap(err, "failed to create temporary directory")
+	}
+
+	caCertPath := filepath.Join(dir, "ca.crt")
+	clientCertPath := filepath.Join(dir, "client.crt")
+	clientKeyPath := filepath.Join(dir, "client.key")
+
+	if err := ioutil.WriteFile(caCertPath, []byte(instance.Credentials.CACertificate), 0644); err != nil {
+		return errors.Wrapf(err, "failed to write content for %s", caCertPath)
+	}
+	if err := ioutil.WriteFile(clientCertPath, []byte(instance.Credentials.ClientCertificate), 0644); err != nil {
+		return errors.Wrapf(err, "failed to write content for %s", clientCertPath)
+	}
+	if err := ioutil.WriteFile(clientKeyPath, []byte(instance.Credentials.ClientKey), 0600); err != nil {
+		return errors.Wrapf(err, "failed to write content for %s", clientKeyPath)
+	}
+
 	// The database precedence is config -> environment variable -> 'postgres'
 	database := config.Database
 	if database == "" {
@@ -399,12 +431,20 @@ func showExportCommand(config config.Config, instance models.Instance) {
 	if database == "" {
 		database = "postgres"
 	}
+
+	// Output enviroment variables that can be read by libpq:
+	// https://www.postgresql.org/docs/current/libpq-envars.html
 	fmt.Printf(
-		"export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD='' PGDATABASE=%s\n",
+		"export PGHOST=%s PGPORT=%d PGUSER=postgres PGPASSWORD='' PGDATABASE=%s PGSSLMODE=verify-ca PGSSLROOTCERT='%s' PGSSLCERT='%s' PGSSLKEY='%s'\n",
 		config.Domain,
 		instance.Port,
 		database,
+		caCertPath,
+		clientCertPath,
+		clientKeyPath,
 	)
+
+	return nil
 }
 
 func ImageToString(i models.Image) string {

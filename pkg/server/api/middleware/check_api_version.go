@@ -37,8 +37,7 @@ func CheckAPIVersion(serverVersion string) chain.Middleware {
 				}
 			}
 
-			next(w, r)
-			return nil
+			return next(w, r)
 		}
 	}
 }
