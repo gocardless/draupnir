@@ -32,14 +32,33 @@ func TestInstanceCreate(t *testing.T) {
 	instanceStore := FakeInstanceStore{
 		_Create: func(instance models.Instance) (models.Instance, error) {
 			assert.Equal(t, 1, instance.ImageID)
-			assert.True(t, instance.Port > 5432, "port is greater than 5432")
-			assert.True(t, instance.Port < 6000, "port is less than 6000")
+			assert.Equal(t, uint16(5434), instance.Port, "port is 5434 (the only free port)")
 			return models.Instance{
 				ID:        1,
 				Hostname:  "draupnir-server.example.com",
 				ImageID:   1,
 				CreatedAt: timestamp(),
 				UpdatedAt: timestamp(),
+			}, nil
+		},
+		_List: func() ([]models.Instance, error) {
+			return []models.Instance{
+				{
+					ID:        1,
+					Hostname:  "draupnir-server.example.com",
+					ImageID:   1,
+					Port:      5432,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+				},
+				{
+					ID:        1,
+					Hostname:  "draupnir-server.example.com",
+					ImageID:   1,
+					Port:      5433,
+					CreatedAt: timestamp(),
+					UpdatedAt: timestamp(),
+				},
 			}, nil
 		},
 	}
@@ -64,9 +83,11 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	routeSet := Instances{
-		InstanceStore: instanceStore,
-		ImageStore:    imageStore,
-		Executor:      executor,
+		InstanceStore:   instanceStore,
+		ImageStore:      imageStore,
+		Executor:        executor,
+		MinInstancePort: 5432,
+		MaxInstancePort: 5435,
 	}
 	err := routeSet.Create(recorder, req)
 

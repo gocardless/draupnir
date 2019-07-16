@@ -5,6 +5,8 @@ shared_secret = "the_shared_secret"
 trusted_user_email_domain = "@gocardless.com"
 public_hostname = "localhost"
 clean_interval = "30m"
+min_instance_port = 7432
+max_instance_port = 8432
 
 [http]
 port = 8443

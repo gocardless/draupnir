@@ -21,9 +21,11 @@ import (
 )
 
 type Instances struct {
-	InstanceStore store.InstanceStore
-	ImageStore    store.ImageStore
-	Executor      exec.Executor
+	InstanceStore   store.InstanceStore
+	ImageStore      store.ImageStore
+	Executor        exec.Executor
+	MinInstancePort uint16
+	MaxInstancePort uint16
 }
 
 type CreateInstanceRequest struct {
@@ -72,7 +74,7 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	instance := models.NewInstance(imageID, email, refreshToken)
-	instance.Port = generateRandomPort()
+	instance.Port = generateRandomPort(i.MinInstancePort, i.MaxInstancePort)
 	instance, err = i.InstanceStore.Create(instance)
 
 	if err != nil {
@@ -85,7 +87,8 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 
 		return errors.Wrap(err, "failed to create instance")
 	}
-	if err := i.Executor.CreateInstance(r.Context(), imageID, instance.ID, instance.Port); err != nil {
+
+	if err := i.Executor.CreateInstance(r.Context(), imageID, instance.ID, int(instance.Port)); err != nil {
 		return errors.Wrap(err, "failed to create instance")
 	}
 
@@ -235,10 +238,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func generateRandomPort() int {
-	const minPort = 5433
-	const maxPort = 6000
-
+func generateRandomPort(minPort uint16, maxPort uint16) uint16 {
 	rand.Seed(time.Now().Unix())
-	return minPort + rand.Intn(maxPort-minPort)
+	return minPort + uint16(rand.Intn(int(maxPort-minPort)))
 }

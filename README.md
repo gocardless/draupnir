@@ -212,6 +212,8 @@ Draupnir to boot. The variables are as follows:
 | `trusted_user_email_domain`| True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
 | `public_hostname`          | True     | The hostname that will be set as PGHOST. This is configurable as it may be different to the hostname of the _API address_ that clients communicate with.
 | `sentry_dsn`               | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
+| `min_instance_port`        | True     | The minimum port number (inclusive) that may be used when creating a Draupnir instance.
+| `max_instance_port`        | True     | The maximum port number (exclusive) that may be used when creating a Draupnir instance.
 | `http.port`                | True     | The port that the HTTPS server will bind to.
 | `http.insecure_port`       | True     | The port that the HTTP server will bind to.
 | `http.tls_certificate`     | True     | The path to the TLS certificate file that the HTTPS server will use.

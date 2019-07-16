@@ -33,6 +33,8 @@ type Config struct {
 	TrustedUserEmailDomain string      `toml:"trusted_user_email_domain"`
 	PublicHostname         string      `toml:"public_hostname"`
 	SentryDsn              string      `toml:"sentry_dsn" required:"false"`
+	MinInstancePort        uint16      `toml:"min_instance_port"`
+	MaxInstancePort        uint16      `toml:"max_instance_port"`
 	HTTPConfig             HTTPConfig  `toml:"http"`
 	OAuthConfig            OAuthConfig `toml:"oauth"`
 	CleanInterval          string      `toml:"clean_interval"`
