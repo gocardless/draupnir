@@ -3,6 +3,7 @@ data_path = "/draupnir"
 environment = "test"
 shared_secret = "thesharedsecret"
 trusted_user_email_domain = "@gocardless.com"
+public_hostname = "localhost"
 
 [http]
 port = 8443

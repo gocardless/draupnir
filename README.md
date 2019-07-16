@@ -210,6 +210,7 @@ Draupnir to boot. The variables are as follows:
 | `environment`              | True     | The environment. This can be any value, but if it is set to "test", draupnir will use a stubbed authentication client which allows all requests specifying an access token of `the-integration-access-token`. This is intended for integration tests - don't use it in production. The environment will be included in all log messages.
 | `shared_secret`            | True     | A hardcoded access token that can be used by automated scripts which can't authenticate via OAuth. At GoCardless we use this to automatically create new images.
 | `trusted_user_email_domain`| True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
+| `public_hostname`          | True     | The hostname that will be set as PGHOST. This is configurable as it may be different to the hostname of the _API address_ that clients communicate with.
 | `sentry_dsn`               | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
 | `http.port`                | True     | The port that the HTTPS server will bind to.
 | `http.insecure_port`       | True     | The port that the HTTP server will bind to.
