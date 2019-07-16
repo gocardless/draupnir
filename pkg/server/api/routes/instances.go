@@ -74,7 +74,12 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	instance := models.NewInstance(imageID, email, refreshToken)
-	instance.Port = generateRandomPort(i.MinInstancePort, i.MaxInstancePort)
+	port, err := generateRandomFreePort(i.InstanceStore, i.MinInstancePort, i.MaxInstancePort)
+	if err != nil {
+		return err
+	}
+	instance.Port = port
+
 	instance, err = i.InstanceStore.Create(instance)
 
 	if err != nil {
@@ -238,7 +243,33 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func generateRandomPort(minPort uint16, maxPort uint16) uint16 {
-	rand.Seed(time.Now().Unix())
-	return minPort + uint16(rand.Intn(int(maxPort-minPort)))
+func generateRandomFreePort(store store.InstanceStore, minPort uint16, maxPort uint16) (uint16, error) {
+	attempts := 0
+	port := uint16(0)
+	portAvailable := false
+
+GetNewPort:
+	for !portAvailable {
+		attempts++
+		if attempts >= 100 {
+			return port, errors.Errorf("No free port found after %d attempts", attempts)
+		}
+
+		rand.Seed(time.Now().Unix() + int64(time.Now().Nanosecond()))
+		port = minPort + uint16(rand.Intn(int(maxPort-minPort)))
+
+		instances, err := store.List()
+		if err != nil {
+			return port, errors.Wrap(err, "failed to list instances to determine free port")
+		}
+
+		for _, instance := range instances {
+			if instance.Port == port {
+				goto GetNewPort
+			}
+		}
+		portAvailable = true
+	}
+
+	return port, nil
 }
