@@ -8,11 +8,16 @@ import (
 )
 
 type FakeAuthenticator struct {
-	MockAuthenticateRequest func(r *http.Request) (string, error)
+	MockAuthenticateRequest func(r *http.Request) (string, string, error)
+	MockIsRefreshTokenValid func(string) (bool, error, error)
 }
 
-func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
+func (f FakeAuthenticator) AuthenticateRequest(r *http.Request) (string, string, error) {
 	return f.MockAuthenticateRequest(r)
+}
+
+func (f FakeAuthenticator) IsRefreshTokenValid(refreshToken string) (bool, error, error) {
+	return f.MockIsRefreshTokenValid(refreshToken)
 }
 
 type FakeOAuthClient struct {

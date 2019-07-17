@@ -5,23 +5,25 @@ import (
 )
 
 type Instance struct {
-	ID        int    `jsonapi:"primary,instances"`
-	Hostname  string `jsonapi:"attr,hostname"`
-	ImageID   int    `jsonapi:"attr,image_id"`
-	UserEmail string
-	CreatedAt time.Time `jsonapi:"attr,created_at,iso8601"`
-	UpdatedAt time.Time `jsonapi:"attr,updated_at,iso8601"`
-	Port      int       `jsonapi:"attr,port"`
+	ID           int    `jsonapi:"primary,instances"`
+	Hostname     string `jsonapi:"attr,hostname"`
+	ImageID      int    `jsonapi:"attr,image_id"`
+	UserEmail    string
+	RefreshToken string
+	CreatedAt    time.Time `jsonapi:"attr,created_at,iso8601"`
+	UpdatedAt    time.Time `jsonapi:"attr,updated_at,iso8601"`
+	Port         int       `jsonapi:"attr,port"`
 
 	Credentials *InstanceCredentials `jsonapi:"relation,credentials"`
 }
 
-func NewInstance(imageID int, email string) Instance {
+func NewInstance(imageID int, email, refreshToken string) Instance {
 	return Instance{
-		ImageID:   imageID,
-		UserEmail: email,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ImageID:      imageID,
+		UserEmail:    email,
+		RefreshToken: refreshToken,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 }
 

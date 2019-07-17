@@ -127,5 +127,7 @@ func createRequest(t *testing.T, method string, path string, body io.Reader) (*h
 	logger, output := NewFakeLogger()
 	req = req.WithContext(context.WithValue(req.Context(), middleware.LoggerKey, &logger))
 	req = req.WithContext(context.WithValue(req.Context(), middleware.AuthUserKey, "test@draupnir"))
+	req = req.WithContext(context.WithValue(req.Context(), middleware.RefreshTokenKey, "refresh-token"))
+
 	return req, recorder, output
 }

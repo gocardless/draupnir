@@ -13,6 +13,7 @@ import (
 // This, sadly is exported so we can inject fake loggers in tests.
 // See routes.createRequest in server/api/routes/fakes.go
 const AuthUserKey key = 2
+const RefreshTokenKey key = 3
 
 // Authenticate uses the provided authenticator to authenticate the request.
 // On success, it yields to the next handler in the chain.
@@ -25,7 +26,7 @@ func Authenticate(authenticator auth.Authenticator) chain.Middleware {
 				return err
 			}
 
-			email, err := authenticator.AuthenticateRequest(r)
+			email, refreshToken, err := authenticator.AuthenticateRequest(r)
 			if err != nil {
 				logger.Info(err.Error())
 				api.UnauthorizedError.Render(w, http.StatusUnauthorized)
@@ -33,6 +34,7 @@ func Authenticate(authenticator auth.Authenticator) chain.Middleware {
 			}
 
 			r = r.WithContext(context.WithValue(r.Context(), AuthUserKey, email))
+			r = r.WithContext(context.WithValue(r.Context(), RefreshTokenKey, refreshToken))
 			return next(w, r)
 		}
 	}

@@ -4,6 +4,7 @@ environment = "test"
 shared_secret = "thesharedsecret"
 trusted_user_email_domain = "@gocardless.com"
 public_hostname = "localhost"
+clean_interval = "30m"
 
 [http]
 port = 8443

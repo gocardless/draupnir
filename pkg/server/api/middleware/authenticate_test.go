@@ -15,8 +15,8 @@ import (
 
 type FailureAuthenticator struct{}
 
-func (f FailureAuthenticator) AuthenticateRequest(r *http.Request) (string, error) {
-	return "", errors.New("could not authenticate")
+func (f FailureAuthenticator) AuthenticateRequest(r *http.Request) (string, string, error) {
+	return "", "", errors.New("could not authenticate")
 }
 
 func TestAuthenticateSuccess(t *testing.T) {
@@ -24,8 +24,8 @@ func TestAuthenticateSuccess(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 
 	authenticator := auth.FakeAuthenticator{
-		MockAuthenticateRequest: func(r *http.Request) (string, error) {
-			return "some_user@domain.org", nil
+		MockAuthenticateRequest: func(r *http.Request) (string, string, error) {
+			return "some_user@domain.org", "access_token", nil
 		},
 	}
 
@@ -45,8 +45,8 @@ func TestAuthenticateFailure(t *testing.T) {
 	logger := log.NewNopLogger()
 
 	authenticator := auth.FakeAuthenticator{
-		MockAuthenticateRequest: func(r *http.Request) (string, error) {
-			return "", errors.New("could not authenticate")
+		MockAuthenticateRequest: func(r *http.Request) (string, string, error) {
+			return "", "", errors.New("could not authenticate")
 		},
 	}
 

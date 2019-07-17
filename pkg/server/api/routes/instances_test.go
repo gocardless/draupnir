@@ -382,8 +382,8 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	}
 
 	authenticator := auth.FakeAuthenticator{
-		MockAuthenticateRequest: func(r *http.Request) (string, error) {
-			return auth.UPLOAD_USER_EMAIL, nil
+		MockAuthenticateRequest: func(r *http.Request) (string, string, error) {
+			return auth.UPLOAD_USER_EMAIL, "", nil
 		},
 	}
 

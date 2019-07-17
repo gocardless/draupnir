@@ -33,7 +33,7 @@ func GetLogger(ctx context.Context) log.Logger {
 	if !ok {
 		// Only a programming bug should cause this scenario, so exit the program
 		// if it occurs.
-		log.Fatal("Unable to retrieve logger from context, log lines will be missing")
+		log.Fatal("Unable to retrieve logger from context")
 	}
 	return *logger
 }
