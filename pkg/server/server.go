@@ -56,9 +56,11 @@ func Run(logger log.Logger) error {
 	}
 
 	instanceRouteSet := routes.Instances{
-		InstanceStore: instanceStore,
-		ImageStore:    imageStore,
-		Executor:      executor,
+		InstanceStore:   instanceStore,
+		ImageStore:      imageStore,
+		Executor:        executor,
+		MinInstancePort: cfg.MinInstancePort,
+		MaxInstancePort: cfg.MaxInstancePort,
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
