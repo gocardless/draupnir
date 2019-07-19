@@ -81,6 +81,8 @@ shared_preload_libraries = 'pg_stat_statements'
 ssl = on
 ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
 ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
+ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1'
+ssl_prefer_server_ciphers = 'on'
 temp_file_limit = 5242880 # 5GiB
 work_mem = '128MB'
 
