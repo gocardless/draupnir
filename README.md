@@ -212,6 +212,7 @@ Draupnir to boot. The variables are as follows:
 | `trusted_user_email_domain`| True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
 | `public_hostname`          | True     | The hostname that will be set as PGHOST. This is configurable as it may be different to the hostname of the _API address_ that clients communicate with.
 | `sentry_dsn`               | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
+| `clean_interval`           | True     | The interval at which Draupnir checks and removes any instance associated with a user that no longer has a valid refresh token. Valid values are a sequence of digits followed by a unit, such as "30m", "6h". See [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
 | `min_instance_port`        | True     | The minimum port number (inclusive) that may be used when creating a Draupnir instance.
 | `max_instance_port`        | True     | The maximum port number (exclusive) that may be used when creating a Draupnir instance.
 | `http.port`                | True     | The port that the HTTPS server will bind to.
@@ -558,3 +559,17 @@ are useless.
 Given that an instance's details (and therefore credentials) can only
 be retrieved by the user that created that instance, it also means that only the
 owning user has access to connect to the instance.
+
+### Cleanup of revoked user instances
+
+When a user creates an instance Draupnir stores the user's refresh token so that
+it can, at the `clean_interval`, check that the refresh token is still valid.
+In the event that the token isn't valid, the instance is deleted. This ensures
+that instances don't remain available longer than the users have access to
+Draupnir.
+
+Common causes for an invalid refresh token are:
+- The user has revoked the application's third-party access in the Google
+  account dashboard.
+- The user is suspended via G Suite.
+- The user has been deleted.
