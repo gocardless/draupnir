@@ -8,19 +8,19 @@ references:
       command: bundle install --path vendor/bundle --jobs=4 --retry=3
   cache_bundle_for_lockfile: &cache_bundle_for_lockfile
     save_cache:
-      key: v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
+      key: v3-ruby2.6.3-Gemfile-{{ checksum "Gemfile.lock" }}
       paths:
         - vendor/bundle
   cache_bundle: &cache_bundle
     save_cache:
-      key: v3-ruby2.4.1-Gemfile
+      key: v3-ruby2.6.3-Gemfile
       paths:
         - vendor/bundle
   restore_bundle: &restore_bundle
     restore_cache:
       keys:
-        - v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
-        - v3-ruby2.4.1-Gemfile
+        - v3-ruby2.6.3-Gemfile-{{ checksum "Gemfile.lock" }}
+        - v3-ruby2.6.3-Gemfile
   docker_build_image: &docker_build_image
     docker:
       - image: gocardless/draupnir-circleci:latest
@@ -34,14 +34,13 @@ jobs:
       GOPATH: /go
     steps:
       - checkout
-      - run: go get github.com/golang/dep/cmd/dep
-      - run: dep ensure -v && dep prune && test -z "$(git status --porcelain -- Gopkg.toml Gopkg.lock vendor)"
+      - run: test -z "$(git status --porcelain -- go.mod go.sum vendor)"
       - run: mkdir -p $TEST_RESULTS
       - run: make test
 
   rubocop:
     docker:
-      - image: circleci/ruby:2.4.2
+      - image: ruby:2.6.3
     working_directory: ~/draupnir
     steps:
       - checkout
