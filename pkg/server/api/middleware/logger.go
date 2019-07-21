@@ -25,14 +25,25 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			// recorder.
 			recorder := httptest.NewRecorder()
 
-			scopedLogger := logger.With("http_request", r)
+			scopedLogger := logger.
+				With("http_request", r)
+
+			// This coupling between middlewares isn't great, but it is valuable to
+			// get the IP address injected into the logger early in the chain.
+			userIPAddress, err := GetUserIPAddress(r)
+			if err != nil {
+				logger.Warn("Unable to annotate request logger with real user IP address: ", err)
+			} else {
+				scopedLogger = scopedLogger.
+					With("client_ip_address", userIPAddress)
+			}
 
 			// Inject the logger into the request's context
 			r = r.WithContext(context.WithValue(r.Context(), LoggerKey, &scopedLogger))
 
 			// Call the next middleware and time it
 			start := time.Now()
-			err := next(recorder, r)
+			err = next(recorder, r)
 			duration := time.Since(start)
 
 			requestLine := fmt.Sprintf(

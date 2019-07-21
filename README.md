@@ -215,6 +215,8 @@ Draupnir to boot. The variables are as follows:
 | `clean_interval`           | True     | The interval at which Draupnir checks and removes any instance associated with a user that no longer has a valid refresh token. Valid values are a sequence of digits followed by a unit, such as "30m", "6h". See [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
 | `min_instance_port`        | True     | The minimum port number (inclusive) that may be used when creating a Draupnir instance.
 | `max_instance_port`        | True     | The maximum port number (exclusive) that may be used when creating a Draupnir instance.
+| `use_x_forwarded_for`      | False    | Whether to use the `X-Forwarded-For` header when determining the real user IP address. See [documentation](#identification-of-user-ip-addresses).
+| `trusted_proxy_cidrs`      | False    | A list of CIDRs that will match your load balancer IP addresses. Example: `["10.32.0.0/16"]`. See [documentation](#identification-of-user-ip-addresses).
 | `http.port`                | True     | The port that the HTTPS server will bind to.
 | `http.insecure_port`       | True     | The port that the HTTP server will bind to.
 | `http.tls_certificate`     | True     | The path to the TLS certificate file that the HTTPS server will use.

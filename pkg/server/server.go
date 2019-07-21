@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -34,6 +35,12 @@ func Run(logger log.Logger) error {
 	if err != nil {
 		return errors.Wrap(err, "Could not load configuration")
 	}
+
+	trustedProxies, err := parseTrustedProxies(cfg.TrustedProxyCIDRs)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse trusted proxes")
+	}
+
 	logger.Info("Configuration successfully loaded")
 
 	logger = log.With("environment", cfg.Environment)
@@ -74,6 +81,7 @@ func Run(logger log.Logger) error {
 	// will also be logged.
 	rootHandler := chain.
 		New(middleware.NewErrorHandler(logger)).
+		Add(middleware.RecordUserIPAddress(logger, trustedProxies, cfg.UseXForwardedFor)).
 		Add(middleware.NewRequestLogger(logger))
 
 	// If Sentry is available, attach the Sentry middleware
@@ -240,6 +248,21 @@ func createOauthConfig(c config.OAuthConfig) oauth2.Config {
 		},
 		RedirectURL: c.RedirectURL,
 	}
+}
+
+func parseTrustedProxies(cidrs []string) ([]*net.IPNet, error) {
+	var trusted []*net.IPNet
+
+	for _, c := range cidrs {
+		_, ipnet, err := net.ParseCIDR(c)
+		if err != nil {
+			return nil, err
+		}
+
+		trusted = append(trusted, ipnet)
+	}
+
+	return trusted, nil
 }
 
 func createAuthenticator(c config.Config, oauthConfig oauth2.Config) auth.Authenticator {
