@@ -67,3 +67,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/prometheus/common"
+
+[[constraint]]
+  name = "github.com/coreos/go-iptables"
+  version = "0.4.2"
