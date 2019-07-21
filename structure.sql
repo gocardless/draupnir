@@ -100,6 +100,18 @@ ALTER SEQUENCE public.instances_id_seq OWNED BY public.instances.id;
 
 
 --
+-- Name: whitelisted_addresses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.whitelisted_addresses (
+    ip_address inet NOT NULL,
+    instance_id integer NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+--
 -- Name: images id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -138,11 +150,27 @@ ALTER TABLE ONLY public.instances
 
 
 --
+-- Name: whitelisted_addresses whitelisted_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whitelisted_addresses
+    ADD CONSTRAINT whitelisted_addresses_pkey PRIMARY KEY (ip_address, instance_id);
+
+
+--
 -- Name: instances instances_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.instances
     ADD CONSTRAINT instances_image_id_fkey FOREIGN KEY (image_id) REFERENCES public.images(id);
+
+
+--
+-- Name: whitelisted_addresses whitelisted_addresses_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whitelisted_addresses
+    ADD CONSTRAINT whitelisted_addresses_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES public.instances(id) ON DELETE CASCADE;
 
 
 --

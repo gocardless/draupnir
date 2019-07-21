@@ -38,6 +38,8 @@ type Config struct {
 	HTTPConfig             HTTPConfig  `toml:"http"`
 	OAuthConfig            OAuthConfig `toml:"oauth"`
 	CleanInterval          string      `toml:"clean_interval"`
+	EnableWhitelisting     bool        `toml:"enable_ip_whitelisting" required:"false"`
+	WhitelisterInterval    string      `toml:"whitelist_reconcile_interval"`
 	TrustedProxyCIDRs      []string    `toml:"trusted_proxy_cidrs" required:"false"`
 	UseXForwardedFor       bool        `toml:"use_x_forwarded_for" required:"false"`
 }

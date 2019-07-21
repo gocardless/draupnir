@@ -40,6 +40,7 @@ nfpm:
     "cmd/draupnir-destroy-instance": "/usr/local/bin/draupnir-destroy-instance"
     "cmd/draupnir-finalise-image": "/usr/local/bin/draupnir-finalise-image"
     "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
+    "scripts/iptables": "/usr/lib/draupnir/bin/iptables"
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}
 checksum:

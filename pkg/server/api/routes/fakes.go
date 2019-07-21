@@ -73,6 +73,19 @@ func (s FakeInstanceStore) Destroy(instance models.Instance) error {
 	return s._Destroy(instance)
 }
 
+type FakeWhitelistedAddressStore struct {
+	_Create func(models.WhitelistedAddress) (models.WhitelistedAddress, error)
+	_List   func() ([]models.WhitelistedAddress, error)
+}
+
+func (s FakeWhitelistedAddressStore) Create(image models.WhitelistedAddress) (models.WhitelistedAddress, error) {
+	return s._Create(image)
+}
+
+func (s FakeWhitelistedAddressStore) List() ([]models.WhitelistedAddress, error) {
+	return s._List()
+}
+
 type FakeExecutor struct {
 	_CreateBtrfsSubvolume        func(ctx context.Context, id int) error
 	_FinaliseImage               func(ctx context.Context, image models.Image) error
@@ -130,6 +143,7 @@ func createRequest(t *testing.T, method string, path string, body io.Reader) (*h
 	req = req.WithContext(context.WithValue(req.Context(), middleware.LoggerKey, &logger))
 	req = req.WithContext(context.WithValue(req.Context(), middleware.AuthUserKey, "test@draupnir"))
 	req = req.WithContext(context.WithValue(req.Context(), middleware.RefreshTokenKey, "refresh-token"))
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIPAddressKey, "1.2.3.4"))
 
 	return req, recorder, output
 }
