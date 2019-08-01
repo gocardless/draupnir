@@ -118,12 +118,9 @@ do
   sleep 1
 done
 
-# Create a user
-sudo -u postgres createuser --port="$PORT" -d -r -s draupnir
-
 # Anonymise
 echo "Executing anonymisation script $ANON_FILE"
-sudo cat "$ANON_FILE" | sudo -u draupnir "$PSQL" -p "$PORT" --username=draupnir postgres
+sudo cat "$ANON_FILE" | sudo -u postgres "$PSQL" -p "$PORT"
 
 echo "Vacuum all the databases in the cluster"
 sudo -u postgres $VACUUMDB --all --port="$PORT" --jobs="$(nproc)"
