@@ -143,7 +143,11 @@ local   all     all                     trust
 hostssl all     all     0.0.0.0/0       trust   clientcert=1
 EOF
 
-chown root:postgres "${UPLOAD_PATH}/pg_hba.conf"
+# Draupnir instances run as the draupnir-instance user
+find "${UPLOAD_PATH}" -user postgres -exec chown draupnir-instance {} \;
+find "${UPLOAD_PATH}" -group postgres -exec chgrp draupnir-instance {} \;
+
+chown root:draupnir-instance "${UPLOAD_PATH}/pg_hba.conf"
 chmod 640 "${UPLOAD_PATH}/pg_hba.conf"
 chattr +i "${UPLOAD_PATH}/pg_hba.conf"
 
