@@ -31,7 +31,7 @@ INSTANCE_PATH="${ROOT}/instances/${ID}"
 
 set -x
 
-sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" stop || true
+sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" stop || true
 sudo btrfs subvolume delete "$INSTANCE_PATH"
 
 set +x
