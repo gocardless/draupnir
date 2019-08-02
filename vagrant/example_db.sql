@@ -1,11 +1,11 @@
 -- use createdb -o test test ?
 
-CREATE DATABASE test;
+CREATE user myapp_user WITH encrypted password '';
+GRANT ALL privileges ON DATABASE test TO myapp_user;
 
-CREATE user test WITH encrypted password '';
-GRANT ALL privileges ON DATABASE test TO test;
+CREATE DATABASE myapp OWNER myapp_user;
 
-\c test
+\c myapp
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -13,3 +13,5 @@ CREATE TABLE users (
   last_name TEXT,
   email TEXT UNIQUE NOT NULL
 );
+
+ALTER TABLE users OWNER TO myapp_user;
