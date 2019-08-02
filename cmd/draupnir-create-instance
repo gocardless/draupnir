@@ -20,7 +20,7 @@ die_and_stop() {
   echo "$*" 1>&2
 
   echo "Stopping instance"
-  sudo -u postgres "$PG_CTL" -w -D "$INSTANCE_PATH" stop
+  sudo -u draupnir-instance "$PG_CTL" -w -D "$INSTANCE_PATH" stop
 
   exit 1
 }
@@ -43,7 +43,7 @@ btrfs subvolume snapshot "$SNAPSHOT_PATH" "$INSTANCE_PATH"
 
 # The instance directory must be readable by Draupnir, so that the certificates
 # can be read and served in the API response.
-sudo chown postgres:draupnir "$INSTANCE_PATH"
+sudo chown draupnir-instance:draupnir "$INSTANCE_PATH"
 sudo chmod g+rx "$INSTANCE_PATH"
 
 # Create a certificate authority
@@ -55,7 +55,7 @@ chmod 600 "${INSTANCE_PATH}/ca.key"
 openssl x509 -req -in "${INSTANCE_PATH}/ca.csr" -text -days 30 \
   -extfile /etc/ssl/openssl.cnf -extensions v3_ca \
   -signkey "${INSTANCE_PATH}/ca.key" -out "${INSTANCE_PATH}/ca.crt"
-chown postgres "${INSTANCE_PATH}/ca.crt"
+chown draupnir-instance "${INSTANCE_PATH}/ca.crt"
 
 # Create a server certificate for the instance
 openssl req -new -nodes -text \
@@ -66,7 +66,7 @@ chmod 600 "${INSTANCE_PATH}/server.key"
 openssl x509 -req -in "${INSTANCE_PATH}/server.csr" -text -days 30 \
   -CA "${INSTANCE_PATH}/ca.crt" -CAkey "${INSTANCE_PATH}/ca.key" -CAcreateserial \
   -out "${INSTANCE_PATH}/server.crt"
-chown postgres "${INSTANCE_PATH}/server.key" "${INSTANCE_PATH}/server.crt"
+chown draupnir-instance "${INSTANCE_PATH}/server.key" "${INSTANCE_PATH}/server.crt"
 
 cat <<EOF >> "${INSTANCE_PATH}/postgresql.conf"
 ssl_ca_file = 'ca.crt'
@@ -86,6 +86,9 @@ openssl x509 -req -in "${INSTANCE_PATH}/client.csr" -text -days 30 \
 # Draupnir must be able to read the cert and key, to serve to the client
 chown draupnir "${INSTANCE_PATH}/client.key" "${INSTANCE_PATH}/client.crt"
 
+# Place socket in the instance directory
+echo "unix_socket_directories = '${INSTANCE_PATH}'" >> "${INSTANCE_PATH}/postgresql.conf"
+
 # Temporarily disable connections, until we have validated that the instance
 # has authentication correctly configured
 cat <<EOF >> "${INSTANCE_PATH}/postgresql.auto.conf"
@@ -93,7 +96,7 @@ listen_addresses = 'localhost'
 EOF
 chmod 640 "${INSTANCE_PATH}/postgresql.auto.conf"
 
-sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" -o "-p $PORT" -l "/var/log/postgresql/instance_$INSTANCE_ID" start
+sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" -o "-p $PORT" -l "/var/log/postgresql-draupnir-instance/instance_$INSTANCE_ID" start
 
 # Verify that our instance has the correct authentication restrictions, so that
 # we can be sure it is not accessible to anyone not connecting in the expected
@@ -118,6 +121,6 @@ PGSSLMODE=verify-ca \
 
 rm -v "${INSTANCE_PATH}/postgresql.auto.conf"
 
-sudo -u postgres $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l "/var/log/postgresql/instance_$INSTANCE_ID" restart
+sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l "/var/log/postgresql-draupnir-instance/instance_$INSTANCE_ID" restart
 
 set +x
