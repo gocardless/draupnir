@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/prometheus/common/log"
@@ -17,7 +18,8 @@ import (
 
 func NewFakeLogger() (log.Logger, *bytes.Buffer) {
 	var buffer bytes.Buffer
-	return log.NewLogger(&buffer), &buffer
+	writer := io.MultiWriter(&buffer, os.Stdout)
+	return log.NewLogger(writer), &buffer
 }
 
 type FakeImageStore struct {
