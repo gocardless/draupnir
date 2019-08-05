@@ -19,6 +19,12 @@ sudo -u postgres createuser draupnir
 sudo -u postgres psql -c "alter role draupnir password 'draupnir'"
 sudo -u draupnir psql draupnir -f /workspace/structure.sql
 
+# Create draupnir-instance user
+useradd draupnir-instance --system --shell /bin/false
+mkdir /var/log/postgresql-draupnir-instance
+chgrp draupnir-instance /var/log/postgresql-draupnir-instance
+chmod 775 /var/log/postgresql-draupnir-instance
+
 # Install self-signed certs
 cp /workspace/spec/fixtures/cert.pem /etc/ssl/certs/draupnir_cert.pem
 cp /workspace/spec/fixtures/key.pem /etc/ssl/certs/draupnir_key.pem

@@ -40,6 +40,14 @@ getent passwd draupnir >/dev/null || useradd --groups ssl-cert --create-home dra
 mkdir -p /data/{image_uploads,image_snapshots,instances}
 chown -R draupnir /data
 
+# create draupnir postgres instance user
+getent passwd draupnir-instance >/dev/null || useradd draupnir-instance
+
+# create draupnir postgres instance log directory
+mkdir /var/log/postgresql-draupnir-instance
+chgrp draupnir-instance /var/log/postgresql-draupnir-instance
+chmod 775 /var/log/postgresql-draupnir-instance
+
 # Ubuntu starts the DB after installation. Stop so that we can make a copy of the DB.
 pg_ctlcluster 11 main stop
 # wait for postgres to stop, so that the pid file disappears
