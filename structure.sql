@@ -2,33 +2,19 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.4.9
--- Dumped by pg_dump version 9.6.3
+-- Dumped from database version 11.4 (Ubuntu 11.4-1.pgdg18.04+1)
+-- Dumped by pg_dump version 11.4 (Ubuntu 11.4-1.pgdg18.04+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
+SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
-SET search_path = public, pg_catalog;
 
 SET default_tablespace = '';
 
@@ -38,7 +24,7 @@ SET default_with_oids = false;
 -- Name: gorp_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE gorp_migrations (
+CREATE TABLE public.gorp_migrations (
     id text NOT NULL,
     applied_at timestamp with time zone
 );
@@ -48,7 +34,7 @@ CREATE TABLE gorp_migrations (
 -- Name: images; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE images (
+CREATE TABLE public.images (
     id integer NOT NULL,
     backed_up_at timestamp with time zone NOT NULL,
     ready boolean DEFAULT false NOT NULL,
@@ -62,7 +48,8 @@ CREATE TABLE images (
 -- Name: images_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE images_id_seq
+CREATE SEQUENCE public.images_id_seq
+    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -74,14 +61,14 @@ CREATE SEQUENCE images_id_seq
 -- Name: images_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE images_id_seq OWNED BY images.id;
+ALTER SEQUENCE public.images_id_seq OWNED BY public.images.id;
 
 
 --
 -- Name: instances; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE instances (
+CREATE TABLE public.instances (
     id integer NOT NULL,
     image_id integer NOT NULL,
     created_at timestamp with time zone NOT NULL,
@@ -96,7 +83,8 @@ CREATE TABLE instances (
 -- Name: instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE instances_id_seq
+CREATE SEQUENCE public.instances_id_seq
+    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -108,28 +96,40 @@ CREATE SEQUENCE instances_id_seq
 -- Name: instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE instances_id_seq OWNED BY instances.id;
+ALTER SEQUENCE public.instances_id_seq OWNED BY public.instances.id;
+
+
+--
+-- Name: whitelisted_addresses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.whitelisted_addresses (
+    ip_address inet NOT NULL,
+    instance_id integer NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
 
 
 --
 -- Name: images id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY images ALTER COLUMN id SET DEFAULT nextval('images_id_seq'::regclass);
+ALTER TABLE ONLY public.images ALTER COLUMN id SET DEFAULT nextval('public.images_id_seq'::regclass);
 
 
 --
 -- Name: instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY instances ALTER COLUMN id SET DEFAULT nextval('instances_id_seq'::regclass);
+ALTER TABLE ONLY public.instances ALTER COLUMN id SET DEFAULT nextval('public.instances_id_seq'::regclass);
 
 
 --
 -- Name: gorp_migrations gorp_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY gorp_migrations
+ALTER TABLE ONLY public.gorp_migrations
     ADD CONSTRAINT gorp_migrations_pkey PRIMARY KEY (id);
 
 
@@ -137,7 +137,7 @@ ALTER TABLE ONLY gorp_migrations
 -- Name: images images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY images
+ALTER TABLE ONLY public.images
     ADD CONSTRAINT images_pkey PRIMARY KEY (id);
 
 
@@ -145,16 +145,32 @@ ALTER TABLE ONLY images
 -- Name: instances instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY instances
+ALTER TABLE ONLY public.instances
     ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: whitelisted_addresses whitelisted_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whitelisted_addresses
+    ADD CONSTRAINT whitelisted_addresses_pkey PRIMARY KEY (ip_address, instance_id);
 
 
 --
 -- Name: instances instances_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY instances
-    ADD CONSTRAINT instances_image_id_fkey FOREIGN KEY (image_id) REFERENCES images(id);
+ALTER TABLE ONLY public.instances
+    ADD CONSTRAINT instances_image_id_fkey FOREIGN KEY (image_id) REFERENCES public.images(id);
+
+
+--
+-- Name: whitelisted_addresses whitelisted_addresses_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whitelisted_addresses
+    ADD CONSTRAINT whitelisted_addresses_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES public.instances(id) ON DELETE CASCADE;
 
 
 --

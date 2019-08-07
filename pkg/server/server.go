@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -34,6 +35,12 @@ func Run(logger log.Logger) error {
 	if err != nil {
 		return errors.Wrap(err, "Could not load configuration")
 	}
+
+	trustedProxies, err := parseTrustedProxies(cfg.TrustedProxyCIDRs)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse trusted proxes")
+	}
+
 	logger.Info("Configuration successfully loaded")
 
 	logger = log.With("environment", cfg.Environment)
@@ -48,6 +55,27 @@ func Run(logger log.Logger) error {
 	}
 	imageStore := createImageStore(db)
 	instanceStore := createInstanceStore(db, cfg)
+	whitelistedAddressStore := createWhitelistedAddressStore(db)
+
+	sentryClient, err := raven.New(cfg.SentryDsn)
+	if err != nil {
+		return errors.Wrap(err, "Could not initialise sentry-raven client")
+	}
+
+	// Setup the IP address whitelisting component.
+	// This is optional, it's useful to be able to disable this in environments
+	// where iptables is not available (e.g. integration tests).
+	var whitelister *IPAddressWhitelister
+	var whitelisterTriggerFunc func(string)
+
+	if cfg.EnableWhitelisting {
+		whitelister = NewIPAddressWhitelister(logger.With("component", "whitelister"), sentryClient, whitelistedAddressStore)
+		whitelisterTriggerFunc = whitelister.TriggerReconcile
+	} else {
+		whitelisterTriggerFunc = func(s string) {
+			logger.Debugf("IP whitelisting disabled, skipping trigger: %s", s)
+		}
+	}
 
 	imageRouteSet := routes.Images{
 		ImageStore:    imageStore,
@@ -56,11 +84,13 @@ func Run(logger log.Logger) error {
 	}
 
 	instanceRouteSet := routes.Instances{
-		InstanceStore:   instanceStore,
-		ImageStore:      imageStore,
-		Executor:        executor,
-		MinInstancePort: cfg.MinInstancePort,
-		MaxInstancePort: cfg.MaxInstancePort,
+		InstanceStore:           instanceStore,
+		ImageStore:              imageStore,
+		WhitelistedAddressStore: whitelistedAddressStore,
+		ApplyWhitelist:          whitelisterTriggerFunc,
+		Executor:                executor,
+		MinInstancePort:         cfg.MinInstancePort,
+		MaxInstancePort:         cfg.MaxInstancePort,
 	}
 
 	accessTokenRouteSet := routes.AccessTokens{
@@ -74,15 +104,8 @@ func Run(logger log.Logger) error {
 	// will also be logged.
 	rootHandler := chain.
 		New(middleware.NewErrorHandler(logger)).
+		Add(middleware.RecordUserIPAddress(logger, trustedProxies, cfg.UseXForwardedFor)).
 		Add(middleware.NewRequestLogger(logger))
-
-	// If Sentry is available, attach the Sentry middleware
-	// If the SentryDsn is not set then a no-op client will be returned
-	// This will report all errors to Sentry
-	sentryClient, err := raven.New(cfg.SentryDsn)
-	if err != nil {
-		return errors.Wrap(err, "Could not initialise sentry-raven client")
-	}
 
 	rootHandler = rootHandler.
 		Add(middleware.NewSentryReporter(sentryClient))
@@ -223,6 +246,20 @@ func Run(logger log.Logger) error {
 		)
 	}
 
+	if cfg.EnableWhitelisting {
+		whitelisterInterval, err := time.ParseDuration(cfg.WhitelisterInterval)
+		if err != nil {
+			return errors.Wrap(err, "invalid whitelister update interval")
+		}
+
+		whitelisterCtx, whitelisterCancel := context.WithCancel(context.Background())
+
+		g.Add(
+			func() error { return whitelister.Start(whitelisterCtx, whitelisterInterval) },
+			func(error) { whitelisterCancel() },
+		)
+	}
+
 	if err := g.Run(); err != nil {
 		return errors.Wrap(err, "could not start HTTP servers")
 	}
@@ -240,6 +277,21 @@ func createOauthConfig(c config.OAuthConfig) oauth2.Config {
 		},
 		RedirectURL: c.RedirectURL,
 	}
+}
+
+func parseTrustedProxies(cidrs []string) ([]*net.IPNet, error) {
+	var trusted []*net.IPNet
+
+	for _, c := range cidrs {
+		_, ipnet, err := net.ParseCIDR(c)
+		if err != nil {
+			return nil, err
+		}
+
+		trusted = append(trusted, ipnet)
+	}
+
+	return trusted, nil
 }
 
 func createAuthenticator(c config.Config, oauthConfig oauth2.Config) auth.Authenticator {
@@ -260,6 +312,10 @@ func createImageStore(db *sql.DB) store.ImageStore {
 
 func createInstanceStore(db *sql.DB, cfg config.Config) store.InstanceStore {
 	return store.DBInstanceStore{DB: db, PublicHostname: cfg.PublicHostname}
+}
+
+func createWhitelistedAddressStore(db *sql.DB) store.WhitelistedAddressStore {
+	return store.DBWhitelistedAddressStore{DB: db}
 }
 
 func createExecutor(c config.Config) exec.Executor {

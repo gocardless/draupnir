@@ -3,6 +3,10 @@
 set -euo pipefail
 set -x
 
+iptables_add_if_missing() {
+  iptables -C "$@" || iptables -A "$@"
+}
+
 # prevent psql error messages
 cd /
 
@@ -38,13 +42,15 @@ getent passwd draupnir >/dev/null || useradd --groups ssl-cert --create-home dra
 
 # create draupnir directories
 mkdir -p /data/{image_uploads,image_snapshots,instances}
-chown -R draupnir /data
+# Ignore a failing status code, as this will error if re-provisioning after
+# btrfs snapshots have been created.
+chown -R draupnir /data || echo "Failed to chown some directories"
 
 # create draupnir postgres instance user
 getent passwd draupnir-instance >/dev/null || useradd draupnir-instance
 
 # create draupnir postgres instance log directory
-mkdir /var/log/postgresql-draupnir-instance
+mkdir -p /var/log/postgresql-draupnir-instance
 chgrp draupnir-instance /var/log/postgresql-draupnir-instance
 chmod 775 /var/log/postgresql-draupnir-instance
 
@@ -87,6 +93,16 @@ ln -sf /draupnir/vagrant/draupnir.service /etc/systemd/system/draupnir.service
 ln -sf /draupnir/cmd/draupnir-* /usr/local/bin
 # allow Draupnir to sudo its scripts
 cp -f /draupnir/vagrant/sudoers_draupnir /etc/sudoers.d/draupnir
+
+mkdir -p /usr/lib/draupnir/bin
+ln -sf /draupnir/scripts/iptables /usr/lib/draupnir/bin/iptables
+
+# Setup iptables rules, to enable whitelisting functionality
+iptables -N DRAUPNIR-WHITELIST || echo "Chain exists"
+iptables_add_if_missing INPUT -i lo -p tcp -m tcp --dport 7432:8432 -j ACCEPT
+iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -m conntrack --ctstate NEW -j DRAUPNIR-WHITELIST
+iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -j DROP
 
 systemctl start draupnir
 

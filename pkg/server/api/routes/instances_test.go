@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -70,6 +71,19 @@ func TestInstanceCreate(t *testing.T) {
 		},
 	}
 
+	whitelistedAddressStore := FakeWhitelistedAddressStore{
+		_Create: func(addr models.WhitelistedAddress) (models.WhitelistedAddress, error) {
+			assert.Equal(t, 1, addr.Instance.ID)
+			assert.Equal(t, "1.2.3.4", addr.IPAddress)
+			return models.WhitelistedAddress{
+				IPAddress: addr.IPAddress,
+				Instance:  addr.Instance,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+			}, nil
+		},
+	}
+
 	executor := FakeExecutor{
 		_CreateInstance: func(ctx context.Context, instanceID int, imageID int, port int) error {
 			assert.Equal(t, 1, instanceID)
@@ -83,20 +97,23 @@ func TestInstanceCreate(t *testing.T) {
 	}
 
 	routeSet := Instances{
-		InstanceStore:   instanceStore,
-		ImageStore:      imageStore,
-		Executor:        executor,
-		MinInstancePort: 5432,
-		MaxInstancePort: 5435,
+		InstanceStore:           instanceStore,
+		ImageStore:              imageStore,
+		WhitelistedAddressStore: whitelistedAddressStore,
+		Executor:                executor,
+		ApplyWhitelist:          func(s string) { fmt.Printf("Whitelister trigger called: %s\n", s) },
+		MinInstancePort:         5432,
+		MaxInstancePort:         5435,
 	}
 	err := routeSet.Create(recorder, req)
 
+	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Nil(t, err)
+
 	var response jsonapi.OnePayload
 	decodeJSON(t, recorder.Body, &response)
-
-	assert.Equal(t, http.StatusCreated, recorder.Code)
 	assert.Equal(t, createInstanceFixture, response)
-	assert.Nil(t, err)
+
 }
 
 func TestInstanceCreateReturnsErrorWithUnreadyImage(t *testing.T) {
@@ -237,6 +254,19 @@ func TestInstanceGet(t *testing.T) {
 		},
 	}
 
+	whitelistedAddressStore := FakeWhitelistedAddressStore{
+		_Create: func(addr models.WhitelistedAddress) (models.WhitelistedAddress, error) {
+			assert.Equal(t, 1, addr.Instance.ID)
+			assert.Equal(t, "1.2.3.4", addr.IPAddress)
+			return models.WhitelistedAddress{
+				IPAddress: addr.IPAddress,
+				Instance:  addr.Instance,
+				CreatedAt: timestamp(),
+				UpdatedAt: timestamp(),
+			}, nil
+		},
+	}
+
 	executor := FakeExecutor{
 		_RetrieveInstanceCredentials: func(ctx context.Context, id int) (map[string][]byte, error) {
 			assert.Equal(t, 1, id)
@@ -246,19 +276,22 @@ func TestInstanceGet(t *testing.T) {
 
 	errorHandler := FakeErrorHandler{}
 	routeSet := Instances{
-		InstanceStore: store,
-		Executor:      executor,
+		InstanceStore:           store,
+		WhitelistedAddressStore: whitelistedAddressStore,
+		ApplyWhitelist:          func(s string) { fmt.Printf("Whitelister trigger called: %s\n", s) },
+		Executor:                executor,
 	}
 	router := mux.NewRouter()
 	router.HandleFunc("/instances/{id}", errorHandler.Handle(routeSet.Get))
 	router.ServeHTTP(recorder, req)
 
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Nil(t, errorHandler.Error)
+
 	var response jsonapi.OnePayload
 	decodeJSON(t, recorder.Body, &response)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, getInstanceFixture, response)
-	assert.Nil(t, errorHandler.Error)
 }
 
 func TestInstanceGetFromWrongUser(t *testing.T) {
@@ -323,7 +356,11 @@ func TestInstanceDestroy(t *testing.T) {
 		},
 	}
 
-	routeSet := Instances{InstanceStore: store, Executor: executor}
+	routeSet := Instances{
+		InstanceStore:  store,
+		ApplyWhitelist: func(s string) { fmt.Printf("Whitelister trigger called: %s\n", s) },
+		Executor:       executor,
+	}
 
 	errorHandler := FakeErrorHandler{}
 	router := mux.NewRouter()
@@ -331,8 +368,8 @@ func TestInstanceDestroy(t *testing.T) {
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
-	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 	assert.Nil(t, errorHandler.Error)
+	assert.Equal(t, 0, len(recorder.Body.Bytes()))
 }
 
 func TestInstanceDestroyFromWrongUser(t *testing.T) {
@@ -409,7 +446,11 @@ func TestInstanceDestroyFromUploadUser(t *testing.T) {
 	}
 
 	errorHandler := FakeErrorHandler{}
-	routeSet := Instances{InstanceStore: store, Executor: executor}
+	routeSet := Instances{
+		InstanceStore:  store,
+		ApplyWhitelist: func(s string) { fmt.Printf("Whitelister trigger called: %s\n", s) },
+		Executor:       executor,
+	}
 	router := mux.NewRouter()
 	route := chain.New(errorHandler.Handle).
 		Add(middleware.Authenticate(authenticator)).

@@ -5,8 +5,12 @@ shared_secret = "the_shared_secret"
 trusted_user_email_domain = "@gocardless.com"
 public_hostname = "localhost"
 clean_interval = "30m"
+enable_ip_whitelisting = true
+whitelist_reconcile_interval = "20m"
 min_instance_port = 7432
 max_instance_port = 8432
+use_x_forwarded_for = true
+trusted_proxy_cidrs = ["10.164.0.0/16"]
 
 [http]
 port = 8443

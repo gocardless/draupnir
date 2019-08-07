@@ -20,6 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+[prune]
+  go-tests = true
+  unused-packages = true
 
 [[constraint]]
   name = "github.com/gorilla/mux"
@@ -64,3 +67,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/prometheus/common"
+
+[[constraint]]
+  name = "github.com/coreos/go-iptables"
+  version = "0.4.2"

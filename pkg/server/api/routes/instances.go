@@ -21,11 +21,13 @@ import (
 )
 
 type Instances struct {
-	InstanceStore   store.InstanceStore
-	ImageStore      store.ImageStore
-	Executor        exec.Executor
-	MinInstancePort uint16
-	MaxInstancePort uint16
+	InstanceStore           store.InstanceStore
+	ImageStore              store.ImageStore
+	WhitelistedAddressStore store.WhitelistedAddressStore
+	ApplyWhitelist          func(string)
+	Executor                exec.Executor
+	MinInstancePort         uint16
+	MaxInstancePort         uint16
 }
 
 type CreateInstanceRequest struct {
@@ -93,6 +95,11 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to create instance")
 	}
 
+	ipaddr, err := middleware.GetUserIPAddress(r)
+	if err != nil {
+		return err
+	}
+
 	if err := i.Executor.CreateInstance(r.Context(), imageID, instance.ID, int(instance.Port)); err != nil {
 		return errors.Wrap(err, "failed to create instance")
 	}
@@ -111,6 +118,14 @@ func (i Instances) Create(w http.ResponseWriter, r *http.Request) error {
 		string(files["ca.crt"]), string(files["client.crt"]), string(files["client.key"]),
 	)
 	instance.Credentials = &creds
+
+	// Add the user's IP address to the whitelist
+	address := models.NewWhitelistedAddress(ipaddr, &instance)
+	address, err = i.WhitelistedAddressStore.Create(address)
+	if err != nil {
+		return errors.Wrap(err, "failed to record whitelisted IP address")
+	}
+	i.ApplyWhitelist("api")
 
 	w.WriteHeader(http.StatusCreated)
 	err = jsonapi.MarshalOnePayload(w, &instance)
@@ -177,6 +192,11 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	ipaddr, err := middleware.GetUserIPAddress(r)
+	if err != nil {
+		return err
+	}
+
 	files, err := i.Executor.RetrieveInstanceCredentials(r.Context(), instance.ID)
 	if err != nil {
 		logger.With("instance", id).Info(
@@ -191,6 +211,14 @@ func (i Instances) Get(w http.ResponseWriter, r *http.Request) error {
 		string(files["ca.crt"]), string(files["client.crt"]), string(files["client.key"]),
 	)
 	instance.Credentials = &creds
+
+	// Add the user's IP address to the whitelist
+	address := models.NewWhitelistedAddress(ipaddr, &instance)
+	address, err = i.WhitelistedAddressStore.Create(address)
+	if err != nil {
+		return errors.Wrap(err, "failed to record whitelisted IP address")
+	}
+	i.ApplyWhitelist("api")
 
 	return errors.Wrap(
 		jsonapi.MarshalOnePayload(w, &instance),
@@ -238,6 +266,11 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to destroy instance")
 	}
+
+	// Destroying the instane will cascade and destroy any linked whitelisted
+	// addresses. Trigger the whitelist reconciler in order to clean up the
+	// obsolete rule.
+	i.ApplyWhitelist("api")
 
 	w.WriteHeader(http.StatusNoContent)
 	return nil

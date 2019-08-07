@@ -16,7 +16,7 @@ migrate:
 	sql-migrate up
 
 dump-schema:
-	pg_dump -sxOf structure.sql draupnir
+	pg_dump --schema-only --no-privileges --no-owner --file structure.sql draupnir
 
 test:
 	go test ./...

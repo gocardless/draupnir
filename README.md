@@ -203,25 +203,29 @@ When draupnir boots it looks for a config file at `/etc/draupnir/config.toml`.
 This file must specify all required configuration variables in order for
 Draupnir to boot. The variables are as follows:
 
-| Field                      | Required | Description
-|----------------------------|----------|---------------------------------------|
-| `database_url`             | True     | A postgresql [connection URI](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING) for draupnir's internal database.
-| `data_path`                | True     | The path to draupnir's data directory, where all images and instances will be stored.
-| `environment`              | True     | The environment. This can be any value, but if it is set to "test", draupnir will use a stubbed authentication client which allows all requests specifying an access token of `the-integration-access-token`. This is intended for integration tests - don't use it in production. The environment will be included in all log messages.
-| `shared_secret`            | True     | A hardcoded access token that can be used by automated scripts which can't authenticate via OAuth. At GoCardless we use this to automatically create new images.
-| `trusted_user_email_domain`| True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
-| `public_hostname`          | True     | The hostname that will be set as PGHOST. This is configurable as it may be different to the hostname of the _API address_ that clients communicate with.
-| `sentry_dsn`               | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
-| `clean_interval`           | True     | The interval at which Draupnir checks and removes any instance associated with a user that no longer has a valid refresh token. Valid values are a sequence of digits followed by a unit, such as "30m", "6h". See [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
-| `min_instance_port`        | True     | The minimum port number (inclusive) that may be used when creating a Draupnir instance.
-| `max_instance_port`        | True     | The maximum port number (exclusive) that may be used when creating a Draupnir instance.
-| `http.port`                | True     | The port that the HTTPS server will bind to.
-| `http.insecure_port`       | True     | The port that the HTTP server will bind to.
-| `http.tls_certificate`     | True     | The path to the TLS certificate file that the HTTPS server will use.
-| `http.tls_private_key`     | True     | The path to the TLS private key that the HTTPS server will use.
-| `oauth.redirect_url`       | True     | The redirect URL for the OAuth flow.
-| `oauth.client_id`          | True     | The OAuth client ID.
-| `oauth.client_secret`      | True     | The OAuth client secret.
+| Field                          | Required | Description
+|--------------------------------|----------|---------------------------------------|
+| `database_url`                 | True     | A postgresql [connection URI](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING) for draupnir's internal database.
+| `data_path`                    | True     | The path to draupnir's data directory, where all images and instances will be stored.
+| `environment`                  | True     | The environment. This can be any value, but if it is set to "test", draupnir will use a stubbed authentication client which allows all requests specifying an access token of `the-integration-access-token`. This is intended for integration tests - don't use it in production. The environment will be included in all log messages.
+| `shared_secret`                | True     | A hardcoded access token that can be used by automated scripts which can't authenticate via OAuth. At GoCardless we use this to automatically create new images.
+| `trusted_user_email_domain`    | True     | The domain under which users are considered "trusted". This is draupnir's rudimentary form of authentication: if a user athenticates via OAuth and their email address is under this domain, they will be allowed to use the service. This domain must start with a `@`, e.g. `@gocardless.com`.
+| `public_hostname`              | True     | The hostname that will be set as PGHOST. This is configurable as it may be different to the hostname of the _API address_ that clients communicate with.
+| `sentry_dsn`                   | False    | The DSN for your [Sentry](https://sentry.io/) project, if you're using Sentry.
+| `clean_interval`               | True     | The interval at which Draupnir checks and removes any instance associated with a user that no longer has a valid refresh token. Valid values are a sequence of digits followed by a unit, such as "30m", "6h". See [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
+| `min_instance_port`            | True     | The minimum port number (inclusive) that may be used when creating a Draupnir instance.
+| `max_instance_port`            | True     | The maximum port number (exclusive) that may be used when creating a Draupnir instance.
+| `enable_ip_whitelisting`       | False    | Whether to enable the [IP whitelisting module](#ip-address-whitelisting).
+| `whitelist_reconcile_interval` | False    | If IP whitelisting is enabled, this is the interval at which Draupnir reconciles the IP address whitelist with what's in iptables, in order to clean up incorrect state. Uses the same format as `clean_interval`.
+| `use_x_forwarded_for`          | False    | Whether to use the `X-Forwarded-For` header when determining the real user IP address. See [documentation](#identification-of-user-ip-addresses).
+| `trusted_proxy_cidrs`          | False    | A list of CIDRs that will match your load balancer IP addresses. Example: `["10.32.0.0/16"]`. See [documentation](#identification-of-user-ip-addresses).
+| `http.port`                    | True     | The port that the HTTPS server will bind to.
+| `http.insecure_port`           | True     | The port that the HTTP server will bind to.
+| `http.tls_certificate`         | True     | The path to the TLS certificate file that the HTTPS server will use.
+| `http.tls_private_key`         | True     | The path to the TLS private key that the HTTPS server will use.
+| `oauth.redirect_url`           | True     | The redirect URL for the OAuth flow.
+| `oauth.client_id`              | True     | The OAuth client ID.
+| `oauth.client_secret`          | True     | The OAuth client secret.
 
 For a complete example of this file, see `spec/fixtures/config.toml`.
 
@@ -559,6 +563,88 @@ are useless.
 Given that an instance's details (and therefore credentials) can only
 be retrieved by the user that created that instance, it also means that only the
 owning user has access to connect to the instance.
+
+### IP address whitelisting
+
+Draupnir provides the ability to dynamically whitelist user IP addresses
+to further secure the Postgres instances that it creates, protecting them from
+automated scans and attacks.
+
+This is achieved via iptables rules. If this component is enabled
+(`enable_ip_whitelisting = true` in the server config) then the Draupnir
+daemon will maintain an iptables chain named `DRAUPNIR-WHITELIST`. It is
+therefore **the administrator's responsibility** to provision other iptables
+rules that reference this chain.
+
+When a user creates an instance, or retrieves the details of one of their own
+instances, this chain will be populated with a rule that allows _new
+connections_ to the Postgres instance port, from their IP address only. The rule
+will be removed as soon as the instance is destroyed.
+
+An example configuration is provided below. This will work in configurations
+where the default policy of the `INPUT` chain is `ACCEPT`. For those with
+defaults of `DROP`, the third rule can be omitted.
+
+```
+# In this example, our Draupnir port range is 6432-7432.
+
+# Setup the DRAUPNIR-WHITELIST chain. The server will create this itself if it's
+# missing, but we  won't be able to reference the chain unless we do this.
+iptables -N DRAUPNIR-WHITELIST
+
+# Allow all connections on the loopback interface
+iptables -A INPUT -i lo -p tcp -m tcp --dport 6432:7432 -j ACCEPT
+
+# For any connections which have been successfully opened, allow further
+# communication.
+iptables -A INPUT -p tcp -m tcp --dport 6432:7432 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# For any new connections, pass them through to the DRAUPNIR-WHITELIST chain
+iptables -A INPUT -p tcp -m tcp --dport 6432:7432 -m conntrack --ctstate NEW -j DRAUPNIR-WHITELIST
+
+# For any connections that have not been accepted by the whitelist, drop the
+# packet
+iptables -A INPUT -p tcp -m tcp --dport 6432:7432 -j DROP
+```
+
+The iptables wrapper library used in this project requires root access, and [does
+not support sudo](https://github.com/coreos/go-iptables/issues/55). Because it
+is strongly recommended to _not_ run the Draupnir server as the root user, this
+can be worked around by using the provided [wrapper script](./scripts/iptables)
+which is installed into the `/usr/lib/draupnir/bin` directory by the Debian
+package.
+The Draupnir server process must be executed with a `PATH` variable that places
+this directory at the beginning, in order to ensure it is used instead of the
+real `iptables` binary.
+
+#### Identification of user IP addresses
+
+The Draupnir server creates whitelist rules based on the IP address of the
+user, which it determines by inspecting the HTTP request that was made to its
+API.
+
+If your Draupnir API server is fronted by a load balancer, then the HTTP
+connection that the Draupnir server receives will originate from that, rather
+than the user directly. In this instance a separate mechanism of determining the
+user's IP address must be employed; the `X-Forwarded-For` header.
+
+If this scenario applies to you then the following steps must be taken:
+1. Ensure that your load balancer places the 'real' user IP address in the
+   `X-Forwarded-For` header.
+2. Enable the use of the `X-Forwarded-For` header for IP address identification
+   by setting the `use_x_forwarded_for` variable to `true`.
+3. Define a list of trusted proxies, via the `trusted_proxy_cidrs` setting.
+   Any IP addresses in the `X-Forwarded-For` header that match any of these
+   CIDRs will be ignored.
+   The real user IP address is then determined by taking the resulting list of
+   elements of the `X-Forwarded-For` header and using the last one (under the
+   assumption that this is the one that your load balancer has added).
+
+If you are not using a load balancer then it is imperative that the
+`use_x_forwarded_for` setting remains disabled. If it is enabled without a load
+balancer present, rewriting the contents of the header, then it's possible for
+an authenticated user to send API requests with a fabricated `X-Forwarded-For`
+header and therefore open up their instance(s) to unauthorized IP addresses.
 
 ### Cleanup of revoked user instances
 

@@ -35,7 +35,7 @@ jobs:
     steps:
       - checkout
       - run: go get github.com/golang/dep/cmd/dep
-      - run: dep ensure -v && dep prune && test -z "$(git status --porcelain -- Gopkg.toml Gopkg.lock vendor)"
+      - run: dep ensure -v && test -z "$(git status --porcelain -- Gopkg.toml Gopkg.lock vendor)"
       - run: mkdir -p $TEST_RESULTS
       - run: make test
 
