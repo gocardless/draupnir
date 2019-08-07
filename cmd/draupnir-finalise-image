@@ -118,17 +118,48 @@ do
   sleep 1
 done
 
-# Anonymise
+# Create a user to perform admin operations with
+sudo -u postgres createuser --port="$PORT" --createdb --createrole --superuser draupnir-admin
+
+# Create a user that will be used to connect to the instance, which does not
+# have superuser privileges, or the ability to create roles with these.
+# It's important to ensure that the user does not have superuser privileges, as
+# otherwise they will have access to read any file on the filesystem that the
+# user the process is running under has access to.
+sudo -u postgres createuser --port="$PORT" --createdb draupnir
+
+# Perform anonymisation. Do this before reassigning ownership, in case the
+# anonymisation script creates new objects owned by the draupnir-admin user.
 echo "Executing anonymisation script $ANON_FILE"
-sudo cat "$ANON_FILE" | sudo -u postgres "$PSQL" -p "$PORT"
+sudo cat "$ANON_FILE" | sudo -u postgres "$PSQL" -p "$PORT" --username=draupnir-admin postgres
 
 echo "Vacuum all the databases in the cluster"
 sudo -u postgres $VACUUMDB --all --port="$PORT" --jobs="$(nproc)"
+
+# Reassign the ownership of all objects (databases, tables, views etc.) from
+# the current user to the 'draupnir' user.
+# An assumption is made that the 'postgres' user is the superuser that was
+# created at initdb time, and therefore is skipped as it's not possible to
+# reassign all objects owned by this user. If this assumption does not hold,
+# then errors may be reported.
+pushd /tmp
+sudo -u postgres psql -U draupnir-admin -d postgres -p "$PORT" -v ON_ERROR_STOP=1 --echo-errors -qAtc "SELECT datname FROM pg_database WHERE datistemplate = false;" \
+  | while read -r database; do
+    sudo -u postgres psql -U draupnir-admin -d postgres -p "$PORT" -v ON_ERROR_STOP=1 --echo-errors -qAtc "SELECT usename FROM pg_user WHERE usename <> 'postgres';" \
+    | while read -r user; do
+      echo "Changing ownership of ${database}/${user}"
+      sudo -u postgres psql -U draupnir-admin -d "$database" -p "$PORT" -v ON_ERROR_STOP=1 --echo-errors -qAtc 'REASSIGN OWNED BY "'"${user}"'" TO draupnir;'
+  done
+done
+popd
 
 echo "Turning back on fsync and hot_standby wal level"
 sed -i \
   "s/wal_level = 'off'/wal_level = 'hot_standby'/; s/fsync = 'off'/fsync = 'on'/" \
   "${UPLOAD_PATH}/postgresql.conf"
+
+# The 'draupnir-admin' user is no longer required
+sudo -u postgres dropuser --port="$PORT" draupnir-admin
 
 sudo -u postgres $PG_CTL -D "$UPLOAD_PATH" -w stop
 sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
@@ -136,11 +167,11 @@ sudo rm -f "${UPLOAD_PATH}/postmaster.opts"
 
 # Install our own pg_hba.conf, and ensure that it cannot be modified
 cat > "${UPLOAD_PATH}/pg_hba.conf" <<EOF
-# NOTE: The clientcert=1 option is essential - without this the Draupnir
-# instance will be accessible to anyone with knowledge of the host and port.
+# NOTE: The cert auth method is essential - without this the Draupnir instance
+# will be accessible to anyone with knowledge of the host and port.
 # Do not edit this unless you are absolutely certain of the consequences.
-local   all     all                     trust
-hostssl all     all     0.0.0.0/0       trust   clientcert=1
+local   all     all                             trust
+hostssl all     draupnir        0.0.0.0/0       cert    map=draupnir
 EOF
 
 # Draupnir instances run as the draupnir-instance user

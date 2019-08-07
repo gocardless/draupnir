@@ -96,19 +96,30 @@ listen_addresses = 'localhost'
 EOF
 chmod 640 "${INSTANCE_PATH}/postgresql.auto.conf"
 
+# Provision a pg_ident.conf, and ensure that it can't be edited
+# The system username must match the CN provisioned in the client cert above.
+cat > "${INSTANCE_PATH}/pg_ident.conf" <<EOF
+# MAPNAME       SYSTEM-USERNAME                               PG-USERNAME
+draupnir        "Draupnir instance ${INSTANCE_ID} client"     draupnir
+EOF
+
+chown root:draupnir-instance "${INSTANCE_PATH}/pg_ident.conf"
+chmod 640 "${INSTANCE_PATH}/pg_ident.conf"
+chattr +i "${INSTANCE_PATH}/pg_ident.conf"
+
 sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" -o "-p $PORT" -l "/var/log/postgresql-draupnir-instance/instance_$INSTANCE_ID" start
 
 # Verify that our instance has the correct authentication restrictions, so that
 # we can be sure it is not accessible to anyone not connecting in the expected
 # manner.
 PGSSLMODE=disable \
-  psql -h localhost -p "$PORT" -U postgres -d postgres -Atc 'SELECT now();' \
+  psql -h localhost -p "$PORT" -U draupnir -d postgres -Atc 'SELECT now();' \
     && die_and_stop "ERROR: Able to connect via non-TLS connection" \
     || echo "INFO: Not able to connect via non-TLS connection"
 
 PGSSLMODE=verify-ca \
   PGSSLROOTCERT="${INSTANCE_PATH}/ca.crt" \
-  psql -h localhost -p "$PORT" -U postgres -d postgres -Atc 'SELECT now();' \
+  psql -h localhost -p "$PORT" -U draupnir -d postgres -Atc 'SELECT now();' \
     && die_and_stop "ERROR: Able to connect via TLS connection without client certificate" \
     || echo "INFO: Not able to connect without client certificate"
 
@@ -116,11 +127,32 @@ PGSSLMODE=verify-ca \
   PGSSLROOTCERT="${INSTANCE_PATH}/ca.crt" \
   PGSSLCERT="${INSTANCE_PATH}/client.crt" \
   PGSSLKEY="${INSTANCE_PATH}/client.key" \
-  psql -h localhost -p "$PORT" -U postgres -d postgres -Atc 'SELECT now();' \
+  psql -h localhost -p "$PORT" -U draupnir -d postgres -Atc 'SELECT now();' \
     || die_and_stop "ERROR: Unable to connect via client-authenticated TLS connection"
+
+# Ensure that the user we're logging in with does not have superuser privileges.
+ISSUPERUSER=$(
+  PGSSLMODE=verify-ca \
+  PGSSLROOTCERT="${INSTANCE_PATH}/ca.crt" \
+  PGSSLCERT="${INSTANCE_PATH}/client.crt" \
+  PGSSLKEY="${INSTANCE_PATH}/client.key" \
+  psql -h localhost -p "$PORT" -U draupnir -d postgres -Atc 'SELECT usesuper FROM pg_user WHERE usename = CURRENT_USER;' \
+    || die_and_stop "ERROR: Unable to check superuser status"
+)
+[ "$ISSUPERUSER" == "f" ] || die_and_stop "ERROR: unexpected superuser status: '${ISSUPERUSER}'"
+
+# Ensure that it's not possible to login with another user, e.g. postgres,
+# which may have superuser privileges.
+PGSSLMODE=verify-ca \
+  PGSSLROOTCERT="${INSTANCE_PATH}/ca.crt" \
+  PGSSLCERT="${INSTANCE_PATH}/client.crt" \
+  PGSSLKEY="${INSTANCE_PATH}/client.key" \
+  psql -h localhost -p "$PORT" -U postgres -d postgres -Atc 'SELECT now();' \
+    && die_and_stop "ERROR: Able to connect with postgres user" \
+    || echo "INFO: Not able to connect with postgres user"
 
 rm -v "${INSTANCE_PATH}/postgresql.auto.conf"
 
-sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" -o "-i -p $PORT" -l "/var/log/postgresql-draupnir-instance/instance_$INSTANCE_ID" restart
+sudo -u draupnir-instance $PG_CTL -w -D "$INSTANCE_PATH" -o "-p $PORT" -l "/var/log/postgresql-draupnir-instance/instance_$INSTANCE_ID" restart
 
 set +x
