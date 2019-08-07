@@ -68,19 +68,24 @@ func (iw *IPAddressWhitelister) Start(ctx context.Context, interval time.Duratio
 		return errors.Wrap(err, "failed to ensure whitelist chain is present")
 	}
 
-	// Immediately trigger a reconciliation, then run the reconciliation upon the
-	// specified interval.
-	// This repeating reconciliation is responsible for cleaning up whitelist rules
-	// that should no longer exist, for example if rows have been manually
-	// deleted from the instances table.
-	ticker := time.NewTicker(interval)
+	// Trigger reconciles every interval, along with a single first-time reconcile
 	go func() {
-		iw.TriggerReconcile("timer")
-		<-ticker.C
+		for {
+			iw.TriggerReconcile("timer")
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(interval):
+				// continue
+			}
+		}
 	}()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return nil
 		case request := <-iw.reconcileTrigger:
 			err = iw.reconcile(ipt, request)
 			if err != nil {
@@ -92,8 +97,6 @@ func (iw *IPAddressWhitelister) Start(ctx context.Context, interval time.Duratio
 				iw.logger.Error(err)
 				iw.sentryClient.CaptureError(err, map[string]string{})
 			}
-		case <-ctx.Done():
-			return nil
 		}
 	}
 }
