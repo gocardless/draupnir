@@ -24,13 +24,13 @@ GEM
     coderay (1.1.2)
     concurrent-ruby (1.0.5)
     diff-lcs (1.3)
-    docker-api (1.34.0)
+    docker-api (1.34.2)
       excon (>= 0.47.0)
       multi_json
     domain_name (0.5.20170404)
       unf (>= 0.0.5, < 1.0.0)
     dotenv (2.2.1)
-    excon (0.60.0)
+    excon (0.71.1)
     ffi (1.9.18)
     fpm (1.9.3)
       arr-pm (~> 0.0.10)
@@ -55,7 +55,7 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2016.0521)
     minitest (5.10.3)
-    multi_json (1.12.2)
+    multi_json (1.14.1)
     mustache (0.99.8)
     netrc (0.11.0)
     parallel (1.12.1)
@@ -115,7 +115,7 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport
-  docker-api
+  docker-api (>= 1.34.0)
   fpm
   pry
   rest-client
@@ -124,4 +124,4 @@ DEPENDENCIES
   rubocop
 
 BUNDLED WITH
-   1.16.0.pre.3
+   1.17.3
