@@ -219,10 +219,10 @@ Draupnir to boot. The variables are as follows:
 | `whitelist_reconcile_interval` | False    | If IP whitelisting is enabled, this is the interval at which Draupnir reconciles the IP address whitelist with what's in iptables, in order to clean up incorrect state. Uses the same format as `clean_interval`.
 | `use_x_forwarded_for`          | False    | Whether to use the `X-Forwarded-For` header when determining the real user IP address. See [documentation](#identification-of-user-ip-addresses).
 | `trusted_proxy_cidrs`          | False    | A list of CIDRs that will match your load balancer IP addresses. Example: `["10.32.0.0/16"]`. See [documentation](#identification-of-user-ip-addresses).
-| `http.port`                    | True     | The port that the HTTPS server will bind to.
-| `http.insecure_port`           | True     | The port that the HTTP server will bind to.
-| `http.tls_certificate`         | True     | The path to the TLS certificate file that the HTTPS server will use.
-| `http.tls_private_key`         | True     | The path to the TLS private key that the HTTPS server will use.
+| `http.listen_address`          | False    | The address and port that the HTTPS server will bind to.
+| `http.insecure_listen_address` | False    | The address and port that the HTTP server will bind to.
+| `http.tls_certificate`         | False    | The path to the TLS certificate file that the HTTPS server will use.
+| `http.tls_private_key`         | False    | The path to the TLS private key that the HTTPS server will use.
 | `oauth.redirect_url`           | True     | The redirect URL for the OAuth flow.
 | `oauth.client_id`              | True     | The OAuth client ID.
 | `oauth.client_secret`          | True     | The OAuth client secret.

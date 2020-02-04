@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -200,30 +199,37 @@ func Run(logger log.Logger) error {
 
 	var g rungroup.Group
 
-	// The default server for draupnir which will listen on TLS
-	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.HTTPConfig.Port),
-		Handler: router,
+	if cfg.HTTPConfig.SecureListenAddress != "" {
+		// The default server for draupnir which will listen on TLS
+		server := http.Server{
+			Addr:    cfg.HTTPConfig.SecureListenAddress,
+			Handler: router,
+		}
+
+		g.Add(
+			func() error {
+				return server.ListenAndServeTLS(cfg.HTTPConfig.TLSCertificatePath, cfg.HTTPConfig.TLSPrivateKeyPath)
+			},
+			func(error) { server.Shutdown(context.Background()) },
+		)
 	}
 
-	g.Add(
-		func() error {
-			return server.ListenAndServeTLS(cfg.HTTPConfig.TLSCertificatePath, cfg.HTTPConfig.TLSPrivateKeyPath)
-		},
-		func(error) { server.Shutdown(context.Background()) },
-	)
+	if cfg.HTTPConfig.InsecureListenAddress != "" {
+		// If configured, then allow connections via a non-TLS port.
+		serverInsecure := http.Server{
+			Addr:    cfg.HTTPConfig.InsecureListenAddress,
+			Handler: router,
+		}
 
-	// We then listen for insecure connections on localhost, allowing connections from
-	// within the host without requiring the user to explicitly ignore certificates.
-	serverInsecure := http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", cfg.HTTPConfig.InsecurePort),
-		Handler: router,
+		g.Add(
+			func() error { return serverInsecure.ListenAndServe() },
+			func(error) { serverInsecure.Shutdown(context.Background()) },
+		)
 	}
 
-	g.Add(
-		func() error { return serverInsecure.ListenAndServe() },
-		func(error) { serverInsecure.Shutdown(context.Background()) },
-	)
+	if cfg.HTTPConfig.SecureListenAddress == "" && cfg.HTTPConfig.InsecureListenAddress == "" {
+		return errors.New("Neither a secure or insecure listen was address specified")
+	}
 
 	{
 		// We clean out old instances that have invalid tokens periodically as access

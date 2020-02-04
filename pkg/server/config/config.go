@@ -11,10 +11,10 @@ import (
 
 // HTTPConfig holds Draupnir's HTTP configuration
 type HTTPConfig struct {
-	Port               int    `toml:"port"`
-	InsecurePort       int    `toml:"insecure_port"`
-	TLSCertificatePath string `toml:"tls_certificate"`
-	TLSPrivateKeyPath  string `toml:"tls_private_key"`
+	SecureListenAddress   string `toml:"listen_address" required:"false"`
+	InsecureListenAddress string `toml:"insecure_listen_address" required:"false"`
+	TLSCertificatePath    string `toml:"tls_certificate" required:"false"`
+	TLSPrivateKeyPath     string `toml:"tls_private_key" required:"false"`
 }
 
 // OAuthConfig holds Draupnir's OAuth configuration
