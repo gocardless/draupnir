@@ -42,7 +42,7 @@ Install prerequisites:
 brew cask install virtualbox vagrant
 ```
 
-Build the Linux binary
+Build the Linux binary:
 ```
 make build-linux
 ```
@@ -52,13 +52,17 @@ Boot Vagrant VM:
 vagrant up
 ```
 
-Login and use Draupnir
+Login and use Draupnir:
 ```
 vagrant ssh
 $ sudo su -
-# eval $(/draupnir/draupnir.linux_amd64 --insecure new)
-# export PGHOST=localhost
-# psql
+# eval $(draupnir new)
+# psql -d myapp
+```
+
+After making changes to the code, to restart the server:
+```
+make build-linux && vagrant up --provision
 ```
 
 Tests

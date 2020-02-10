@@ -1,3 +1,11 @@
+# The vagrant instance has been provisioned to trust a self-signed CA
+# certificate that has been used to sign a `localhost` certificate.
+# Therefore the `--skip-verify` flag is not required when interacting with the
+# CLI.
 Domain = "localhost:8443"
+
+# Alternatively, uncomment this and use the `--insecure` flag
+# Domain = "localhost:8080"
+
 [Token]
   RefreshToken = "the_shared_secret"
