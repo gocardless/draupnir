@@ -4,7 +4,52 @@ Changelog
 Unreleased
 ----------
 
-Nothing
+- Nothing
+
+4.1.0
+-----
+
+- Perform dynamic whitelisting of user IP addresses, to conceal instances and
+  prevent brute-forcing.
+- Provide access to instances via a `draupnir` postgres user, rather than the
+  `postgres` role which has SUPERUSER privileges.
+- Don't run Draupnir instances as the postgres unix user.
+- Further harden TLS cipher suite configuration.
+
+4.0.2
+-----
+
+- Check when creating instances that non-authenticated connections are denied.
+  - This was already the case, but this code serves as a defense for any
+  potential regressions.
+
+4.0.1
+-----
+
+- Harden TLS cipher suite configuration.
+
+4.0.0
+-----
+
+**BREAKING CHANGES**
+
+- Secure instances with client certificate authentication.
+  - This is a mandatory feature and therefore requires a client running the same
+    version in order to consume the additional API fields.
+
+**Other improvements**
+
+- Automatically destroy user instances where their token is no longer valid.
+- Allow configuration of a port range for instances.
+- Allow configuration of a separate hostname that Draupnir instances should be
+  accessed via.
+- Add Vagrant VM for development and validation.
+- Replace custom parallel vacuum with vacuumdb.
+
+**Bug fixes**
+
+- Fix error-passing in middlewares.
+- Prevent instance port collisions.
 
 3.1.0
 -----
