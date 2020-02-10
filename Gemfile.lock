@@ -30,7 +30,7 @@ GEM
     domain_name (0.5.20170404)
       unf (>= 0.0.5, < 1.0.0)
     dotenv (2.2.1)
-    excon (0.60.0)
+    excon (0.71.0)
     ffi (1.9.18)
     fpm (1.9.3)
       arr-pm (~> 0.0.10)
