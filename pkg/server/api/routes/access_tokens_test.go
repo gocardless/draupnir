@@ -61,7 +61,7 @@ func TestCallback(t *testing.T) {
 	oauthClient := auth.FakeOAuthClient{
 		MockExchange: func(ctx context.Context, _code string) (*oauth2.Token, error) {
 			assert.Equal(t, code, _code)
-			return &oauth2.Token{AccessToken: "the-access-token"}, nil
+			return &oauth2.Token{RefreshToken: "the-access-token"}, nil
 		},
 	}
 
@@ -87,7 +87,7 @@ func TestCallback(t *testing.T) {
 
 	select {
 	case result := <-callback:
-		assert.Equal(t, OAuthCallback{Token: oauth2.Token{AccessToken: "the-access-token"}, Error: nil}, result)
+		assert.Equal(t, OAuthCallback{Token: oauth2.Token{RefreshToken: "the-access-token"}, Error: nil}, result)
 	default:
 		t.Fatal("Received nothing in channel")
 	}

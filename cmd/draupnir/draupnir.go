@@ -121,12 +121,13 @@ func main() {
 			Name:    "authenticate",
 			Aliases: []string{},
 			Usage:   "authenticate with google",
+			Flags:   []cli.Flag{cli.BoolFlag{Name: "force", Usage: "Force reauthentication"}},
 			Action: func(c *cli.Context) error {
 				cfg := loadConfig(logger)
 				client := NewClient(c, logger)
 
-				if cfg.Token.RefreshToken != "" {
-					logger.Info("You're already authenticated")
+				if cfg.Token.RefreshToken != "" && !c.Bool("force") {
+					logger.Info("You're already authenticated. Pass --force to reauthenticate.")
 					return nil
 				}
 
