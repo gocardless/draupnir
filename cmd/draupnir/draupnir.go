@@ -40,6 +40,10 @@ func main() {
 	app.CustomAppHelpTemplate = fmt.Sprintf("%s%s", cli.AppHelpTemplate, quickStart)
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
+			Name:  "skip-verify",
+			Usage: "do not use the TLS protocol when connecting to draupnir",
+		},
+		cli.BoolFlag{
 			Name:  "insecure",
 			Usage: "don't validate certificates when connecting to draupnir",
 		},
@@ -132,7 +136,7 @@ func main() {
 
 				state := fmt.Sprintf("%d", rand.Int31())
 
-				url := fmt.Sprintf("https://%s/authenticate?state=%s", cfg.Domain, state)
+				url := fmt.Sprintf("%s/authenticate?state=%s", getServerURL(c, cfg), state)
 				err := exec.Command("open", url).Run()
 				if err != nil {
 					fmt.Printf("Visit this link in your browser: %s\n", url)
@@ -473,8 +477,16 @@ func storeConfig(cfg config.Config, logger log.Logger) {
 func NewClient(c *cli.Context, logger log.Logger) clientPkg.Client {
 	cfg := loadConfig(logger)
 	return clientPkg.NewClient(
-		fmt.Sprintf("https://%s", cfg.Domain),
+		getServerURL(c, cfg),
 		cfg.Token,
-		c.GlobalBool("insecure"),
+		c.GlobalBool("skip-verify"),
 	)
+}
+
+func getServerURL(c *cli.Context, cfg config.Config) string {
+	if c.GlobalBool("insecure") {
+		return fmt.Sprintf("http://%s", cfg.Domain)
+	}
+
+	return fmt.Sprintf("https://%s", cfg.Domain)
 }
