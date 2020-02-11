@@ -13,10 +13,10 @@ use_x_forwarded_for = true
 trusted_proxy_cidrs = ["10.164.0.0/16"]
 
 [http]
-port = 8443
-insecure_port = 8080
-tls_certificate = "/etc/ssl/certs/ssl-cert-snakeoil.pem"
-tls_private_key = "/etc/ssl/private/ssl-cert-snakeoil.key"
+listen_address = "0.0.0.0:8443"
+insecure_listen_address = "127.0.0.1:8080"
+tls_certificate = "/var/draupnir/certificates/server.crt"
+tls_private_key = "/var/draupnir/certificates/server.key"
 
 [oauth]
 redirect_url = "https://example.com/oauth_callback"

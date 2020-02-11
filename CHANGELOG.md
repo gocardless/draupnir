@@ -4,7 +4,13 @@ Changelog
 Unreleased
 ----------
 
-- Nothing
+**BREAKING CHANGES**
+- The meaning of the `--insecure` flag has changed. Use `--skip-verify` for the
+  old behaviour. `--insecure` now forces a non-TLS connection to the domain
+  specified in the local config file.
+- Remove the `port` and `insecure_port` configuration options, and replace them
+  with `listen_address` and `insecure_listen_address`. These are both optional
+  parameters, but at least one must be specified.
 
 4.1.0
 -----

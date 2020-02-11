@@ -6,6 +6,6 @@ After = network.target
 User = draupnir
 # Ensure that the directory that contains the iptables wrapper is at the front of the path
 Environment=PATH=/usr/lib/draupnir/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart = /draupnir/draupnir.linux_amd64 server
+ExecStart = /usr/local/bin/draupnir server
 Restart = always
 KillMode = process

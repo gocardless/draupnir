@@ -4,8 +4,18 @@ set -euo pipefail
 set -x
 
 iptables_add_if_missing() {
-  iptables -C "$@" || iptables -A "$@"
+  iptables -C "$@" 2>/dev/null || iptables -A "$@"
 }
+
+log_on_failure() {
+    echo "Provisioning failed"
+    # It's useful to see the logs of the Draupnir server when a failure occurs.
+    journalctl -u draupnir | tail -100
+
+    exit 1
+}
+
+trap log_on_failure ERR
 
 # prevent psql error messages
 cd /
@@ -42,9 +52,7 @@ getent passwd draupnir >/dev/null || useradd --groups ssl-cert --create-home dra
 
 # create draupnir directories
 mkdir -p /data/{image_uploads,image_snapshots,instances}
-# Ignore a failing status code, as this will error if re-provisioning after
-# btrfs snapshots have been created.
-chown -R draupnir /data || echo "Failed to chown some directories"
+chown draupnir /data/{image_uploads,image_snapshots,instances}
 
 # create draupnir postgres instance user
 getent passwd draupnir-instance >/dev/null || useradd draupnir-instance
@@ -83,15 +91,45 @@ fi
 
 cd /draupnir && sudo -u draupnir sql-migrate up -env=vagrant && cd -
 
+# Prepare TLS certificates for Draupnir API server
+DRAUPNIR_TLS_PATH=/var/draupnir/certificates
+mkdir -p "$DRAUPNIR_TLS_PATH"
+
+# Create a CA
+openssl req -new -nodes -text \
+    -out "${DRAUPNIR_TLS_PATH}/ca.csr" -keyout "${DRAUPNIR_TLS_PATH}/ca.key" \
+      -subj "/CN=Draupnir API server certification authority"
+chmod 600 "${DRAUPNIR_TLS_PATH}/ca.key"
+openssl x509 -req -in "${DRAUPNIR_TLS_PATH}/ca.csr" -text -days 365 \
+    -extfile /etc/ssl/openssl.cnf -extensions v3_ca \
+      -signkey "${DRAUPNIR_TLS_PATH}/ca.key" -out "${DRAUPNIR_TLS_PATH}/ca.crt"
+
+# Create a server certificate
+openssl req -new -nodes -text \
+    -out "${DRAUPNIR_TLS_PATH}/server.csr" -keyout "${DRAUPNIR_TLS_PATH}/server.key" \
+      -subj "/CN=localhost"
+chmod 600 "${DRAUPNIR_TLS_PATH}/server.key"
+openssl x509 -req -in "${DRAUPNIR_TLS_PATH}/server.csr" -text -days 30 \
+    -CA "${DRAUPNIR_TLS_PATH}/ca.crt" -CAkey "${DRAUPNIR_TLS_PATH}/ca.key" -CAcreateserial \
+      -out "${DRAUPNIR_TLS_PATH}/server.crt"
+chown draupnir "${DRAUPNIR_TLS_PATH}/server.key" "${DRAUPNIR_TLS_PATH}/server.crt"
+
+# Ensure that our cert is trusted via a full certificate chain, so that we can
+# use the Draupnir CLI without needing to specify the `--skip-verify` flag
+cp "${DRAUPNIR_TLS_PATH}/ca.crt" /usr/local/share/ca-certificates
+update-ca-certificates
+
 # prepare configuration
 mkdir -p /etc/draupnir
 ln -sf /draupnir/vagrant/draupnir_config.toml /etc/draupnir/config.toml
 ln -sf /draupnir/vagrant/draupnir_client_config.toml /root/.draupnir
 ln -sf /draupnir/vagrant/draupnir.service /etc/systemd/system/draupnir.service
 
-# make scripts availabe on PATH
+# Make the draupnir binary accessible for use in PATH
+ln -sf /draupnir/draupnir.linux_amd64 /usr/local/bin/draupnir
+# Make scripts availabe on PATH
 ln -sf /draupnir/cmd/draupnir-* /usr/local/bin
-# allow Draupnir to sudo its scripts
+# Allow Draupnir to sudo its scripts
 cp -f /draupnir/vagrant/sudoers_draupnir /etc/sudoers.d/draupnir
 
 mkdir -p /usr/lib/draupnir/bin
@@ -104,15 +142,18 @@ iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -m conntrack --cts
 iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -m conntrack --ctstate NEW -j DRAUPNIR-WHITELIST
 iptables_add_if_missing INPUT -p tcp -m tcp --dport 7432:8432 -j DROP
 
+# Perform a full restart in case there have been changes to the binary or config.
+systemctl daemon-reload
+systemctl stop draupnir
 systemctl start draupnir
 
 # wait for the server to boot up, before trying to create an image
 sleep 1
 
 # create an image, if one doesn't already exist
-if ! /draupnir/draupnir.linux_amd64 --insecure images list | grep -E 'READY:.*true'; then
+if ! draupnir images list | grep -E 'READY:.*true'; then
     # create draupnir image
-    IMAGE_ID=$(/draupnir/draupnir.linux_amd64 --insecure images create "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "/draupnir/vagrant/anonymisation.sql" | awk '{print $1}')
+    IMAGE_ID=$(draupnir images create "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "/draupnir/vagrant/anonymisation.sql" | awk '{print $1}')
     IMAGE_PATH="/data/image_uploads/${IMAGE_ID}"
 
     cp -rp /data/example_db/* "${IMAGE_PATH}"
@@ -123,5 +164,5 @@ if ! /draupnir/draupnir.linux_amd64 --insecure images list | grep -E 'READY:.*tr
 EOF
 
     chown -R postgres:postgres "${IMAGE_PATH}"
-    /draupnir/draupnir.linux_amd64 --insecure images finalise "${IMAGE_ID}"
+    draupnir images finalise "${IMAGE_ID}"
 fi

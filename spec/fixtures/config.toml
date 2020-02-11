@@ -10,8 +10,8 @@ min_instance_port = 16384
 max_instance_port = 20480
 
 [http]
-port = 8443
-insecure_port = 8080
+listen_address = "0.0.0.0:8443"
+insecure_listen_address = "127.0.0.1:8080"
 tls_certificate = "/etc/ssl/certs/draupnir_cert.pem"
 tls_private_key = "/etc/ssl/certs/draupnir_key.pem"
 
