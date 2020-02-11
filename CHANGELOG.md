@@ -4,7 +4,9 @@ Changelog
 Unreleased
 ----------
 
-**BREAKING CHANGES**
+5.0.0
+-----
+
 - The meaning of the `--insecure` flag has changed. Use `--skip-verify` for the
   old behaviour. `--insecure` now forces a non-TLS connection to the domain
   specified in the local config file.
