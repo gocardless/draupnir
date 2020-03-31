@@ -1,8 +1,10 @@
 Changelog
 =========
 
-Unreleased
-----------
+5.0.1
+-----
+- Use pg_ctl wait with a timeout in draupnir-finalise-image script to wait until
+  PostgreSQL is ready to accept connections.
 
 5.0.0
 -----
