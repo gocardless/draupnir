@@ -100,23 +100,17 @@ EOF
 LOG_FILE="/var/log/postgresql/image_${ID}"
 
 # Start postgres
-sudo -u postgres $PG_CTL -w -D "$UPLOAD_PATH" -o "-p $PORT" -l "${LOG_FILE}" start
 
-# We need to wait for postgres to boot and announce that the recovery has
-# completed. Ideally WAL recovery shouldn't take long, but for high volume
-# databases Postgres needs a window to catch-up from the last checkpoint.
-TIMEOUT=600 # 10m
-sudo -u postgres touch "${LOG_FILE}" # otherwise we'll fail grep'ing the file
-until grep "database system is ready to accept connections" "${LOG_FILE}"
-do
-  if [ $(( TIMEOUT-- )) -eq 0 ];
-  then
-    cat "${LOG_FILE}" >&2
-    echo "Postgres recovery failed, timed out waiting for recovery" >&2
-    exit 255
-  fi
-  sleep 1
-done
+# We need to wait (-w) for postgres to boot and accept
+# connections before continuing. Ideally WAL recovery shouldn't take long, but
+# for high volume databases Postgres needs a window to catch-up from the last
+# checkpoint.
+
+# If startup doesn't complete within the timeout (-t <seconds>) then pg_ctl
+# exits with a nonzero exit status. Note that the startup will continue in the
+# background and may eventually succeed - all the nonzero exit has done here is
+# notify that it didn't happen within the timout.
+sudo -u postgres $PG_CTL -w -t 600 -D "$UPLOAD_PATH" -o "-p $PORT" -l "${LOG_FILE}" start
 
 # Create a user to perform admin operations with
 sudo -u postgres createuser --port="$PORT" --createdb --createrole --superuser draupnir-admin
