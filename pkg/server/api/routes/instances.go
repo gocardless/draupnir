@@ -267,7 +267,7 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to destroy instance")
 	}
 
-	// Destroying the instane will cascade and destroy any linked whitelisted
+	// Destroying the instance will cascade and destroy any linked whitelisted
 	// addresses. Trigger the whitelist reconciler in order to clean up the
 	// obsolete rule.
 	i.ApplyWhitelist("api")
