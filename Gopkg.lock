@@ -69,11 +69,12 @@
   revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
 
 [[projects]]
-  digest = "1:9f4913eb2845bd8eef171d51a154b75eb3c4192949deecae92b2b7f0289ffa60"
+  digest = "1:a712b5079fa7fd942a077341757265836063980331c0186360d463d61ffa2223"
   name = "github.com/google/jsonapi"
   packages = ["."]
   pruneopts = "UT"
-  revision = "925ebf2136461bb9d121340ec95a719bf9073d1c"
+  revision = "46d3ced0434461be12e555852e2f1a9ed382e139"
+  version = "1.0.0"
 
 [[projects]]
   digest = "1:160eabf7a69910fd74f29c692718bc2437c1c1c7d4c9dea9712357752a70e5df"

@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "github.com/google/jsonapi"
-  revision = "925ebf2136461bb9d121340ec95a719bf9073d1c"
+  version = "^1.0.0"
 
 [[constraint]]
   branch = "master"
