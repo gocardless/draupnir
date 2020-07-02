@@ -37,12 +37,12 @@
   version = "2017.11.05"
 
 [[projects]]
-  digest = "1:b005ce8095258a4331467c754e5643c1b55edcc30579a546c099973d9563dd74"
+  digest = "1:2debc00eaf8ffdbfb0570a791a84e64a3cfc146f5e61b54d4abd65c2de364552"
   name = "github.com/coreos/go-iptables"
   packages = ["iptables"]
   pruneopts = "UT"
-  revision = "f1d0510cabcb710d5c5dd284096f81444b9d8d10"
-  version = "v0.4.2"
+  revision = "f901d6c2a4f2a4df092b98c33366dfba1f93d7a0"
+  version = "v0.4.5"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
