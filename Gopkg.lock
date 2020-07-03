@@ -128,11 +128,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c47550d71ea17823202a58abc3f635da0a341284342e64fb0d1a95a4cf790301"
+  digest = "1:2226c7969bd90f6d3cb7a552e20283f3a762f30da23057d99857b1f7c2a6d8b7"
   name = "github.com/prometheus/common"
   packages = ["log"]
   pruneopts = "UT"
-  revision = "89604d197083d4781071d3c65855d24ecfb0a563"
+  revision = "886bed85d9dc60c52e5efa54441a5e278a35e2ab"
 
 [[projects]]
   digest = "1:5622116f2c79239f2d25d47b881e14f96a8b8c17b63b8a8326a38ee1a332b007"
