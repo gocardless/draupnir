@@ -25,8 +25,16 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			// recorder.
 			recorder := httptest.NewRecorder()
 
+			// Add a collection of headers that might be useful to log
 			scopedLogger := logger.
-				With("http_request", r)
+				With("method", r.Method).
+				With("path", r.URL.String()).
+				With("headers__host", r.Header.Get("Host")).
+				With("headers__content_type", r.Header.Get("Content-Type")).
+				With("headers__x_forwarded_for", r.Header.Get("X-Forwarded-For")).
+				With("headers__x_cloud_trace_context", r.Header.Get("X-Cloud-Trace-Context")).
+				With("headers__draupnir_version", r.Header.Get("Draupnir-Version")).
+				With("headers__user_agent", r.Header.Get("User-Agent"))
 
 			// This coupling between middlewares isn't great, but it is valuable to
 			// get the IP address injected into the logger early in the chain.
@@ -47,7 +55,7 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			duration := time.Since(start)
 
 			requestLine := fmt.Sprintf(
-				"%s %s %d %f\n",
+				"%s %s %d %f",
 				r.Method,
 				r.URL.String(),
 				recorder.Code,
@@ -55,8 +63,6 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 			)
 
 			scopedLogger.
-				With("method", r.Method).
-				With("path", r.URL.String()).
 				With("status", recorder.Code).
 				With("duration", duration.Seconds()).
 				Info(requestLine)
