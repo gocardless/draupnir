@@ -2,29 +2,6 @@
 version: 2
 
 references:
-  bundle_install: &bundle_install
-    run:
-      name: Bundle
-      command: bundle install --path vendor/bundle --jobs=4 --retry=3
-  cache_bundle_for_lockfile: &cache_bundle_for_lockfile
-    save_cache:
-      key: v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
-      paths:
-        - vendor/bundle
-  cache_bundle: &cache_bundle
-    save_cache:
-      key: v3-ruby2.4.1-Gemfile
-      paths:
-        - vendor/bundle
-  restore_bundle: &restore_bundle
-    restore_cache:
-      keys:
-        - v3-ruby2.4.1-Gemfile-{{ checksum "Gemfile.lock" }}
-        - v3-ruby2.4.1-Gemfile
-  docker_build_image: &docker_build_image
-    docker:
-      - image: gocardless/draupnir-circleci:latest
-    working_directory: /go/src/github.com/gocardless/draupnir
   docker_golang: &docker_golang
     docker:
       - image: golang:1.14
@@ -32,7 +9,7 @@ references:
 
 jobs:
   unit:
-    <<: *docker_build_image
+    <<: *docker_golang
     environment:
       TEST_RESULTS: /tmp/test-results
       GOPATH: /go
@@ -47,6 +24,7 @@ jobs:
       - checkout
       - run: go mod download
       - run: env GOPROXY=off go build -mod=readonly ./...
+
   check-deps-tidy:
     <<: *docker_golang
     steps:
@@ -59,7 +37,7 @@ jobs:
 
   rubocop:
     docker:
-      - image: circleci/ruby:2.4.2
+      - image: circleci/ruby:2.7.1
     working_directory: ~/draupnir
     steps:
       - checkout
@@ -67,16 +45,14 @@ jobs:
       - run: bundle exec rubocop
 
   build-linux:
-    <<: *docker_build_image
-    environment:
-      GOPATH: /go
+    <<: *docker_golang
     steps:
       - checkout
       - run:
           name: Build linux binary
           command: make build-production
       - persist_to_workspace:
-          root: /go/src/github.com/gocardless/draupnir
+          root: /project
           paths: ['*.linux_amd64']
 
   integration:
@@ -85,8 +61,12 @@ jobs:
       - checkout
       - attach_workspace:
           at: workspace
-      - restore_cache:
-          key: dependency-cache-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: Set Ruby version
+          command: |
+            RUBY_VERSION=$(cat .ruby-version)
+            rvm install $RUBY_VERSION
+            echo . $(rvm $RUBY_VERSION do rvm env --path) >> $BASH_ENV
       - run:
           name: Install Ruby bundle
           command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
@@ -98,29 +78,24 @@ jobs:
           command: cp workspace/*.linux_amd64 ./ && make test-integration
 
   release:
-    <<: *docker_build_image
-    environment:
-      GOPATH: /go
+    <<: *docker_golang
+    working_directory: /project
     steps:
       - checkout
       - run:
           name: Release
           command: |
             CURRENT_VERSION="v$(cat DRAUPNIR_VERSION)"
-
             if [[ $(git tag -l "${CURRENT_VERSION}") == "${CURRENT_VERSION}" ]]; then
               echo "Version ${CURRENT_VERSION} is already released"
               exit 0
             fi
-
-            curl -L -o /tmp/goreleaser_Linux_x86_64.tar.gz https://github.com/goreleaser/goreleaser/releases/download/v0.101.0/goreleaser_Linux_x86_64.tar.gz
+            curl -L -o /tmp/goreleaser_Linux_x86_64.tar.gz https://github.com/goreleaser/goreleaser/releases/download/v0.133.0/goreleaser_Linux_x86_64.tar.gz
             tar zxf /tmp/goreleaser_Linux_x86_64.tar.gz -C /tmp
-
             git log --pretty=oneline --abbrev-commit --no-decorate --no-color "$(git describe --tags --abbrev=0)..HEAD" -- pkg cmd vendor internal > /tmp/release-notes
             git tag "${CURRENT_VERSION}"
-
-            /tmp/goreleaser --rm-dist --release-notes /tmp/release-notes
             git push --tags
+            /tmp/goreleaser --rm-dist --release-notes /tmp/release-notes
 
 workflows:
   version: 2
