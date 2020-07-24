@@ -11,7 +11,7 @@ RSpec.describe "/health_check" do
     expect(response.headers[:draupnir_version]).to eq(Draupnir::VERSION)
 
     # Verify that we have a well-formed version, ie. valid semver value
-    expect(response.headers[:draupnir_version]).not_to eql("0.0.0")
+    expect(response.headers[:draupnir_version]).to_not eql("0.0.0")
     expect(response.headers[:draupnir_version]).to match(/^\d+\.\d+\.\d+$/)
   end
 
