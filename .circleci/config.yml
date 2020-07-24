@@ -25,6 +25,10 @@ references:
     docker:
       - image: gocardless/draupnir-circleci:latest
     working_directory: /go/src/github.com/gocardless/draupnir
+  docker_golang: &docker_golang
+    docker:
+      - image: golang:1.14
+    working_directory: /project
 
 jobs:
   unit:
@@ -34,10 +38,24 @@ jobs:
       GOPATH: /go
     steps:
       - checkout
-      - run: go get github.com/golang/dep/cmd/dep
-      - run: dep ensure -v && test -z "$(git status --porcelain -- Gopkg.toml Gopkg.lock vendor)"
       - run: mkdir -p $TEST_RESULTS
       - run: make test
+
+  check-deps-updated:
+    <<: *docker_golang
+    steps:
+      - checkout
+      - run: go mod download
+      - run: env GOPROXY=off go build -mod=readonly ./...
+  check-deps-tidy:
+    <<: *docker_golang
+    steps:
+      - checkout
+      - run: go mod tidy
+      - run: |
+          if ! git diff --exit-code -- go.mod go.sum; then
+            echo "Modules not tidy; please run 'go mod tidy'";
+          fi;
 
   rubocop:
     docker:
@@ -111,6 +129,8 @@ workflows:
       - unit
       - rubocop
       - build-linux
+      - check-deps-tidy
+      - check-deps-updated
       - integration:
           requires:
             - build-linux
