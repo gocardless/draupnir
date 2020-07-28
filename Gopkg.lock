@@ -93,14 +93,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:66df60d319947875e57e189632beb87b8796974f9f6865f9ff81001cd3e8ea10"
+  digest = "1:d27eedd7296593e6ea74aed67aa0d04d97305c860209b0d4996a8aa2eac7fd0b"
   name = "github.com/lib/pq"
   packages = [
     ".",
     "oid",
+    "scram",
   ]
   pruneopts = "UT"
-  revision = "b0d5024adb34b4122c6ee7eeb6ab511f7223222d"
+  revision = "e7751f584844fbf92a5a18b13a0af1c855e34460"
 
 [[projects]]
   digest = "1:9ec6cf1df5ad1d55cf41a43b6b1e7e118a91bade4f68ff4303379343e40c0e25"
