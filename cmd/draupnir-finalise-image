@@ -14,14 +14,10 @@ if ! [[ "$#" -eq 4 ]]; then
 
   The steps taken are:
 
-  1. Extract and remove any tar files in the directory
-  2. Remove pid files, if present
-  3. Set the correct permissions to boot postgres
-  4. Install our own postgresql.conf and pg_hba.conf
-  5. Boot postgres
-  6. Run the anonymisation script
-  7. Stop postgres
-  8. Take a BTRFS snapshot of the directory
+  1. Run draupnir-start-image to boot a PG if not already started
+  2. Run the anonymisation script
+  3. Stop postgres
+  4. Take a BTRFS snapshot of the directory
   """
   exit 1
 fi
@@ -42,85 +38,9 @@ SNAPSHOT_PATH="${ROOT}/image_snapshots/${ID}"
 
 set -x
 
-sudo mkdir -p "${UPLOAD_PATH}/tmp"
-
-if sudo sh -c "ls ${UPLOAD_PATH}/*.tar*"; then
-	sudo sh -c "tar xf ${UPLOAD_PATH}/*.tar* -C ${UPLOAD_PATH}/tmp"
-	sudo sh -c "mv ${UPLOAD_PATH}/tmp/* ${UPLOAD_PATH}/"
-	sudo rmdir "${UPLOAD_PATH}/tmp"
-	sudo sh -c "rm -f ${UPLOAD_PATH}/*.tar*" # remove the compressed backup file(s)
-fi
-
-if ! sudo -u postgres /usr/lib/postgresql/11/bin/pg_controldata "${UPLOAD_PATH}"; then
-	echo "image upload is not valid postgresql data directory"
-	exit 255
-fi
-
-sudo rm -f "${UPLOAD_PATH}/postmaster.pid"
-sudo rm -f "${UPLOAD_PATH}/postmaster.opts"
-sudo chown -R postgres "$UPLOAD_PATH"
-sudo chmod 700 "$UPLOAD_PATH"
-
-# Install our own postgresql.conf
-cat > "${UPLOAD_PATH}/postgresql.conf" <<- EOF
-datestyle = 'iso, mdy'
-default_text_search_config = 'pg_catalog.english'
-lc_messages = 'C'
-listen_addresses = '*'
-log_autovacuum_min_duration = 0
-log_checkpoints = 'on'
-log_connections = 'on'
-log_disconnections = 'on'
-log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a '
-log_lock_waits = 'on'
-log_min_duration_statement = 500
-log_temp_files = 0
-maintenance_work_mem = '256MB'
-max_connections = 150
-shared_preload_libraries = 'pg_stat_statements'
-ssl = on
-ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
-ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
-ssl_ciphers = 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384'
-ssl_prefer_server_ciphers = 'on'
-temp_file_limit = 5242880 # 5GiB
-work_mem = '128MB'
-
-# Turn off hot standby as we won't ever need to run queries against this
-# database while it's in recovery. We also want to reduce- as much as is
-# possible- the amount of WAL we write during finalisation, as this step usually
-# requires a significant amount of IO. Similarly, fsync should be turned off
-# during finalisation.
-hot_standby = 'off'
-max_wal_senders = 0
-wal_level = 'minimal'
-fsync = 'off'
-EOF
-
-LOG_FILE="/var/log/postgresql/image_${ID}"
-
-# Start postgres
-
-# We need to wait (-w) for postgres to boot and accept
-# connections before continuing. Ideally WAL recovery shouldn't take long, but
-# for high volume databases Postgres needs a window to catch-up from the last
-# checkpoint.
-
-# If startup doesn't complete within the timeout (-t <seconds>) then pg_ctl
-# exits with a nonzero exit status. Note that the startup will continue in the
-# background and may eventually succeed - all the nonzero exit has done here is
-# notify that it didn't happen within the timout.
-sudo -u postgres $PG_CTL -w -t 600 -D "$UPLOAD_PATH" -o "-p $PORT" -l "${LOG_FILE}" start
-
-# Create a user to perform admin operations with
-sudo -u postgres createuser --port="$PORT" --createdb --createrole --superuser draupnir-admin
-
-# Create a user that will be used to connect to the instance, which does not
-# have superuser privileges, or the ability to create roles with these.
-# It's important to ensure that the user does not have superuser privileges, as
-# otherwise they will have access to read any file on the filesystem that the
-# user the process is running under has access to.
-sudo -u postgres createuser --port="$PORT" --createdb draupnir
+# If we haven't started the image yet, we should do that now. The start script is a no-op
+# if we've already started the image.
+draupnir-start-image "${ROOT}" "${ID}" "${PORT}"
 
 # Perform anonymisation. Do this before reassigning ownership, in case the
 # anonymisation script creates new objects owned by the draupnir-admin user.
