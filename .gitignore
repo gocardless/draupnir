@@ -10,3 +10,4 @@
 /.kitchen
 /.env
 /dist
+/vendor

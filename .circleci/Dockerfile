@@ -1,5 +1,5 @@
 # Add any extra build dependencies we need for running draupnir tests
-FROM circleci/golang:1.9
+FROM circleci/golang:1.14
 
 RUN set -x \
     && sudo apt-get update \

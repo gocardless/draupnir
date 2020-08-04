@@ -9,7 +9,7 @@ require "pry"
 
 class Draupnir
   BOOTSTRAP = "/workspace/spec/fixtures/bootstrap"
-  VERSION = File.read(File.expand_path("../../DRAUPNIR_VERSION", __FILE__)).chomp
+  VERSION = File.read(File.expand_path("../DRAUPNIR_VERSION", __dir__)).chomp
   STREAMER = ->(stream, chunk) { puts(chunk) if ENV.key?("DEBUG") || stream == :stderr }
 
   def self.client

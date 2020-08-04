@@ -17,7 +17,6 @@ RSpec.describe "/instances" do
       ),
     )["data"]["id"]
   end
-  # rubocop:enable Metrics/MethodLength
 
   def create_ready_image
     image_id = create_unready_image
