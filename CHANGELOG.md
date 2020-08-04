@@ -1,6 +1,17 @@
 Changelog
 =========
 
+5.2.0
+-----
+- Separate image boot process from finalise, allowing more flexible creation
+  processes
+- Stop logging access tokens in HTTP request logs
+
+5.1.0
+-----
+- Update sentry-go
+- Fix wait for PostgreSQL in draupnir-finalise-image
+
 5.0.1
 -----
 - Use pg_ctl wait with a timeout in draupnir-finalise-image script to wait until
