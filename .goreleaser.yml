@@ -1,48 +1,34 @@
 ---
 project_name: draupnir
-release:
-  github:
-    owner: gocardless
-    name: draupnir
-  name_template: '{{.Tag}}'
-brew:
-  github:
-    owner: gocardless
-    name: homebrew-taps
-  commit_author:
-    name: GoCardless Engineering
-    email: engineering@gocardless.com
-  install: bin.install "draupnir"
-  description: Client for the draupnir database service
-  folder: Formula
-  test: system "draupnir-client help"
+
 builds:
-  -
-    main: cmd/draupnir/draupnir.go
+  - main: cmd/draupnir/draupnir.go
     binary: draupnir
     goos:
       - linux
       - darwin
     ldflags: -s -w -X github.com/gocardless/draupnir/pkg/version.Version={{.Version}} -X main.commit={{.Commit}}
-archive:
-  format: tar.gz
-  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
-  files:
-    - README*
-    - CHANGELOG*
-nfpm:
-  maintainer: GoCardless Engineering <engineering@gocardless.com>
-  description: Databases on demand
-  formats: [deb]
-  bindir: /usr/local/bin
-  files:
-    "cmd/draupnir-create-instance": "/usr/local/bin/draupnir-create-instance"
-    "cmd/draupnir-destroy-instance": "/usr/local/bin/draupnir-destroy-instance"
-    "cmd/draupnir-finalise-image": "/usr/local/bin/draupnir-finalise-image"
-    "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
-    "scripts/iptables": "/usr/lib/draupnir/bin/iptables"
-snapshot:
-  name_template: SNAPSHOT-{{ .Commit }}
-checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
-dist: dist
+
+brews:
+  - github:
+      owner: gocardless
+      name: homebrew-taps
+    commit_author:
+      name: GoCardless Engineering
+      email: engineering@gocardless.com
+    install: bin.install "draupnir"
+    description: Client for the draupnir database service
+    folder: Formula
+    test: system "draupnir-client help"
+
+nfpms:
+  - maintainer: GoCardless Engineering <engineering@gocardless.com>
+    description: Databases on demand
+    formats: [deb]
+    bindir: /usr/local/bin
+    files:
+      "cmd/draupnir-create-instance": "/usr/local/bin/draupnir-create-instance"
+      "cmd/draupnir-destroy-instance": "/usr/local/bin/draupnir-destroy-instance"
+      "cmd/draupnir-finalise-image": "/usr/local/bin/draupnir-finalise-image"
+      "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
+      "scripts/iptables": "/usr/lib/draupnir/bin/iptables"
