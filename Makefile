@@ -34,10 +34,11 @@ deb: build-production
 		--description "Databases on demand" \
 		--maintainer "GoCardless Engineering <engineering@gocardless.com>" \
 		draupnir.linux_amd64=/usr/local/bin/draupnir \
-		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image \
 		cmd/draupnir-create-instance=/usr/local/bin/draupnir-create-instance \
 		cmd/draupnir-destroy-image=/usr/local/bin/draupnir-destroy-image \
-		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance
+		cmd/draupnir-destroy-instance=/usr/local/bin/draupnir-destroy-instance \
+		cmd/draupnir-finalise-image=/usr/local/bin/draupnir-finalise-image \
+		cmd/draupnir-start-image=/usr/local/bin/draupnir-start-image
 
 clean:
 	-rm -f draupnir draupnir.*_amd64 *.deb

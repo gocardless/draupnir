@@ -28,7 +28,8 @@ nfpms:
     bindir: /usr/local/bin
     files:
       "cmd/draupnir-create-instance": "/usr/local/bin/draupnir-create-instance"
+      "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
       "cmd/draupnir-destroy-instance": "/usr/local/bin/draupnir-destroy-instance"
       "cmd/draupnir-finalise-image": "/usr/local/bin/draupnir-finalise-image"
-      "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
+      "cmd/draupnir-start-image": "/usr/local/bin/draupnir-start-image"
       "scripts/iptables": "/usr/lib/draupnir/bin/iptables"
