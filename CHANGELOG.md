@@ -1,6 +1,10 @@
 Changelog
 =========
 
+5.2.1
+-----
+- Actually bundle the drapunir-start-image script
+
 5.2.0
 -----
 - Separate image boot process from finalise, allowing more flexible creation
