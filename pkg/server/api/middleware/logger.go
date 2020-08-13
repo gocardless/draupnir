@@ -62,6 +62,10 @@ func NewRequestLogger(logger log.Logger) chain.Middleware {
 				duration.Seconds(),
 			)
 
+			if err != nil {
+				scopedLogger = scopedLogger.With("error", err.Error())
+			}
+
 			scopedLogger.
 				With("status", recorder.Code).
 				With("duration", duration.Seconds()).

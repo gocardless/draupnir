@@ -12,10 +12,7 @@ import (
 func NewErrorHandler(logger log.Logger) chain.TerminatingMiddleware {
 	return func(next chain.Handler) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			err := next(w, r)
-			if err != nil {
-				logger.With("http_request", r).Error(err.Error())
-			}
+			next(w, r)
 		}
 	}
 }
