@@ -440,13 +440,14 @@ func setupClientEnvironment(config config.Config, instance models.Instance) erro
 	// Output enviroment variables that can be read by libpq:
 	// https://www.postgresql.org/docs/current/libpq-envars.html
 	fmt.Printf(
-		"export PGHOST=%s PGPORT=%d PGUSER=draupnir PGPASSWORD='' PGDATABASE=%s PGSSLMODE=verify-ca PGSSLROOTCERT='%s' PGSSLCERT='%s' PGSSLKEY='%s'\n",
+		"export PGHOST=%s PGPORT=%d PGUSER=draupnir PGPASSWORD='' PGDATABASE=%s PGSSLMODE=verify-ca PGSSLROOTCERT='%s' PGSSLCERT='%s' PGSSLKEY='%s' DRAUPNIR_INSTANCE_ID='%d'\n",
 		instance.Hostname,
 		instance.Port,
 		database,
 		caCertPath,
 		clientCertPath,
 		clientKeyPath,
+		instance.ID,
 	)
 
 	return nil
