@@ -257,14 +257,14 @@ func (i Instances) Destroy(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	logger.With("instance", id).Info("destroying instance")
-	err = i.InstanceStore.Destroy(instance)
-	if err != nil {
-		return errors.Wrap(err, "failed to destroy instance")
-	}
-
 	err = i.Executor.DestroyInstance(r.Context(), instance.ID)
 	if err != nil {
-		return errors.Wrap(err, "failed to destroy instance")
+		return errors.Wrap(err, "failed to destroy instance on disk")
+	}
+
+	err = i.InstanceStore.Destroy(instance)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove instance from table")
 	}
 
 	// Destroying the instance will cascade and destroy any linked whitelisted
