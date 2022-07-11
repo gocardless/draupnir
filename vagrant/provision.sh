@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-set -x
+#set -euo pipefail
+#set -x
 
 iptables_add_if_missing() {
   iptables -C "$@" 2>/dev/null || iptables -A "$@"
@@ -32,19 +32,44 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 apt-get update
 
 # install postgres 11 and go. build-essential is required for cgo
-apt-get install -y --no-install-recommends build-essential postgresql-11 golang-go
-export PATH=$PATH:/root/go/bin
+# this is 1.10, go.mod says 1.14, so we might want golang-1.14
+apt-get install -y --no-install-recommends build-essential
+cd /tmp
+wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
+sudo tar -xvf go1.17.linux-amd64.tar.gz
+sudo mv go /usr/local
+
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 # install sql-migrate
+echo "getting sql-migrate"
+echo 
+echo 
+echo 
+go version
+echo 
+echo 
+echo 
 go get -v github.com/rubenv/sql-migrate/...
 cp /root/go/bin/sql-migrate /usr/local/bin
 
 mkdir -p /data
 
+echo 
+echo 
+echo 
+echo "creating & mounting btrfs"
+echo 
+echo 
+echo 
 # create and mount btrfs
+lsblk
+mount
 if ! btrfs filesystem df /data >/dev/null 2>&1; then
-    mkfs.btrfs -f /dev/sdc
-    mount /dev/sdc /data
+    mkfs.btrfs -f /dev/sr0
+    mount /dev/sr0 /data
 fi
 
 # create system user
