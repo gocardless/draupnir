@@ -13,8 +13,9 @@ Vagrant.configure("2") do |config|
   config.vm.provider "qemu" do |qe|
     qe.arch = "x86_64"
     qe.machine = "q35"
-    qe.cpu = "max"
+    qe.cpu = "Cascadelake-Server-v1"
     qe.memory = "8G"
+    qe.smp = "4"
     qe.net_device = "virtio-net-pci"
   end
 

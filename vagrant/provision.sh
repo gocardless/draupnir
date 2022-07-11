@@ -32,15 +32,31 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 apt-get update
 
 # install postgres 11 and go. build-essential is required for cgo
-apt-get install -y --no-install-recommends build-essential postgresql-11 golang-go
+# this is 1.10, go.mod says 1.14, so we might want golang-1.14
+apt-get install -y --no-install-recommends build-essential postgresql-11 golang-1.14
 export PATH=$PATH:/root/go/bin
 
 # install sql-migrate
+echo "getting sql-migrate"
+echo 
+echo 
+echo 
+go version
+echo 
+echo 
+echo 
 go get -v github.com/rubenv/sql-migrate/...
 cp /root/go/bin/sql-migrate /usr/local/bin
 
 mkdir -p /data
 
+echo 
+echo 
+echo 
+echo "creating & mounting btrfs"
+echo 
+echo 
+echo 
 # create and mount btrfs
 if ! btrfs filesystem df /data >/dev/null 2>&1; then
     mkfs.btrfs -f /dev/sdc
