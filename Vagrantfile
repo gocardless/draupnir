@@ -3,11 +3,20 @@
 # frozen_string_literal: true
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/bionic64"
-  config.vm.network "forwarded_port", guest: 8443, host: 9443, host_ip: "127.0.0.1"
-  config.vm.network "forwarded_port", guest: 8080, host: 9080, host_ip: "127.0.0.1"
+#  config.vm.box = "ubuntu/bionic64"
+  config.vm.box = "generic/ubuntu1804"
+  config.vm.network "forwarded_port", guest: 8443, host: 9443
+  config.vm.network "forwarded_port", guest: 8080, host: 9080
 
-  config.vm.synced_folder ".", "/draupnir"
+  config.vm.synced_folder ".", "/draupnir", type: "rsync", rsync__exclude: ".git/"
+
+  config.vm.provider "qemu" do |qe|
+    qe.arch = "x86_64"
+    qe.machine = "q35"
+    qe.cpu = "max"
+    qe.memory = "8G"
+    qe.net_device = "virtio-net-pci"
+  end
 
   # create disk
   data_disk_image = "./tmp/data_disk.vdi"
