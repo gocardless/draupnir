@@ -56,8 +56,9 @@ jobs:
           paths: ['*.linux_amd64']
 
   integration:
-    machine:
-      image: ubuntu-2004:2022.04.2
+    machine: true # Setting this to true so we see it fail
+#    machine:
+#      image: ubuntu-2004:2022.04.2
     steps:
       - checkout
       - attach_workspace:
