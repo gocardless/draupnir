@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ENV POSTGRESQL_VERSION=11
+ENV POSTGRESQL_VERSION=14
 RUN set -x \
     && apt-get update \
     && apt-get install -y \
@@ -9,7 +9,7 @@ RUN set -x \
         curl \
         sudo \
         btrfs-tools \
-    && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 11" > /etc/apt/sources.list.d/pgdg.list \
+    && echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14" > /etc/apt/sources.list.d/pgdg.list \
       && curl --silent -L https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && apt-get update -y \
     && DEBIAN_FRONTEND=noninteractive TZ=Europe/London apt-get install -y tzdata \

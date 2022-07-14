@@ -23,8 +23,8 @@ if ! [[ "$#" -eq 3 ]]; then
   exit 1
 fi
 
-PG_CTL=/usr/lib/postgresql/11/bin/pg_ctl
-VACUUMDB=/usr/lib/postgresql/11/bin/vacuumdb
+PG_CTL=/usr/lib/postgresql/14/bin/pg_ctl
+VACUUMDB=/usr/lib/postgresql/14/bin/vacuumdb
 PSQL=/usr/bin/psql
 
 ROOT=$1
@@ -57,7 +57,7 @@ if sudo sh -c "ls ${UPLOAD_PATH}/*.tar*"; then
 	sudo sh -c "rm -f ${UPLOAD_PATH}/*.tar*" # remove the compressed backup file(s)
 fi
 
-if ! sudo -u postgres /usr/lib/postgresql/11/bin/pg_controldata "${UPLOAD_PATH}"; then
+if ! sudo -u postgres /usr/lib/postgresql/14/bin/pg_controldata "${UPLOAD_PATH}"; then
 	echo "image upload is not valid postgresql data directory"
 	exit 255
 fi

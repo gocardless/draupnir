@@ -22,8 +22,8 @@ if ! [[ "$#" -eq 4 ]]; then
   exit 1
 fi
 
-PG_CTL=/usr/lib/postgresql/11/bin/pg_ctl
-VACUUMDB=/usr/lib/postgresql/11/bin/vacuumdb
+PG_CTL=/usr/lib/postgresql/14/bin/pg_ctl
+VACUUMDB=/usr/lib/postgresql/14/bin/vacuumdb
 PSQL=/usr/bin/psql
 
 ROOT=$1
