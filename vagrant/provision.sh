@@ -32,7 +32,7 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 apt-get update
 
 # install postgres 14 and go. build-essential is required for cgo
-apt-get install -y --no-install-recommends build-essential
+apt-get install -y --no-install-recommends build-essential postgresql-14
 cd /tmp
 wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
 sudo tar -xvf go1.17.linux-amd64.tar.gz
