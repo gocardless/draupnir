@@ -72,9 +72,6 @@ jobs:
           name: Install Ruby bundle
           command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
       - run:
-          name: Pull draupnir base image
-          command: docker pull gocardless/draupnir-base
-      - run:
           name: Run integration tests
           command: cp workspace/*.linux_amd64 ./ && make test-integration
 
