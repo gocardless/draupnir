@@ -43,32 +43,15 @@ export GOPATH=$HOME/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 # install sql-migrate
-echo "getting sql-migrate"
-echo 
-echo 
-echo 
-go version
-echo 
-echo 
-echo 
 go get -v github.com/rubenv/sql-migrate/...
 cp /root/go/bin/sql-migrate /usr/local/bin
 
 mkdir -p /data
 
-echo 
-echo 
-echo 
-echo "creating & mounting btrfs"
-echo 
-echo 
-echo 
 # create and mount btrfs
-lsblk
-mount
 if ! btrfs filesystem df /data >/dev/null 2>&1; then
-    mkfs.btrfs -f /dev/sr0
-    mount /dev/sr0 /data
+    mkfs.btrfs -f /dev/sdc
+    mount /dev/sdc /data
 fi
 
 # create system user
