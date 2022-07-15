@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#set -euo pipefail
-#set -x
+set -euo pipefail
+set -x
 
 iptables_add_if_missing() {
   iptables -C "$@" 2>/dev/null || iptables -A "$@"
