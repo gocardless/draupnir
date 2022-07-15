@@ -10,7 +10,7 @@ RUN set -x \
         sudo \
         btrfs-tools \
     && echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14" > /etc/apt/sources.list.d/pgdg.list \
-      && curl --silent -L https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && curl --silent -L https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && apt-get update -y \
     && DEBIAN_FRONTEND=noninteractive TZ=Europe/London apt-get install -y tzdata \
     && apt-get install -y \

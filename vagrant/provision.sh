@@ -31,8 +31,7 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 # fetch the metadata from the new repo
 apt-get update
 
-# install postgres 11 and go. build-essential is required for cgo
-# this is 1.10, go.mod says 1.14, so we might want golang-1.14
+# install postgres 14 and go. build-essential is required for cgo
 apt-get install -y --no-install-recommends build-essential
 cd /tmp
 wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
@@ -88,22 +87,22 @@ chgrp draupnir-instance /var/log/postgresql-draupnir-instance
 chmod 775 /var/log/postgresql-draupnir-instance
 
 # Ubuntu starts the DB after installation. Stop so that we can make a copy of the DB.
-pg_ctlcluster 11 main stop
+pg_ctlcluster 14 main stop
 # wait for postgres to stop, so that the pid file disappears
 sleep 1
 
 if [ ! -d /data/example_db ]; then
   mkdir /data/example_db
   chown postgres:postgres /data/example_db
-  sudo -u postgres /usr/lib/postgresql/11/bin/initdb /data/example_db
+  sudo -u postgres /usr/lib/postgresql/14/bin/initdb /data/example_db
 
-  sudo -u postgres /usr/lib/postgresql/11/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' start
+  sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' start
   sudo -u postgres psql -f /draupnir/vagrant/example_db.sql
-  sudo -u postgres /usr/lib/postgresql/11/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' stop
+  sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' stop
 fi
 
 # start draupnir postgres
-pg_ctlcluster 11 main start
+pg_ctlcluster 14 main start
 
 # create draupnir user
 if ! sudo -u postgres psql -Atc "SELECT 1 FROM pg_roles WHERE rolname='draupnir'" | grep -q 1; then

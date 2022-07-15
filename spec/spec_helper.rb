@@ -55,10 +55,6 @@ class Draupnir
         draupnir_version: VERSION,
       }.merge(headers),
     )
-  # rescue RestClient::InternalServerError => e
-  #   puts e.message
-  # rescue RestClient::UnprocessableEntity => e
-  #   puts e.message
   end
 
   def alive?

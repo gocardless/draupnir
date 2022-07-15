@@ -25,7 +25,8 @@ die_and_stop() {
   exit 1
 }
 
-PG_CTL=/usr/lib/postgresql/14/bin/pg_ctl
+PG_CTL=/usr/lib/postgresql/
+/bin/pg_ctl
 
 ROOT=$1
 IMAGE_ID=$2
