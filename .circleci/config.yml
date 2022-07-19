@@ -4,7 +4,7 @@ version: 2
 references:
   docker_golang: &docker_golang
     docker:
-      - image: golang:1.14
+      - image: cimg/go:1.17
     working_directory: /project
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
 
   rubocop:
     docker:
-      - image: circleci/ruby:2.7.1
+      - image: circleci/ruby:3.0.2
     working_directory: ~/draupnir
     steps:
       - checkout
@@ -57,17 +57,11 @@ jobs:
 
   integration:
     machine:
-      image: ubuntu-2004:2022.04.2
+      image: ubuntu-2204:2022.04.2
     steps:
       - checkout
       - attach_workspace:
           at: workspace
-      - run:
-          name: Set Ruby version
-          command: |
-            RUBY_VERSION=$(cat .ruby-version)
-            rvm install $RUBY_VERSION
-            echo . $(rvm $RUBY_VERSION do rvm env --path) >> $BASH_ENV
       - run:
           name: Install Ruby bundle
           command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3

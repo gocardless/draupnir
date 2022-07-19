@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 ENV POSTGRESQL_VERSION=14
 RUN set -x \
@@ -8,7 +8,7 @@ RUN set -x \
         build-essential \
         curl \
         sudo \
-        btrfs-tools \
+        btrfs-progs \
     && echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14" > /etc/apt/sources.list.d/pgdg.list \
     && curl --silent -L https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && apt-get update -y \
@@ -16,6 +16,7 @@ RUN set -x \
     && apt-get install -y \
         postgresql-"${POSTGRESQL_VERSION}" \
         postgresql-common \
+        ruby \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
