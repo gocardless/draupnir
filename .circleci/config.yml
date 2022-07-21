@@ -63,6 +63,12 @@ jobs:
       - attach_workspace:
           at: workspace
       - run:
+          name: Set Ruby version
+          command: |
+            RUBY_VERSION=$(cat .ruby-version)
+            rvm install $RUBY_VERSION
+            echo . $(rvm $RUBY_VERSION do rvm env --path) >> $BASH_ENV
+      - run:
           name: Install Ruby bundle
           command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
       - run:

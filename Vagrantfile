@@ -17,7 +17,7 @@ Vagrant.configure("2") do |config|
     end
     v.customize [
       "storageattach", :id,
-      "--storagectl", "SCSI",
+      "--storagectl", "SATA Controller",
       "--port", 2,
       "--device", 0,
       "--type", "hdd",
