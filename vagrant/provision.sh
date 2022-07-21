@@ -22,7 +22,8 @@ cd /
 
 # add postgres repo
 cat > /etc/apt/sources.list.d/pgdg.list <<END
-deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main
+deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main
+deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14
 END
 
 # get the signing key and import it
@@ -31,20 +32,31 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 # fetch the metadata from the new repo
 apt-get update
 
-# install postgres 11 and go. build-essential is required for cgo
-apt-get install -y --no-install-recommends build-essential postgresql-11 golang-go
-export PATH=$PATH:/root/go/bin
+# install postgres 14 and go. build-essential is required for cgo
+apt-get install -y --no-install-recommends build-essential postgresql-14 postgresql-common
+
+if [ ! -d /usr/local/go ]; then
+  pushd /tmp
+  wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
+  tar -xvf go1.17.linux-amd64.tar.gz
+  mv go /usr/local
+  popd
+fi
+
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 # install sql-migrate
-go get -v github.com/rubenv/sql-migrate/...
+go install -v github.com/rubenv/sql-migrate/sql-migrate@v1.1.2
 cp /root/go/bin/sql-migrate /usr/local/bin
 
 mkdir -p /data
 
 # create and mount btrfs
 if ! btrfs filesystem df /data >/dev/null 2>&1; then
-    mkfs.btrfs -f /dev/sdc
-    mount /dev/sdc /data
+    mkfs.btrfs -f /dev/sdb
+    mount /dev/sdb /data
 fi
 
 # create system user
@@ -63,22 +75,22 @@ chgrp draupnir-instance /var/log/postgresql-draupnir-instance
 chmod 775 /var/log/postgresql-draupnir-instance
 
 # Ubuntu starts the DB after installation. Stop so that we can make a copy of the DB.
-pg_ctlcluster 11 main stop
+pg_ctlcluster 14 main stop
 # wait for postgres to stop, so that the pid file disappears
 sleep 1
 
 if [ ! -d /data/example_db ]; then
   mkdir /data/example_db
   chown postgres:postgres /data/example_db
-  sudo -u postgres /usr/lib/postgresql/11/bin/initdb /data/example_db
+  sudo -u postgres /usr/lib/postgresql/14/bin/initdb /data/example_db
 
-  sudo -u postgres /usr/lib/postgresql/11/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' start
+  sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' start
   sudo -u postgres psql -f /draupnir/vagrant/example_db.sql
-  sudo -u postgres /usr/lib/postgresql/11/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' stop
+  sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /data/example_db -o '-c data_directory=/data/example_db' stop
 fi
 
 # start draupnir postgres
-pg_ctlcluster 11 main start
+pg_ctlcluster 14 main start
 
 # create draupnir user
 if ! sudo -u postgres psql -Atc "SELECT 1 FROM pg_roles WHERE rolname='draupnir'" | grep -q 1; then
@@ -110,6 +122,7 @@ openssl req -new -nodes -text \
       -subj "/CN=localhost"
 chmod 600 "${DRAUPNIR_TLS_PATH}/server.key"
 openssl x509 -req -in "${DRAUPNIR_TLS_PATH}/server.csr" -text -days 30 \
+    -extfile <(printf "subjectAltName=DNS:localhost") \
     -CA "${DRAUPNIR_TLS_PATH}/ca.crt" -CAkey "${DRAUPNIR_TLS_PATH}/ca.key" -CAcreateserial \
       -out "${DRAUPNIR_TLS_PATH}/server.crt"
 chown draupnir "${DRAUPNIR_TLS_PATH}/server.key" "${DRAUPNIR_TLS_PATH}/server.crt"

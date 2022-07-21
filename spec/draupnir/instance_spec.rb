@@ -35,7 +35,7 @@ RSpec.describe "/instances" do
         data: {
           type: "instances",
           attributes: {
-            image_id: image_id,
+            image_id:,
           },
         },
       ),
@@ -72,7 +72,7 @@ RSpec.describe "/instances" do
         data: {
           type: "instances",
           attributes: {
-            image_id: image_id,
+            image_id:,
           },
         },
       )

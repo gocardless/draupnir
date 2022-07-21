@@ -23,7 +23,8 @@ test:
 	go vet ./...
 
 test-integration:
-	bundle exec rspec
+	docker build -t gocardless/draupnir-base .\
+		&& bundle exec rspec
 
 build-production: test
 	GOOS=linux GOARCH=amd64 $(BUILD_COMMAND) -o draupnir.linux_amd64 cmd/draupnir/draupnir.go

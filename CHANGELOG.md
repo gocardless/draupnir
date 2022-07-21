@@ -1,9 +1,17 @@
 Changelog
 =========
 
+5.3.0
+-----
+- Update scripts to use postgres 14. Some technical changes around the versions of the tools used were also made
+
+5.2.2
+-----
+- Fix order of operations when destroying instance
+
 5.2.1
 -----
-- Actually bundle the drapunir-start-image script
+- Actually bundle the draupnir-start-image script
 
 5.2.0
 -----

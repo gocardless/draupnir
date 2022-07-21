@@ -1,6 +1,6 @@
 module github.com/gocardless/draupnir
 
-go 1.14
+go 1.17
 
 require (
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
@@ -14,7 +14,7 @@ require (
 	github.com/google/jsonapi v0.0.0-20160922220230-925ebf213646
 	github.com/gorilla/context v0.0.0-20160226214623-1ea25387ff6f
 	github.com/gorilla/mux v1.5.0
-	github.com/lib/pq v0.0.0-20171021182624-b0d5024adb34
+	github.com/lib/pq v1.10.6
 	github.com/oklog/run v1.0.0
 	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0

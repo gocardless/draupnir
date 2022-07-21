@@ -11,12 +11,7 @@ Development
 Prerequisites:
 - Go
 - Postgresql
-
-Install [dep](https://github.com/golang/dep) if you want to add/remove
-dependencies
-```
-brew install dep
-```
+- Ruby
 
 Create the database
 ```
@@ -31,6 +26,7 @@ make migrate
 Development (Vagrant VM)
 ------------------------
 
+**!! Disclaimer, the vagrant VM is currently unsupported on Apple Silicon**
 It will often be desirable to run a full virtual machine, with btrfs, in order
 to test the complete Draupnir flow. This can be achieved via the included
 Vagrant configuration.
@@ -71,9 +67,9 @@ To run the unit tests:
 make test
 ```
 
-To run the integration tests:
+To run the integration tests, ensure you've run `make build-linux` before running:
 ```
-make deb && test-integration
+make test-integration
 ```
 
 Usage
