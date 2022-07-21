@@ -48,7 +48,7 @@ export GOPATH=$HOME/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 # install sql-migrate
-go get -v github.com/rubenv/sql-migrate/...
+go install -v github.com/rubenv/sql-migrate/sql-migrate@v1.1.2
 cp /root/go/bin/sql-migrate /usr/local/bin
 
 mkdir -p /data
