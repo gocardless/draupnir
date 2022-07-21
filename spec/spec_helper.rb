@@ -46,7 +46,7 @@ class Draupnir
   def request(method, path, payload = nil, headers = {})
     RestClient::Request.execute(
       verify_ssl: false,
-      method: method,
+      method:,
       url: "https://#{@host}:#{@port}#{path}",
       payload: payload&.to_json,
       headers: {
