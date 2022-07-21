@@ -108,7 +108,6 @@ openssl req -new -nodes -text \
       -subj "/CN=Draupnir API server certification authority"
 chmod 600 "${DRAUPNIR_TLS_PATH}/ca.key"
 openssl x509 -req -in "${DRAUPNIR_TLS_PATH}/ca.csr" -text -days 365 \
-    -addext "subjectAltName = DNS:localhost" \
     -extfile /etc/ssl/openssl.cnf -extensions v3_ca \
       -signkey "${DRAUPNIR_TLS_PATH}/ca.key" -out "${DRAUPNIR_TLS_PATH}/ca.crt"
 
