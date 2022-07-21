@@ -16,7 +16,6 @@ RUN set -x \
     && apt-get install -y \
         postgresql-"${POSTGRESQL_VERSION}" \
         postgresql-common \
-        ruby \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 

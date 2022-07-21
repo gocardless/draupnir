@@ -21,9 +21,7 @@ trap log_on_failure ERR
 cd /
 
 # add postgres repo
-cat > /etc/apt/sources.list.d/pgdg.list <<END
-deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main
-END
+echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14" > /etc/apt/sources.list.d/pgdg.list
 
 # get the signing key and import it
 curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
@@ -32,7 +30,7 @@ curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 apt-get update
 
 # install postgres 14 and go. build-essential is required for cgo
-apt-get install -y --no-install-recommends build-essential postgresql-14
+apt-get install -y --no-install-recommends build-essential postgresql-14 postgresql-common
 cd /tmp
 wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
 sudo tar -xvf go1.17.linux-amd64.tar.gz
