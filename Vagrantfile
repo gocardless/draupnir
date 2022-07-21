@@ -3,7 +3,7 @@
 # frozen_string_literal: true
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/bionic64"
+  config.vm.box = "generic/ubuntu2204"
   config.vm.network "forwarded_port", guest: 8443, host: 9443, host_ip: "127.0.0.1"
   config.vm.network "forwarded_port", guest: 8080, host: 9080, host_ip: "127.0.0.1"
 
