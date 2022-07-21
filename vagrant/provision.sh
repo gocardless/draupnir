@@ -34,10 +34,14 @@ apt-get update
 
 # install postgres 14 and go. build-essential is required for cgo
 apt-get install -y --no-install-recommends build-essential postgresql-14 postgresql-common
-cd /tmp
-wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
-sudo tar -xvf go1.17.linux-amd64.tar.gz
-sudo mv go /usr/local
+
+if [ ! -d /usr/local/go ]; then
+  pushd /tmp
+  wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz
+  tar -xvf go1.17.linux-amd64.tar.gz
+  mv go /usr/local
+  popd
+fi
 
 export GOROOT=/usr/local/go
 export GOPATH=$HOME/go
