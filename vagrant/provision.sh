@@ -118,7 +118,7 @@ openssl req -new -nodes -text \
       -subj "/CN=localhost"
 chmod 600 "${DRAUPNIR_TLS_PATH}/server.key"
 openssl x509 -req -in "${DRAUPNIR_TLS_PATH}/server.csr" -text -days 30 \
-    -extfile <(printf "subjectAltName=DNS:localhost")
+    -extfile <(printf "subjectAltName=DNS:localhost") \
     -CA "${DRAUPNIR_TLS_PATH}/ca.crt" -CAkey "${DRAUPNIR_TLS_PATH}/ca.key" -CAcreateserial \
       -out "${DRAUPNIR_TLS_PATH}/server.crt"
 chown draupnir "${DRAUPNIR_TLS_PATH}/server.key" "${DRAUPNIR_TLS_PATH}/server.crt"
