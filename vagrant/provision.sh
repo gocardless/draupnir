@@ -21,7 +21,10 @@ trap log_on_failure ERR
 cd /
 
 # add postgres repo
-echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\ndeb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14" > /etc/apt/sources.list.d/pgdg.list
+cat > /etc/apt/sources.list.d/pgdg.list <<END
+deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main
+deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg 14
+END
 
 # get the signing key and import it
 curl -Ss https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
