@@ -9,7 +9,7 @@ require (
 	github.com/google/jsonapi v0.0.0-20160922220230-925ebf213646
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.6
-	github.com/oklog/run v1.0.0
+	github.com/oklog/run v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.0.0-20180110214958-89604d197083
 	github.com/stretchr/testify v1.1.4
