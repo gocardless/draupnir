@@ -72,6 +72,13 @@ To run the integration tests, ensure you've run `make build-linux` before runnin
 make test-integration
 ```
 
+# Releases
+For releases, this project uses [GoReleaser](https://goreleaser.com/). The configuration was done in such a way that
+releases happen on any commit to the main branch that also updates [DRAUPNIR_VERSION](./DRAUPNIR_VERSION), and should be
+accompanied by an update to [CHANGELOG.md](CHANGELOG.md) to make it explicit what has changed.
+
+Version updates should follow the [Semantic Versioning](https://semver.org/) guidelines.
+
 Usage
 =====
 
