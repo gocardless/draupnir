@@ -10,7 +10,7 @@ builds:
     ldflags: -s -w -X github.com/gocardless/draupnir/pkg/version.Version={{.Version}} -X main.commit={{.Commit}}
 
 brews:
-  - github:
+  - tap:
       owner: gocardless
       name: homebrew-taps
     commit_author:
