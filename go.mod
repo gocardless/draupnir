@@ -7,7 +7,7 @@ require (
 	github.com/coreos/go-iptables v0.4.2
 	github.com/getsentry/raven-go v0.2.1-0.20190619092523-5c24d5110e0e
 	github.com/google/jsonapi v0.0.0-20160922220230-925ebf213646
-	github.com/gorilla/mux v1.5.0
+	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.6
 	github.com/oklog/run v1.0.0
 	github.com/pkg/errors v0.9.1
@@ -25,7 +25,6 @@ require (
 	github.com/certifi/gocertifi v0.0.0-20171105132559-a4ab0227d360 // indirect
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/golang/protobuf v0.0.0-20171021043952-1643683e1b54 // indirect
-	github.com/gorilla/context v0.0.0-20160226214623-1ea25387ff6f // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.0.4 // indirect
 	golang.org/x/crypto v0.0.0-20180123095555-3d37316aaa6b // indirect
