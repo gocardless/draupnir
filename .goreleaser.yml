@@ -26,10 +26,16 @@ nfpms:
     description: Databases on demand
     formats: [deb]
     bindir: /usr/local/bin
-    files:
-      "cmd/draupnir-create-instance": "/usr/local/bin/draupnir-create-instance"
-      "cmd/draupnir-destroy-image": "/usr/local/bin/draupnir-destroy-image"
-      "cmd/draupnir-destroy-instance": "/usr/local/bin/draupnir-destroy-instance"
-      "cmd/draupnir-finalise-image": "/usr/local/bin/draupnir-finalise-image"
-      "cmd/draupnir-start-image": "/usr/local/bin/draupnir-start-image"
-      "scripts/iptables": "/usr/lib/draupnir/bin/iptables"
+    contents:
+      - src: "cmd/draupnir-create-instance"
+        dst: "/usr/local/bin/draupnir-create-instance"
+      - src: "cmd/draupnir-destroy-image"
+        dst: "/usr/local/bin/draupnir-destroy-image"
+      - src: "cmd/draupnir-destroy-instance"
+        dst: "/usr/local/bin/draupnir-destroy-instance"
+      - src: "cmd/draupnir-finalise-image"
+        dst: "/usr/local/bin/draupnir-finalise-image"
+      - src: "cmd/draupnir-start-image"
+        dst: "/usr/local/bin/draupnir-start-image"
+      - src: "scripts/iptables"
+        dst: "/usr/lib/draupnir/bin/iptables"
