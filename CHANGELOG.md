@@ -1,6 +1,10 @@
 Changelog
 =========
 
+5.3.1
+-----
+- Update goreleaser to generate a new homebrew formula. No functional changes to the code
+
 5.3.0
 -----
 - Update scripts to use postgres 14. Some technical changes around the versions of the tools used were also made
