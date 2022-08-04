@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/burntsushi/toml"
+	"github.com/BurntSushi/toml"
 	"golang.org/x/oauth2"
 )
 

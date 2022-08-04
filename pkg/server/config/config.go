@@ -5,7 +5,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/burntsushi/toml"
+	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 )
 
