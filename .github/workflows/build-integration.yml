@@ -1,0 +1,115 @@
+name: gocardless/draupnir/build-integration
+on:
+  push:
+    branches:
+    - master
+env:
+  GITHUB_TOKEN: xxxx6kKS
+jobs:
+  unit:
+    defaults:
+      run:
+        working-directory: "/project"
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.17
+    env:
+      TEST_RESULTS: "/tmp/test-results"
+      GOPATH: "/go"
+    steps:
+    - uses: actions/checkout@v2
+    - run: mkdir -p $TEST_RESULTS
+    - run: make test
+  rubocop:
+    defaults:
+      run:
+        working-directory: "~/draupnir"
+    runs-on: ubuntu-latest
+    container:
+      image: ruby:3.1.2
+    steps:
+    - uses: actions/checkout@v2
+    - run: bundle install
+    - run: bundle exec rubocop
+  build-linux:
+    defaults:
+      run:
+        working-directory: "/project"
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.17
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build linux binary
+      run: make build-production
+    - uses: actions/upload-artifact@v2
+      with:
+        path: "/project/*.linux_amd64"
+  check-deps-tidy:
+    defaults:
+      run:
+        working-directory: "/project"
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.17
+    steps:
+    - uses: actions/checkout@v2
+    - run: go mod tidy
+    - run: |
+        if ! git diff --exit-code -- go.mod go.sum; then
+          echo "Modules not tidy; please run 'go mod tidy'";
+        fi;
+  check-deps-updated:
+    defaults:
+      run:
+        working-directory: "/project"
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.17
+    steps:
+    - uses: actions/checkout@v2
+    - run: go mod download
+    - run: env GOPROXY=off go build -mod=readonly ./...
+  integration:
+    runs-on: ubuntu-latest
+    needs:
+    - build-linux
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        path: workspace
+    - name: Set Ruby version
+      run: |-
+        RUBY_VERSION=$(cat .ruby-version)
+        rvm install $RUBY_VERSION
+        echo . $(rvm $RUBY_VERSION do rvm env --path) >> $BASH_ENV
+    - name: Install Ruby bundle
+      run: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
+    - name: Run integration tests
+      run: cp workspace/*.linux_amd64 ./ && make test-integration
+  release:
+    if: contains('refs/heads/master', github.ref)
+    defaults:
+      run:
+        working-directory: "/project"
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.17
+    needs:
+    - integration
+    steps:
+    - uses: actions/checkout@v2
+    - name: Release
+      run: |-
+        CURRENT_VERSION="v$(cat DRAUPNIR_VERSION)"
+        if [[ $(git tag -l "${CURRENT_VERSION}") == "${CURRENT_VERSION}" ]]; then
+          echo "Version ${CURRENT_VERSION} is already released"
+          exit 0
+        fi
+        curl -L -o /tmp/goreleaser_Linux_x86_64.tar.gz https://github.com/goreleaser/goreleaser/releases/download/v1.10.2/goreleaser_Linux_x86_64.tar.gz
+        tar zxf /tmp/goreleaser_Linux_x86_64.tar.gz -C /tmp
+        git log --pretty=oneline --abbrev-commit --no-decorate --no-color "$(git describe --tags --abbrev=0)..HEAD" -- pkg cmd vendor internal > /tmp/release-notes
+        git tag "${CURRENT_VERSION}"
+        git push --tags
+        /tmp/goreleaser --rm-dist --release-notes /tmp/release-notes
