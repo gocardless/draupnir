@@ -113,7 +113,7 @@ GEM
       rubocop (~> 1.31)
     ruby-progressbar (1.11.0)
     stud (0.0.23)
-    tzinfo (2.0.4)
+    tzinfo (2.0.5)
       concurrent-ruby (~> 1.0)
     unf (0.1.4)
       unf_ext
