@@ -1,0 +1,94 @@
+name: build-integration
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+
+  push:
+    branches:
+      - master
+
+concurrency:
+  # running pipeline per workflow per PR
+  group: ${{ github.head_ref || github.run_id }}-${{ github.workflow }}
+  # Running a new pipeline will cancel any running pipelines that belong to the above group
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.3
+      - run: make test
+
+  rubocop:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - run: bundle exec rubocop
+
+  check-deps-tidy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.3
+      - run: go mod tidy
+      - run: |
+          if ! git diff --exit-code -- go.mod go.sum; then
+            echo "Modules not tidy; please run 'go mod tidy'";
+          fi;
+
+  check-deps-updated:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.3
+      - run: go mod download
+      - run: env GOPROXY=off go build -mod=readonly ./...
+
+  integration:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.3
+      - name: Build linux binary
+        run: make build-production
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Run integration tests
+        run: make test-integration
+
+  release:
+    if: contains('refs/heads/master', github.ref)
+    needs: integration
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.3
+      - name: Release
+        run: |-
+          CURRENT_VERSION="v$(cat DRAUPNIR_VERSION)"
+          if [[ $(git tag -l "${CURRENT_VERSION}") == "${CURRENT_VERSION}" ]]; then
+            echo "Version ${CURRENT_VERSION} is already released"
+            exit 0
+          fi
+          curl -L -o /tmp/goreleaser_Linux_x86_64.tar.gz https://github.com/goreleaser/goreleaser/releases/download/v1.10.2/goreleaser_Linux_x86_64.tar.gz
+          tar zxf /tmp/goreleaser_Linux_x86_64.tar.gz -C /tmp
+          git log --pretty=oneline --abbrev-commit --no-decorate --no-color "$(git describe --tags --abbrev=0)..HEAD" -- pkg cmd vendor internal > /tmp/release-notes
+          git tag "${CURRENT_VERSION}"
+          git push --tags
+          /tmp/goreleaser --rm-dist --release-notes /tmp/release-notes
