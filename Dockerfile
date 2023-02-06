@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:23.04
 
 ENV POSTGRESQL_VERSION=14
 RUN set -x \
