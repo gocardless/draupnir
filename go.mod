@@ -32,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.0.4 // indirect
 	golang.org/x/crypto v0.0.0-20180123095555-3d37316aaa6b // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20180125080817-ef802241c90f // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/appengine v1.0.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
