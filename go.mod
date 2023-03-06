@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/coreos/go-iptables v0.6.0
 	github.com/getsentry/raven-go v0.2.1-0.20190619092523-5c24d5110e0e
-	github.com/google/jsonapi v0.0.0-20160922220230-925ebf213646
+	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.6
 	github.com/oklog/run v1.1.0
