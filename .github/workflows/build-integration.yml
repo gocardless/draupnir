@@ -92,3 +92,5 @@ jobs:
           git tag "${CURRENT_VERSION}"
           git push --tags
           /tmp/goreleaser --rm-dist --release-notes /tmp/release-notes
+
+# test ci
