@@ -20,7 +20,7 @@ GEM
       multi_json
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
-    dotenv (2.7.6)
+    dotenv (3.0.2)
     excon (0.92.3)
     fpm (1.14.2)
       arr-pm (~> 0.0.11)
