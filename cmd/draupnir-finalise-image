@@ -84,9 +84,12 @@ cat > "${UPLOAD_PATH}/pg_hba.conf" <<EOF
 # NOTE: The cert auth method is essential - without this the Draupnir instance
 # will be accessible to anyone with knowledge of the host and port.
 # Do not edit this unless you are absolutely certain of the consequences.
-local   all     all                             trust
-hostssl all     draupnir        0.0.0.0/0       cert    map=draupnir
+local   all             all                                     trust
+hostssl all             draupnir        127.0.0.1/32            cert    map=draupnir
+hostssl all             draupnir        ::1/128                 cert    map=draupnir
+hostssl all             draupnir        0.0.0.0/0               cert    map=draupnir
 EOF
+
 
 # Draupnir instances run as the draupnir-instance user
 find "${UPLOAD_PATH}" -user postgres -exec chown draupnir-instance {} \;
