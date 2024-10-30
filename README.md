@@ -661,6 +661,6 @@ Draupnir.
 
 Common causes for an invalid refresh token are:
 - The user has revoked the application's third-party access in the Google
-  account dashboard.
+  account dashboard. 
 - The user is suspended via G Suite.
 - The user has been deleted.
