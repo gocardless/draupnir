@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   unit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: actions/setup-go@v3
@@ -24,7 +24,7 @@ jobs:
       - run: make test
 
   rubocop:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: ruby/setup-ruby@v1
@@ -33,7 +33,7 @@ jobs:
       - run: bundle exec rubocop
 
   check-deps-tidy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: actions/setup-go@v3
@@ -46,7 +46,7 @@ jobs:
           fi;
 
   check-deps-updated:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: actions/setup-go@v3
@@ -56,7 +56,7 @@ jobs:
       - run: env GOPROXY=off go build -mod=readonly ./...
 
   integration:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: actions/setup-go@v3
@@ -73,7 +73,9 @@ jobs:
   release:
     if: contains('refs/heads/master', github.ref)
     needs: integration
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3.1.0
       - uses: actions/setup-go@v3
