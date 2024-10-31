@@ -1,6 +1,10 @@
 Changelog
 =========
 
+5.3.4
+-----
+- Patching security-impacting dependencies - activesupport, git, arr-pm - PDFR-43151.
+
 5.3.1
 -----
 - Update goreleaser to generate a new homebrew formula. No functional changes to the code
