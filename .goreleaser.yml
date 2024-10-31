@@ -1,4 +1,5 @@
 ---
+version: 2
 project_name: draupnir
 
 builds:
@@ -10,7 +11,7 @@ builds:
     ldflags: -s -w -X github.com/gocardless/draupnir/pkg/version.Version={{.Version}} -X main.commit={{.Commit}}
 
 brews:
-  - tap:
+  - repository:
       owner: gocardless
       name: homebrew-taps
     commit_author:
@@ -18,7 +19,7 @@ brews:
       email: engineering@gocardless.com
     install: bin.install "draupnir"
     description: Client for the draupnir database service
-    folder: Formula
+    directory: Formula
     test: system "draupnir-client help"
 
 nfpms:
