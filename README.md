@@ -1,6 +1,8 @@
 Draupnir
 ========
 
+[![explore database with Azimutt](https://img.shields.io/badge/PostgreSQL-browse_online-gray?labelColor=4169E1&logo=postgresql&logoColor=fff&style=flat)](https://azimutt.app/create?sql=https://raw.githubusercontent.com/gocardless/draupnir/refs/heads/master/structure.sql&name=Draupni)
+
 Draupnir is a tool that provides on-demand Postgres databases with preloaded data.
 
 > *Odin laid upon the pyre the gold ring called Draupnir; this quality attended it: that every ninth night there fell from it eight gold rings of equal weight.*
