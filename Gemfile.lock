@@ -33,7 +33,7 @@ GEM
     dotenv (2.7.6)
     drb (2.2.0)
       ruby2_keywords
-    excon (0.92.3)
+    excon (1.2.2)
     fpm (1.14.2)
       arr-pm (~> 0.0.11)
       backports (>= 2.6.2)
