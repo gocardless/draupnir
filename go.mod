@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/common v0.0.0-20180110214958-89604d197083
 	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli v1.22.9
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.23.0
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 	google.golang.org/api v0.0.0-20171021000356-7afc123cf726
 )
@@ -30,10 +30,10 @@ require (
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.0.4 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	google.golang.org/appengine v1.0.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
